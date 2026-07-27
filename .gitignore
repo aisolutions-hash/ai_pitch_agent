@@ -22,6 +22,9 @@ pycache/
 dist/
 build/
 
+# Scraper
+scraped_contacts/
+
 # OS
 .DS_Store
 Thumbs.db
