@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% block title %}Campaign Dashboard{% endblock %}
+{% block header_title %}Email Campaign Dashboard{% endblock %}
+{% block header_lead %}Track the performance of your email campaigns.{% endblock %}
+
+{% block content %}
+<div class="w-full min-h-screen bg-slate-900 text-slate-300 p-4 sm:p-6 lg:p-8">
+    <div class="text-center mb-8">
+        <h1 class="text-4xl font-bold text-white">Email Campaign Dashboard</h1>
+        <p class="text-slate-400 mt-2">Track the performance of your email campaigns.</p>
+        <a href="{% url 'ai_agent_pitch:pitch_creator' %}" class="inline-block bg-purple-600 text-white font-semibold py-2 px-4 mt-4 rounded-lg hover:bg-purple-500 transition duration-150">← Back to Editor</a>
+    </div>
+    
+    <div class="max-w-6xl mx-auto bg-slate-800/50 border border-slate-700 rounded-2xl p-6 mb-8">
+        <h2 class="text-xl font-semibold text-white mb-4 border-b border-slate-700 pb-2">Campaign Overview</h2>
+        <div class="overflow-x-auto">
+            <table class="min-w-full border-collapse text-slate-300">
+                <thead>
+                    <tr class="bg-slate-700">
+                        <th class="border border-slate-600 p-3 text-left">Subject</th>
+                        <th class="border border-slate-600 p-3 text-left">Sent At</th>
+                        <th class="border border-slate-600 p-3 text-center">Total Sent</th>
+                        <th class="border border-slate-600 p-3 text-center">Total Opened</th>
+                        <th class="border border-slate-600 p-3 text-center">Open Rate</th>
+                        <th class="border border-slate-600 p-3 text-center">Details</th>
+                    </tr>
+                </thead>
+                <tbody id="campaign_list">
+                    <tr>
+                        <td colspan="6" class="p-4 text-center text-slate-400">Loading campaigns...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="max-w-6xl mx-auto bg-slate-800/50 border border-slate-700 rounded-2xl p-6">
+        <h2 class="text-xl font-semibold text-white mb-4 border-b border-slate-700 pb-2">Last 10 Campaigns Performance</h2>
+        <div class="h-80 w-full">
+            <canvas id="campaignChart"></canvas>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+<script>
+    const csrftoken = getCookie('csrftoken');
+    const campaignDetailBase = "{% url 'ai_agent_pitch:campaign_detail' 0 %}".replace('/0/', '/');
+
+    // Function to load campaign data and update the chart/table
+    async function loadCampaigns() {
+        const campaignList = document.getElementById('campaign_list');
+        campaignList.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-purple-400">Loading campaigns...</td></tr>`;
+
+        try {
+            const response = await fetch('{% url "ai_agent_pitch:get_campaigns" %}', {
+                method: 'POST',
+                headers: { 'X-CSRFToken': csrftoken }
+            })
+            .then(response => response.json());
+
+            if (response.status === 'success' && response.campaigns.length > 0) {
+                const campaigns = response.campaigns.reverse(); // Show latest first
+                
+                // 1. Update Table
+                campaignList.innerHTML = '';
+                campaigns.forEach(c => {
+                    const openRate = c.total_sent > 0 ? ((c.total_opened / c.total_sent) * 100).toFixed(1) : '0.0';
+                    const row = `
+                        <tr class="hover:bg-slate-700/70 transition duration-150">
+                            <td class="border border-slate-600 p-3">${c.subject}</td>
+                            <td class="border border-slate-600 p-3 text-sm">${c.sent_at}</td>
+                            <td class="border border-slate-600 p-3 text-center">${c.total_sent}</td>
+                            <td class="border border-slate-600 p-3 text-center">${c.total_opened}</td>
+                            <td class="border border-slate-600 p-3 text-center font-semibold text-green-400">${openRate}%</td>
+                            <td class="border border-slate-600 p-3 text-center">
+                                <a href="${campaignDetailBase}${c.id}/" class="text-purple-400 hover:text-purple-300 font-medium">View</a>
+                            </td>
+                        </tr>
+                    `;
+
+                    campaignList.innerHTML += row;
+                });
+
+                // 2. Update Chart (Last 10)
+                const chartCampaigns = campaigns.slice(0, 10).reverse(); // Get latest 10 for chart
+                const labels = chartCampaigns.map(c => c.subject.length > 20 ? c.subject.substring(0, 20) + '...' : c.subject);
+                const sentData = chartCampaigns.map(c => c.total_sent);
+                const openedData = chartCampaigns.map(c => c.total_opened);
+
+                const ctx = document.getElementById('campaignChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            { label: 'Total Sent', data: sentData, backgroundColor: 'rgba(139, 92, 246, 0.7)' },
+                            { label: 'Total Opened', data: openedData, backgroundColor: 'rgba(6, 182, 212, 0.7)' }
+                        ]
+                    },
+                    options: {
+                        responsive: true, 
+                        maintainAspectRatio: false,
+                        scales: { 
+                            y: { 
+                                beginAtZero: true, 
+                                ticks: { color: '#9ca3af' }, 
+                                grid: { color: '#334155' } // Dark grid lines
+                            }, 
+                            x: { 
+                                ticks: { color: '#9ca3af' },
+                                grid: { color: '#334155' } // Dark grid lines
+                            } 
+                        },
+                        plugins: {
+                            legend: {
+                                labels: { color: '#e2e8f0' } // Light text for legend
+                            }
+                        }
+                    },
+                });
+
+            } else {
+                campaignList.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-yellow-400">No campaigns found yet.</td></tr>`;
+            }
+        } catch (error) {
+            console.error('Error fetching campaigns:', error);
+            campaignList.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-red-400">Error loading data. See console.</td></tr>`;
+        }
+    }
+
+    // Load data on page load
+    document.addEventListener('DOMContentLoaded', loadCampaigns);
+
+</script>
+{% endblock %}
+{% endblock %}

@@ -1,0 +1,54 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}AI Pitch Engine{% endblock %}</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
+    <link rel="stylesheet" href="{% static 'css/custom.css' %}">
+    <script src="{% static 'js/shared.js' %}"></script>
+</head>
+<body class="bg-slate-900 text-slate-200 min-h-screen">
+
+    <nav class="bg-slate-800 shadow-lg sticky top-0 z-10">
+        <div class="max-w-6xl mx-auto px-4">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center space-x-6">
+                    <a href="{% url 'ai_agent_pitch:pitch_creator' %}" class="text-xl font-bold text-purple-400">AI Pitch Engine</a>
+                    
+                    <a href="{% url 'dashboard-home' %}" class="font-bold text-white text-base hover:text-purple-400 transition duration-150">Dashboard</a>
+                    
+                    <span class="text-slate-600 hidden md:inline">|</span>
+                    
+                    <div class="hidden md:flex items-center space-x-1">
+                        <a href="{% url 'ai_agent_pitch:pitch_creator' %}" class="py-4 px-3 text-slate-300 hover:text-purple-400 transition duration-150">AI Pitch Agent</a>
+                        
+                        <a href="{% url 'ai_agent_pitch:dashboard' %}" class="py-4 px-3 text-slate-300 hover:text-purple-400 transition duration-150">Pitch Dashboard</a>
+                        
+                        <a href="{% url 'extractor:search' %}" class="py-4 px-3 text-slate-300 hover:text-purple-400 transition duration-150">Supplier Search</a>
+
+                        <a href="{% url 'pitch_generator:create_pitch' %}" class="py-4 px-3 text-slate-300 hover:text-purple-400 transition duration-150 border-b-2 border-transparent hover:border-purple-400">Smart Sales Gen</a>
+                    </div>
+                </div>
+                <div class="hidden md:flex items-center space-x-1">
+                    <a href="{% url 'admin:index' %}" class="py-2 px-3 bg-purple-600/20 text-purple-300 rounded hover:bg-purple-600/40 transition duration-150">Admin Panel</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main>
+        {% block content %}
+        {% endblock %}
+    </main>
+    
+    {% block extra_js %}
+    {% endblock %}
+    
+    <script src="{% static 'js/main.js' %}"></script>
+
+</body>
+</html>

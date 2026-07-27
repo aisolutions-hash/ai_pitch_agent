@@ -1,0 +1,41 @@
+env
+credentials.json
+__pycache__/
+.env
+.env.local
+.env.*.local
+
+# Database
+db.sqlite3
+*.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Python
+pycache/
+*.egg-info/
+dist/
+build/
+
+# OS
+.DS_Store
+Thumbs.db
+.env
+
+
+
+
+
+
+
+
+
+
+
+
+

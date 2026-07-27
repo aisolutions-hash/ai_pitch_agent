@@ -1,0 +1,913 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}KalisoftAI Dashboard{% endblock %}
+
+{% block content %}
+    <!-- Stats Row - Compact Metric Tiles -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
+        <div class="glass rounded-xl p-4 hover-lift">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-lg bg-purple-500/20 flex items-center justify-center flex-shrink-0">
+                    <svg class="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.856-1.487M15 10h.01M13 10h.01M11 10h.01M5 10h.01M3 20h5v-2a3 3 0 00-5.856-1.487M15 5a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    </svg>
+                </div>
+                <div class="min-w-0">
+                    <p class="text-xs text-slate-400 font-medium truncate">Total Contacts</p>
+                    <p class="text-2xl font-bold text-white mt-0.5 tabular-nums" id="count-total">0</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="glass rounded-xl p-4 hover-lift">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-lg bg-blue-500/20 flex items-center justify-center flex-shrink-0">
+                    <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-2-2 2 2 0 00-2 2v7h-4v-7a6 6 0 016-6zM2 9h4v12H2zM4 6a2 2 0 100-4 2 2 0 000 4z"/>
+                    </svg>
+                </div>
+                <div class="min-w-0">
+                    <p class="text-xs text-slate-400 font-medium truncate">LinkedIn</p>
+                    <p class="text-2xl font-bold text-white mt-0.5 tabular-nums" id="count-linkedin">0</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="glass rounded-xl p-4 hover-lift">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-lg bg-amber-500/20 flex items-center justify-center flex-shrink-0">
+                    <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                    </svg>
+                </div>
+                <div class="min-w-0">
+                    <p class="text-xs text-slate-400 font-medium truncate">Suppliers</p>
+                    <p class="text-2xl font-bold text-white mt-0.5 tabular-nums" id="count-suppliers">0</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="glass rounded-xl p-4 hover-lift">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-lg bg-teal-500/20 flex items-center justify-center flex-shrink-0">
+                    <svg class="w-4 h-4 text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z"/>
+                    </svg>
+                </div>
+                <div class="min-w-0">
+                    <p class="text-xs text-slate-400 font-medium truncate">Buyers</p>
+                    <p class="text-2xl font-bold text-white mt-0.5 tabular-nums" id="count-buyers">0</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CSV Summary Bar -->
+    <div class="glass rounded-xl p-3 mb-6 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center">
+                <svg class="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+            </div>
+            <div>
+                <span class="text-sm text-slate-300 font-medium">CSV Files</span>
+                <span class="text-xs text-slate-500 ml-2"><span id="csv-summary-total">0</span> uploaded</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Category Tabs -->
+    <div class="flex gap-1 mb-6 bg-slate-800/20 rounded-xl p-1 glass" id="tabBar">
+        {% for cat in categories %}
+        <button data-cat="{{ cat.name }}"
+                onclick="switchTab('{{ cat.name }}')"
+                class="tab-btn flex-1 py-2.5 px-4 rounded-lg text-sm font-medium text-slate-400 hover:text-white transition-all duration-200 {% if forloop.first %}active bg-slate-800/60 text-white{% endif %}">
+            {{ cat.label }}
+        </button>
+        {% endfor %}
+    </div>
+
+    <!-- Active Category Section -->
+    {% for cat in categories %}
+    <div id="section-{{ cat.name }}" class="tab-content {% if not forloop.first %}hidden{% endif %}">
+        <div class="flex items-center justify-between mb-5">
+            <div class="flex items-center gap-3">
+                <h2 class="text-xl font-bold text-white">{{ cat.label }}</h2>
+                <span id="badge-{{ cat.name }}" class="text-xs bg-white/10 text-slate-300 px-2.5 py-0.5 rounded-full">0</span>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="openUploadModal('{{ cat.name }}')" class="btn-press px-3.5 py-2 border border-white/10 text-slate-300 rounded-lg hover:bg-white/5 transition-colors text-xs font-medium flex items-center gap-1.5">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                    </svg>
+                    Upload CSV
+                </button>
+                <button onclick="openAddModal('{{ cat.name }}')" class="btn-press px-3.5 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-xs font-medium flex items-center gap-1.5">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    </svg>
+                    Add Contact
+                </button>
+            </div>
+        </div>
+
+        <!-- Contact Cards Grid -->
+        <div id="grid-{{ cat.name }}" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-5"></div>
+
+        <!-- CSV Files (collapsible) -->
+        <div class="glass rounded-xl overflow-hidden">
+            <button onclick="toggleCsv('{{ cat.name }}')" class="w-full flex items-center justify-between p-3.5 hover:bg-white/5 transition-colors">
+                <div class="flex items-center gap-2">
+                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    <span class="text-sm font-medium text-slate-300">CSV Files</span>
+                    <span id="csv-badge-{{ cat.name }}" class="text-xs bg-white/10 text-slate-400 px-2 py-0.5 rounded-full">0</span>
+                </div>
+                <svg id="csv-chevron-{{ cat.name }}" class="w-4 h-4 text-slate-500 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                </svg>
+            </button>
+            <div id="csv-body-{{ cat.name }}" class="hidden border-t border-white/5">
+                <div class="p-3">
+                    <div class="flex gap-2 mb-3">
+                        <input type="text" id="csv-search-{{ cat.name }}" placeholder="Filter files..." class="flex-1 px-3 py-1.5 bg-slate-800/60 border border-white/10 text-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent">
+                    </div>
+                    <div id="csv-list-{{ cat.name }}">
+                        <div class="text-center text-slate-500 text-xs py-6">No CSV files uploaded</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+
+    <!-- Upload CSV Modal -->
+    <div id="uploadModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-2xl w-full p-6">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-xl font-bold text-white">Upload CSV</h3>
+                <button onclick="closeUploadModal()" class="text-slate-400 hover:text-white">✕</button>
+            </div>
+
+            <!-- Category display -->
+            <div class="mb-4 flex items-center gap-2">
+                <span class="text-sm text-slate-400">Category:</span>
+                <span id="uploadCategoryDisplay" class="text-sm font-medium text-white capitalize bg-slate-700 px-3 py-1 rounded-full"></span>
+            </div>
+
+            <!-- Inline messages -->
+            <div id="uploadMessage" class="hidden mb-4 p-3 rounded-lg text-sm"></div>
+
+            <!-- Drop Zone -->
+            <div id="dropZone" class="border-2 border-dashed border-slate-600 rounded-xl p-8 text-center mb-6 hover:border-purple-600 transition-colors cursor-pointer bg-slate-900/50">
+                <input type="file" id="csvFile" accept=".csv" class="hidden" onchange="handleCSVSelect(event)">
+                <div onclick="document.getElementById('csvFile').click()">
+                    <div class="text-4xl mb-3">📁</div>
+                    <p class="text-slate-300 font-medium">Drop CSV file here or click to select</p>
+                    <p class="text-slate-500 text-sm mt-1">Supports .csv files with columns: name, company, email, phone, linkedin_url, website</p>
+                </div>
+            </div>
+
+            <!-- Selected file info -->
+            <div id="fileInfo" class="hidden mb-4 flex items-center gap-3 bg-slate-700/50 rounded-lg p-3">
+                <svg class="w-6 h-6 text-green-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <div class="flex-1 min-w-0">
+                    <p id="selectedFileName" class="text-sm font-medium text-slate-200 truncate"></p>
+                    <p id="selectedFileSize" class="text-xs text-slate-400"></p>
+                </div>
+                <button onclick="clearFileSelection()" class="text-slate-400 hover:text-white text-xs">Remove</button>
+            </div>
+
+            <!-- Preview Table -->
+            <div id="previewContainer" class="hidden mb-6">
+                <p class="text-slate-400 text-sm mb-3">Preview (first 5 rows)</p>
+                <div class="overflow-x-auto">
+                    <table id="previewTable" class="w-full text-xs text-slate-300 border-collapse">
+                    </table>
+                </div>
+                <p id="previewNote" class="text-xs text-slate-500 mt-2"></p>
+            </div>
+
+            <!-- Buttons -->
+            <div class="flex gap-3 justify-end">
+                <button onclick="closeUploadModal()" class="px-4 py-2 border border-slate-600 text-slate-300 rounded-lg hover:border-slate-500 hover:bg-slate-700 transition-colors">Cancel</button>
+                <button id="confirmUploadBtn" onclick="confirmUploadCSV()" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors hidden">
+                    <span id="uploadBtnText">Confirm Upload</span>
+                    <svg id="uploadSpinner" class="hidden animate-spin h-4 w-4 ml-2 inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Contact Modal -->
+    <div id="addModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-xl font-bold text-white">Add Contact</h3>
+                <button onclick="closeAddModal()" class="text-slate-400 hover:text-white">✕</button>
+            </div>
+
+            <div id="addMessage" class="hidden mb-4 p-3 rounded-lg text-sm"></div>
+
+            <form id="addContactForm" class="space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-1">Name *</label>
+                        <input type="text" id="contactName" required class="w-full px-3 py-2 bg-slate-700 border border-slate-600 text-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent" placeholder="John Doe">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-1">Company</label>
+                        <input type="text" id="contactCompany" class="w-full px-3 py-2 bg-slate-700 border border-slate-600 text-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent" placeholder="Acme Inc">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-1">Email</label>
+                        <input type="email" id="contactEmail" class="w-full px-3 py-2 bg-slate-700 border border-slate-600 text-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent" placeholder="john@example.com">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-1">Phone</label>
+                        <input type="tel" id="contactPhone" class="w-full px-3 py-2 bg-slate-700 border border-slate-600 text-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent" placeholder="+1-555-000-0000">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-1">LinkedIn URL</label>
+                        <input type="url" id="contactLinkedIn" class="w-full px-3 py-2 bg-slate-700 border border-slate-600 text-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent" placeholder="https://linkedin.com/in/...">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-1">Website</label>
+                        <input type="url" id="contactWebsite" class="w-full px-3 py-2 bg-slate-700 border border-slate-600 text-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent" placeholder="https://example.com">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-1">Tags (comma-separated)</label>
+                    <input type="text" id="contactTags" class="w-full px-3 py-2 bg-slate-700 border border-slate-600 text-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent" placeholder="decision-maker, interested">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-1">Notes</label>
+                    <textarea id="contactNotes" rows="4" class="w-full px-3 py-2 bg-slate-700 border border-slate-600 text-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent" placeholder="Add any additional notes..."></textarea>
+                </div>
+
+                <div class="flex gap-3 justify-end pt-4">
+                    <button type="button" onclick="closeAddModal()" class="px-4 py-2 border border-slate-600 text-slate-300 rounded-lg hover:border-slate-500 hover:bg-slate-700 transition-colors">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">Add Contact</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Contact Detail Modal -->
+    <div id="contactModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-2xl w-full p-6">
+            <div class="flex items-center justify-between mb-6">
+                <h3 id="modalContactName" class="text-xl font-bold text-white">Contact Details</h3>
+                <button onclick="closeContactModal()" class="text-slate-400 hover:text-white">✕</button>
+            </div>
+
+            <div id="modalContactContent" class="space-y-4 mb-6">
+            </div>
+
+            <div class="flex gap-3 justify-end">
+                <button onclick="closeContactModal()" class="px-4 py-2 border border-slate-600 text-slate-300 rounded-lg hover:border-slate-500 hover:bg-slate-700 transition-colors">Close</button>
+                <button id="deleteContactBtn" onclick="deleteContact()" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirm Delete CSV Modal -->
+    <div id="confirmCsvDeleteModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-md w-full p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-bold text-white">Delete CSV File</h3>
+                <button onclick="closeCsvDeleteModal()" class="text-slate-400 hover:text-white">✕</button>
+            </div>
+            <p class="text-slate-300 text-sm mb-2">Are you sure you want to delete <span id="csvDeleteFileName" class="font-medium text-white"></span>?</p>
+            <p class="text-slate-500 text-xs mb-6">This action cannot be undone.</p>
+            <div class="flex gap-3 justify-end">
+                <button onclick="closeCsvDeleteModal()" class="px-4 py-2 border border-slate-600 text-slate-300 rounded-lg hover:border-slate-500 hover:bg-slate-700 transition-colors">Cancel</button>
+                <button id="confirmCsvDeleteBtn" onclick="executeCsvDelete()" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">Delete</button>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const categories = [
+        { name: 'linkedin', label: 'LinkedIn Contacts' },
+        { name: 'suppliers', label: 'Suppliers' },
+        { name: 'buyers', label: 'Buyers' },
+        { name: 'events', label: 'Events' }
+    ];
+
+    let currentCategory = categories[0].name;
+    let currentContactData = null;
+    let pendingDeleteCsv = null;
+
+    /* ---------- Tab Switching ---------- */
+    function switchTab(catName) {
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.classList.remove('active', 'bg-slate-800/60', 'text-white');
+        });
+        const btn = document.querySelector(`.tab-btn[data-cat="${catName}"]`);
+        if (btn) btn.classList.add('active', 'bg-slate-800/60', 'text-white');
+
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+        const section = document.getElementById(`section-${catName}`);
+        if (section) section.classList.remove('hidden');
+
+        currentCategory = catName;
+        const grid = document.getElementById(`grid-${catName}`);
+        if (grid && grid.children.length === 0) {
+            loadCategory(catName);
+        }
+        loadCsvFiles(catName);
+    }
+
+    function toggleCsv(catName) {
+        const body = document.getElementById(`csv-body-${catName}`);
+        const chevron = document.getElementById(`csv-chevron-${catName}`);
+        if (!body) return;
+        body.classList.toggle('hidden');
+        if (chevron) chevron.style.transform = body.classList.contains('hidden') ? '' : 'rotate(180deg)';
+    }
+
+    function showSkeletons(category) {
+        const gridElement = document.getElementById(`grid-${category}`);
+        if (!gridElement) return;
+        let skeletonHTML = '';
+        for (let i = 0; i < 6; i++) skeletonHTML += createSkeletonCard();
+        gridElement.innerHTML = skeletonHTML;
+    }
+
+    async function loadCategory(category) {
+        showSkeletons(category);
+        try {
+            const response = await fetch(`/api/contacts/list/?category=${category}`);
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            const data = await response.json();
+            if (data.error) renderError(category, data.error);
+            else renderCards(category, data);
+        } catch (error) {
+            console.error(`Error loading ${category} contacts:`, error);
+            renderError(category, 'Failed to load contacts');
+        }
+    }
+
+    function renderCards(category, contacts) {
+        const gridElement = document.getElementById(`grid-${category}`);
+        if (!gridElement) return;
+
+        if (!contacts || contacts.length === 0) {
+            gridElement.innerHTML = `
+                <div class="col-span-full flex flex-col items-center justify-center py-16 text-slate-500">
+                    <svg class="w-12 h-12 mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.856-1.487M15 10h.01M13 10h.01M11 10h.01M5 10h.01M3 20h5v-2a3 3 0 00-5.856-1.487M15 5a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    </svg>
+                    <p class="text-sm font-medium">No contacts yet</p>
+                    <p class="text-xs mt-1 opacity-60">Click "Add Contact" to get started</p>
+                </div>
+            `;
+            return;
+        }
+
+        gridElement.innerHTML = contacts.map(contact => {
+            const contactData = contact.data || contact;
+            const uid = contact.uid || Math.random().toString(36).substr(2, 9);
+            return `
+                <div class="contact-card glass rounded-xl p-4 hover-lift cursor-pointer group"
+                     onclick="openContactModal(${JSON.stringify(contactData).replace(/"/g, '&quot;')}, '${category}', '${uid}')">
+                    <div class="flex items-start justify-between mb-3">
+                        <div class="font-semibold text-white text-sm">${escapeHtml(contactData.name || 'N/A')}</div>
+                        <span class="text-xs px-2 py-0.5 rounded-full bg-white/10 text-slate-400">${category}</span>
+                    </div>
+                    <div class="text-xs text-slate-400 space-y-1.5">
+                        ${contactData.company ? `<div class="font-medium text-slate-300">${escapeHtml(contactData.company)}</div>` : ''}
+                        ${contactData.email ? `<div><a href="mailto:${escapeHtml(contactData.email)}" class="text-purple-400 hover:text-purple-300 break-all">${escapeHtml(contactData.email)}</a></div>` : ''}
+                        ${contactData.phone ? `<div class="text-slate-400">${escapeHtml(contactData.phone)}</div>` : ''}
+                        ${contactData.linkedin_url ? `<div><a href="${escapeHtml(contactData.linkedin_url)}" target="_blank" class="text-blue-400 hover:text-blue-300 inline-flex items-center gap-1">LinkedIn ↗</a></div>` : ''}
+                    </div>
+                    ${contactData.tags && contactData.tags.length > 0 ? `
+                        <div class="flex flex-wrap gap-1 mt-3">
+                            ${contactData.tags.map(tag => `<span class="text-xs bg-white/10 text-slate-400 px-2 py-0.5 rounded">${escapeHtml(tag)}</span>`).join('')}
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        }).join('');
+    }
+
+    function renderError(category, errorMessage) {
+        const gridElement = document.getElementById(`grid-${category}`);
+        if (!gridElement) return;
+        gridElement.innerHTML = `
+            <div class="col-span-full bg-red-900/20 border border-red-700/50 rounded-lg p-4 text-red-400 text-sm">
+                <p class="font-semibold">Error loading contacts</p>
+                <p class="text-xs mt-1">${escapeHtml(errorMessage)}</p>
+            </div>
+        `;
+    }
+
+    async function loadCounts() {
+        try {
+            const response = await fetch('/api/contacts/count/');
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            const counts = await response.json();
+            if (!counts.error) {
+                animateCount(document.getElementById('count-total'), counts.total || 0);
+                animateCount(document.getElementById('count-linkedin'), counts.linkedin || 0);
+                animateCount(document.getElementById('count-suppliers'), counts.suppliers || 0);
+                animateCount(document.getElementById('count-buyers'), counts.buyers || 0);
+
+                categories.forEach(cat => {
+                    const badge = document.getElementById(`badge-${cat.name}`);
+                    if (badge) badge.textContent = counts[cat.name] || 0;
+                });
+            }
+        } catch (error) {
+            console.error('Error loading counts:', error);
+        }
+    }
+
+    async function loadCsvCounts() {
+        try {
+            const response = await fetch('/api/csv/count/');
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            const counts = await response.json();
+            if (!counts.error) {
+                const total = counts.total || 0;
+                const summaryEl = document.getElementById('csv-summary-total');
+                if (summaryEl) summaryEl.textContent = total;
+                categories.forEach(cat => {
+                    const badge = document.getElementById(`csv-badge-${cat.name}`);
+                    if (badge) badge.textContent = counts[cat.name] || 0;
+                });
+            }
+        } catch (error) {
+            console.error('Error loading CSV counts:', error);
+        }
+    }
+
+    async function loadCsvFiles(category) {
+        try {
+            const response = await fetch(`/api/csv/list/?category=${category}`);
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            const files = await response.json();
+            renderCsvFiles(category, files || []);
+        } catch (error) {
+            console.error(`Error loading CSV files for ${category}:`, error);
+            const container = document.getElementById(`csv-list-${category}`);
+            if (container) container.innerHTML = `<div class="text-center text-red-400 text-xs py-4">Failed to load CSV files</div>`;
+        }
+    }
+
+    function renderCsvFiles(category, files) {
+        const container = document.getElementById(`csv-list-${category}`);
+        if (!container) return;
+
+        if (!files || files.length === 0) {
+            container.innerHTML = `<div class="text-center text-slate-500 text-xs py-6">No CSV files uploaded</div>`;
+            return;
+        }
+
+        container.innerHTML = `
+            <table class="w-full text-xs">
+                <thead>
+                    <tr class="text-slate-500 border-b border-white/10">
+                        <th class="text-left py-2 px-2 font-medium">Filename</th>
+                        <th class="text-left py-2 px-2 font-medium">Size</th>
+                        <th class="text-left py-2 px-2 font-medium">Updated</th>
+                        <th class="text-right py-2 px-2 font-medium">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="csv-tbody-${category}">
+                    ${files.map(f => `
+                        <tr class="csv-file-row border-b border-white/5 hover:bg-white/5 transition-colors" data-name="${escapeHtml(f.name).toLowerCase()}">
+                            <td class="py-2 px-2 text-slate-300 max-w-[200px] truncate" title="${escapeHtml(f.name)}">
+                                <span class="inline-flex items-center gap-1.5">
+                                    <svg class="w-3.5 h-3.5 text-green-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                    </svg>
+                                    ${escapeHtml(f.name)}
+                                </span>
+                            </td>
+                            <td class="py-2 px-2 text-slate-400">${escapeHtml(f.size_display || 'Unknown')}</td>
+                            <td class="py-2 px-2 text-slate-400">${f.updated ? formatDate(f.updated) : 'Unknown'}</td>
+                            <td class="py-2 px-2 text-right">
+                                <div class="flex gap-1 justify-end">
+                                    <a href="/api/csv/download/${category}/${encodeURIComponent(f.name)}/" target="_blank"
+                                       class="p-1.5 text-slate-400 hover:text-white hover:bg-white/10 rounded transition-colors" title="Download">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                        </svg>
+                                    </a>
+                                    <button onclick="openCsvDeleteModal('${category}', '${escapeHtml(f.name)}')"
+                                            class="p-1.5 text-slate-400 hover:text-red-400 hover:bg-red-900/30 rounded transition-colors" title="Delete">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
+
+        setupCsvSearch(category);
+    }
+
+    function setupCsvSearch(category) {
+        const input = document.getElementById(`csv-search-${category}`);
+        if (!input) return;
+        input.addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase();
+            const rows = document.querySelectorAll(`#csv-tbody-${category} .csv-file-row`);
+            rows.forEach(row => {
+                const name = row.getAttribute('data-name') || '';
+                row.style.display = name.includes(query) ? '' : 'none';
+            });
+        });
+    }
+
+    /* ---------- CSV Upload Modal ---------- */
+    function openUploadModal(category) {
+        currentCategory = category;
+        document.getElementById('uploadModal').classList.remove('hidden');
+        document.getElementById('uploadCategoryDisplay').textContent = category;
+        document.getElementById('previewContainer').classList.add('hidden');
+        document.getElementById('previewTable').innerHTML = '';
+        document.getElementById('confirmUploadBtn').classList.add('hidden');
+        document.getElementById('fileInfo').classList.add('hidden');
+        document.getElementById('csvFile').value = '';
+        document.getElementById('uploadMessage').classList.add('hidden');
+    }
+
+    function closeUploadModal() {
+        document.getElementById('uploadModal').classList.add('hidden');
+        currentCategory = null;
+    }
+
+    function clearFileSelection() {
+        document.getElementById('csvFile').value = '';
+        document.getElementById('fileInfo').classList.add('hidden');
+        document.getElementById('previewContainer').classList.add('hidden');
+        document.getElementById('confirmUploadBtn').classList.add('hidden');
+        document.getElementById('uploadMessage').classList.add('hidden');
+    }
+
+    function showUploadMessage(type, text) {
+        const msg = document.getElementById('uploadMessage');
+        msg.classList.remove('hidden', 'bg-green-900/30', 'text-green-400', 'bg-red-900/30', 'text-red-400', 'bg-yellow-900/30', 'text-yellow-400', 'bg-blue-900/30', 'text-blue-400');
+        if (type === 'success') msg.classList.add('bg-green-900/30', 'text-green-400');
+        else if (type === 'error') msg.classList.add('bg-red-900/30', 'text-red-400');
+        else if (type === 'warning') msg.classList.add('bg-yellow-900/30', 'text-yellow-400');
+        else msg.classList.add('bg-blue-900/30', 'text-blue-400');
+        msg.textContent = text;
+    }
+
+    function handleCSVSelect(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        document.getElementById('selectedFileName').textContent = file.name;
+        document.getElementById('selectedFileSize').textContent = formatFileSize(file.size);
+        document.getElementById('fileInfo').classList.remove('hidden');
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const csv = e.target.result;
+            const rows = csv.split('\n').filter(row => row.trim() !== '');
+
+            if (rows.length === 0) {
+                document.getElementById('previewContainer').classList.add('hidden');
+                document.getElementById('confirmUploadBtn').classList.remove('hidden');
+                document.getElementById('previewNote').textContent = '';
+                showUploadMessage('info', 'Empty CSV file. It will be stored but no contacts will be extracted.');
+                return;
+            }
+
+            const headers = rows[0].split(',').map(h => h.trim());
+            const dataRows = rows.slice(1, 6);
+
+            let tableHTML = '<thead><tr class="border-b border-slate-600">';
+            headers.forEach(h => {
+                tableHTML += `<th class="p-2 text-left text-slate-300 font-medium text-xs">${escapeHtml(h)}</th>`;
+            });
+            tableHTML += '</tr></thead><tbody>';
+
+            dataRows.forEach(row => {
+                const cells = row.split(',').map(c => c.trim());
+                tableHTML += '<tr class="border-b border-slate-700 hover:bg-slate-700/50">';
+                cells.forEach(cell => {
+                    tableHTML += `<td class="p-2 text-slate-300 text-xs">${escapeHtml(cell)}</td>`;
+                });
+                tableHTML += '</tr>';
+            });
+            tableHTML += '</tbody>';
+
+            document.getElementById('previewTable').innerHTML = tableHTML;
+            document.getElementById('previewContainer').classList.remove('hidden');
+            document.getElementById('confirmUploadBtn').classList.remove('hidden');
+
+            if (dataRows.length === 0) {
+                document.getElementById('previewNote').textContent = 'Header row only — no data rows to preview.';
+                showUploadMessage('info', 'Header-only CSV. It will be stored but no contacts will be extracted.');
+            } else {
+                document.getElementById('previewNote').textContent = '';
+                document.getElementById('uploadMessage').classList.add('hidden');
+            }
+        };
+        reader.readAsText(file);
+    }
+
+    async function confirmUploadCSV() {
+        const fileInput = document.getElementById('csvFile');
+        const file = fileInput.files[0];
+        if (!file) return;
+
+        const btn = document.getElementById('confirmUploadBtn');
+        const btnText = document.getElementById('uploadBtnText');
+        const spinner = document.getElementById('uploadSpinner');
+        btn.disabled = true;
+        btnText.textContent = 'Uploading...';
+        spinner.classList.remove('hidden');
+
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('category', currentCategory);
+
+        try {
+            const response = await fetch('/api/contacts/upload/', {
+                method: 'POST',
+                headers: { 'X-CSRFToken': getCookie('csrftoken') },
+                body: formData
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                showUploadMessage('success', result.message || `CSV "${file.name}" uploaded successfully.`);
+                if (result.warnings && result.warnings.length > 0) {
+                    result.warnings.forEach(w => showUploadMessage('warning', w));
+                }
+                setTimeout(() => {
+                    closeUploadModal();
+                    loadCategory(currentCategory);
+                    loadCounts();
+                    loadCsvFiles(currentCategory);
+                    loadCsvCounts();
+                }, 1500);
+            } else {
+                showUploadMessage('error', result.error || 'Upload failed.');
+            }
+        } catch (error) {
+            showUploadMessage('error', 'Network error during upload.');
+        } finally {
+            btn.disabled = false;
+            btnText.textContent = 'Confirm Upload';
+            spinner.classList.add('hidden');
+        }
+    }
+
+    /* ---------- Add Contact Modal ---------- */
+    function openAddModal(category) {
+        currentCategory = category;
+        document.getElementById('addContactForm').reset();
+        document.getElementById('addModal').classList.remove('hidden');
+        document.getElementById('addMessage').classList.add('hidden');
+    }
+
+    function closeAddModal() {
+        document.getElementById('addModal').classList.add('hidden');
+        currentCategory = null;
+    }
+
+    function showAddMessage(type, text) {
+        const msg = document.getElementById('addMessage');
+        msg.classList.remove('hidden', 'bg-green-900/30', 'text-green-400', 'bg-red-900/30', 'text-red-400');
+        if (type === 'success') msg.classList.add('bg-green-900/30', 'text-green-400');
+        else msg.classList.add('bg-red-900/30', 'text-red-400');
+        msg.textContent = text;
+    }
+
+    document.getElementById('addContactForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const contactData = {
+            name: document.getElementById('contactName').value,
+            company: document.getElementById('contactCompany').value,
+            email: document.getElementById('contactEmail').value,
+            phone: document.getElementById('contactPhone').value,
+            linkedin_url: document.getElementById('contactLinkedIn').value,
+            website: document.getElementById('contactWebsite').value,
+            tags: document.getElementById('contactTags').value.split(',').map(t => t.trim()).filter(t => t),
+            notes: document.getElementById('contactNotes').value
+        };
+
+        try {
+            const response = await fetch('/api/contacts/add/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+                body: JSON.stringify({ category: currentCategory, ...contactData })
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                showAddMessage('error', result.error || 'Failed to add contact');
+                return;
+            }
+
+            showAddMessage('success', 'Contact added successfully');
+            setTimeout(() => {
+                closeAddModal();
+                loadCategory(currentCategory);
+                loadCounts();
+            }, 800);
+        } catch (error) {
+            showAddMessage('error', 'Error adding contact: ' + error.message);
+        }
+    });
+
+    /* ---------- Contact Detail Modal ---------- */
+    function openContactModal(contact, category, uid) {
+        currentContactData = { contact, category, uid };
+        document.getElementById('modalContactName').textContent = contact.name || 'Contact Details';
+
+        let contentHTML = `
+            <div class="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                    <p class="text-slate-500 text-xs mb-1">Name</p>
+                    <p class="text-slate-200 font-medium">${escapeHtml(contact.name || 'N/A')}</p>
+                </div>
+                <div>
+                    <p class="text-slate-500 text-xs mb-1">Company</p>
+                    <p class="text-slate-200 font-medium">${escapeHtml(contact.company || 'N/A')}</p>
+                </div>
+                <div>
+                    <p class="text-slate-500 text-xs mb-1">Email</p>
+                    <p class="text-purple-400"><a href="mailto:${escapeHtml(contact.email || '')}">${escapeHtml(contact.email || 'N/A')}</a></p>
+                </div>
+                <div>
+                    <p class="text-slate-500 text-xs mb-1">Phone</p>
+                    <p class="text-slate-200">${escapeHtml(contact.phone || 'N/A')}</p>
+                </div>
+            </div>
+        `;
+
+        if (contact.linkedin_url) {
+            contentHTML += `
+                <div class="pt-2 border-t border-white/10">
+                    <p class="text-slate-500 text-xs mb-2">LinkedIn</p>
+                    <a href="${escapeHtml(contact.linkedin_url)}" target="_blank" class="text-blue-400 hover:text-blue-300 break-all">
+                        ${escapeHtml(contact.linkedin_url)}
+                    </a>
+                </div>
+            `;
+        }
+
+        if (contact.tags && contact.tags.length > 0) {
+            contentHTML += `
+                <div class="pt-2 border-t border-white/10">
+                    <p class="text-slate-500 text-xs mb-2">Tags</p>
+                    <div class="flex flex-wrap gap-2">
+                        ${contact.tags.map(tag => `<span class="bg-white/10 text-slate-300 text-xs px-2 py-1 rounded">${escapeHtml(tag)}</span>`).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        if (contact.notes) {
+            contentHTML += `
+                <div class="pt-2 border-t border-white/10">
+                    <p class="text-slate-500 text-xs mb-2">Notes</p>
+                    <p class="text-slate-300 text-sm">${escapeHtml(contact.notes)}</p>
+                </div>
+            `;
+        }
+
+        document.getElementById('modalContactContent').innerHTML = contentHTML;
+        document.getElementById('contactModal').classList.remove('hidden');
+    }
+
+    function closeContactModal() {
+        document.getElementById('contactModal').classList.add('hidden');
+        currentContactData = null;
+    }
+
+    async function deleteContact() {
+        if (!currentContactData) return;
+        if (!confirm(`Delete contact ${currentContactData.contact.name}?`)) return;
+
+        try {
+            const response = await fetch('/api/contacts/delete/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+                body: JSON.stringify({ category: currentContactData.category, uid: currentContactData.uid })
+            });
+
+            if (!response.ok) throw new Error('Failed to delete contact');
+
+            closeContactModal();
+            loadCategory(currentContactData.category);
+            loadCounts();
+        } catch (error) {
+            alert('Error deleting contact: ' + error.message);
+        }
+    }
+
+    /* ---------- CSV Delete Modal ---------- */
+    function openCsvDeleteModal(category, filename) {
+        pendingDeleteCsv = { category, filename };
+        document.getElementById('csvDeleteFileName').textContent = filename;
+        document.getElementById('confirmCsvDeleteModal').classList.remove('hidden');
+    }
+
+    function closeCsvDeleteModal() {
+        document.getElementById('confirmCsvDeleteModal').classList.add('hidden');
+        pendingDeleteCsv = null;
+    }
+
+    async function executeCsvDelete() {
+        if (!pendingDeleteCsv) return;
+
+        const btn = document.getElementById('confirmCsvDeleteBtn');
+        btn.disabled = true;
+        btn.textContent = 'Deleting...';
+
+        try {
+            const response = await fetch('/api/csv/delete/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+                body: JSON.stringify(pendingDeleteCsv)
+            });
+
+            if (!response.ok) throw new Error('Failed to delete CSV file');
+
+            closeCsvDeleteModal();
+            loadCsvFiles(pendingDeleteCsv.category);
+            loadCsvCounts();
+        } catch (error) {
+            alert('Error deleting CSV file: ' + error.message);
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Delete';
+        }
+    }
+
+    /* ---------- Global Search & Filter ---------- */
+    function setupGlobalSearch() {
+        const searchInput = document.getElementById('globalSearch');
+        if (!searchInput) return;
+
+        searchInput.addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase();
+            const currentGrid = document.getElementById(`grid-${currentCategory}`);
+            if (currentGrid) {
+                currentGrid.querySelectorAll('.contact-card').forEach(card => {
+                    card.style.display = card.textContent.toLowerCase().includes(query) ? '' : 'none';
+                });
+            }
+            const tbody = document.getElementById(`csv-tbody-${currentCategory}`);
+            if (tbody) {
+                tbody.querySelectorAll('.csv-file-row').forEach(row => {
+                    const name = row.getAttribute('data-name') || '';
+                    row.style.display = name.includes(query) ? '' : 'none';
+                });
+            }
+        });
+    }
+
+    /* ---------- Close modals on outside click ---------- */
+    document.getElementById('uploadModal')?.addEventListener('click', (e) => {
+        if (e.target.id === 'uploadModal') closeUploadModal();
+    });
+    document.getElementById('addModal')?.addEventListener('click', (e) => {
+        if (e.target.id === 'addModal') closeAddModal();
+    });
+    document.getElementById('contactModal')?.addEventListener('click', (e) => {
+        if (e.target.id === 'contactModal') closeContactModal();
+    });
+    document.getElementById('confirmCsvDeleteModal')?.addEventListener('click', (e) => {
+        if (e.target.id === 'confirmCsvDeleteModal') closeCsvDeleteModal();
+    });
+
+    /* ---------- Initialize ---------- */
+    document.addEventListener('DOMContentLoaded', () => {
+        loadCounts();
+        loadCsvCounts();
+        const firstCat = categories[0].name;
+        loadCategory(firstCat);
+        loadCsvFiles(firstCat);
+        setupGlobalSearch();
+    });
+</script>
+{% endblock %}

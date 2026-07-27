@@ -1,0 +1,79 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}KalisoftAI Dashboard{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
+    <script src="{% static 'js/shared.js' %}"></script>
+    <script src="{% static 'js/main.js' %}"></script>
+</head>
+<body class="bg-slate-900 text-slate-300">
+    <!-- Top Navbar -->
+    <nav class="fixed top-0 left-0 right-0 h-16 bg-slate-900 border-b border-slate-700 z-40">
+        <div class="h-full px-6 flex items-center justify-between">
+            <!-- Left: Logo + Text -->
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-lg flex items-center justify-center">
+                    <span class="text-white font-bold">K</span>
+                </div>
+                <span class="text-lg font-bold text-white hidden md:inline">KalisoftAI</span>
+            </div>
+
+            <!-- Center: Search -->
+            <div class="flex-1 max-w-sm mx-8">
+                <input 
+                    type="text" 
+                    id="globalSearch" 
+                    placeholder="Search contacts..." 
+                    class="w-full px-4 py-2 bg-slate-800 border border-slate-600 text-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                >
+            </div>
+
+
+        </div>
+    </nav>
+
+    <!-- Left Sidebar -->
+    <aside class="fixed left-0 top-16 w-56 h-full bg-slate-900 border-r border-slate-700 overflow-y-auto z-30">
+        <nav class="p-4 space-y-2">
+            <!-- Dashboard Section -->
+            <a href="/" class="flex items-center gap-3 px-4 py-2.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors">
+                <span class="text-lg">🏠</span>
+                <span>Dashboard</span>
+            </a>
+            <a href="/scraper/" class="flex items-center gap-3 px-4 py-2.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors">
+                <span class="text-lg">🔗</span>
+                <span>LinkedIn Scraper</span>
+            </a>
+
+            <!-- Divider -->
+            <div class="my-4 border-t border-slate-700"></div>
+
+            <!-- Tools Section -->
+            <a href="{% url 'ai_agent_pitch:pitch_creator' %}" class="flex items-center gap-3 px-4 py-2.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors">
+                <span class="text-lg">✉️</span>
+                <span>AI Pitch Creator</span>
+            </a>
+            <a href="{% url 'extractor:search' %}" class="flex items-center gap-3 px-4 py-2.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors">
+                <span class="text-lg">📊</span>
+                <span>Extractor</span>
+            </a>
+            <a href="{% url 'pitch_generator:create_pitch' %}" class="flex items-center gap-3 px-4 py-2.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors">
+                <span class="text-lg">🎯</span>
+                <span>Pitch Generator</span>
+            </a>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="ml-56 mt-16 p-6 bg-slate-900 min-h-screen">
+        <div id="top"></div>
+        {% block content %}{% endblock %}
+    </main>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

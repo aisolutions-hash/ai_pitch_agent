@@ -1,0 +1,777 @@
+{% extends 'dashboard/base.html' %}
+
+{% block content %}
+<div class="bg-slate-900 min-h-screen">
+    <!-- Header Section -->
+    <div class="border-b border-slate-700 bg-slate-800/50 backdrop-blur">
+        <div class="max-w-7xl mx-auto px-6 py-8">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold text-white mb-2">LinkedIn Scraper</h1>
+                    <p class="text-slate-400">Search profiles, analyze intent, and generate targeted pitches</p>
+                </div>
+                <a href="/scraper/download-csv/" class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors text-sm font-medium flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    Download CSV
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto px-6 py-8">
+
+        <!-- Search Tabs -->
+        <div class="bg-slate-800/50 rounded-2xl border border-slate-700 backdrop-blur mb-8">
+            <div class="flex border-b border-slate-700">
+                <button onclick="switchTab('profile')" id="profileTab" class="flex-1 px-6 py-4 text-center font-medium text-white border-b-2 border-purple-600 transition-colors hover:text-purple-400 flex items-center justify-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    Search by Profile
+                </button>
+                <button onclick="switchTab('domain')" id="domainTab" class="flex-1 px-6 py-4 text-center font-medium text-slate-400 border-b-2 border-transparent transition-colors hover:text-slate-300 flex items-center justify-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                    </svg>
+                    Search by Domain
+                </button>
+            </div>
+
+            <!-- Search by Profile Tab -->
+            <div id="profileTab-content" class="p-8 bg-gradient-to-br from-slate-800 to-slate-900">
+                <div class="flex gap-3">
+                    <input type="text" id="profileSearch" placeholder="Enter LinkedIn profile URL or name..." class="flex-1 px-4 py-3 bg-slate-700 border border-slate-600 text-slate-200 placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 transition-all">
+                    <button onclick="searchProfile()" class="px-8 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                        Search
+                    </button>
+                </div>
+            </div>
+
+            <!-- Search by Domain & Area Tab -->
+            <div id="domainTab-content" class="hidden p-8 bg-gradient-to-br from-slate-800 to-slate-900">
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <input type="text" id="domainSearch" placeholder="Company domain (e.g., linkedin.com)..." class="px-4 py-3 bg-slate-700 border border-slate-600 text-slate-200 placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 transition-all">
+                    <input type="text" id="areaSearch" placeholder="Area (e.g., Bay Area, London)..." class="px-4 py-3 bg-slate-700 border border-slate-600 text-slate-200 placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 transition-all">
+                </div>
+                <button onclick="searchDomain()" class="px-8 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                    </svg>
+                    Search
+                </button>
+            </div>
+        </div>
+
+        <!-- Results Container -->
+        <div id="resultsContainer" class="space-y-6"></div>
+    </div>
+</div>
+
+<script>
+    /**
+     * Switch tabs
+     */
+    function switchTab(tab) {
+        const isProfile = tab === 'profile';
+        document.getElementById('profileTab-content').classList.toggle('hidden', !isProfile);
+        document.getElementById('domainTab-content').classList.toggle('hidden', isProfile);
+        
+        document.getElementById('profileTab').classList.toggle('text-white', isProfile);
+        document.getElementById('profileTab').classList.toggle('border-b-2', isProfile);
+        document.getElementById('profileTab').classList.toggle('border-purple-600', isProfile);
+        document.getElementById('profileTab').classList.toggle('text-slate-400', !isProfile);
+        
+        document.getElementById('domainTab').classList.toggle('text-white', !isProfile);
+        document.getElementById('domainTab').classList.toggle('border-b-2', !isProfile);
+        document.getElementById('domainTab').classList.toggle('border-purple-600', !isProfile);
+        document.getElementById('domainTab').classList.toggle('text-slate-400', isProfile);
+    }
+
+    /**
+     * Search by profile
+     */
+    async function searchProfile() {
+        const query = document.getElementById('profileSearch').value.trim();
+        if (!query) {
+            showToast('Please enter a search query', 'error');
+            return;
+        }
+
+        const searchBtn = document.querySelector('#profileTab-content button');
+        const originalBtnHtml = searchBtn.innerHTML;
+        searchBtn.disabled = true;
+        searchBtn.innerHTML = '<svg class="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg> Searching...';
+
+        const resultsContainer = document.getElementById('resultsContainer');
+        resultsContainer.innerHTML = `
+            <div class="text-center py-16">
+                <div class="inline-flex items-center justify-center mb-4">
+                    <div class="animate-spin">
+                        <svg class="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
+                    </div>
+                </div>
+                <p class="text-slate-300">Searching LinkedIn for profiles...</p>
+                <p class="text-slate-500 text-sm mt-2">This may take a few seconds</p>
+            </div>
+        `;
+
+        try {
+            const response = await fetch(`/scraper/search/profile/?q=${encodeURIComponent(query)}`);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const data = await response.json();
+
+            if (data.error) {
+                showToast(data.error, 'error');
+                resultsContainer.innerHTML = '';
+                return;
+            }
+
+            const profiles = data.profiles || [];
+
+            if (!profiles || profiles.length === 0) {
+                resultsContainer.innerHTML = `
+                    <div class="text-center py-16 bg-slate-800/30 rounded-2xl border border-slate-700">
+                        <svg class="w-16 h-16 text-slate-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
+                        <p class="text-slate-300 text-lg">No profiles found</p>
+                        <p class="text-slate-500 mt-2">Try adjusting your search terms</p>
+                    </div>
+                `;
+                return;
+            }
+
+            displayResults(profiles, 'profile');
+        } catch (error) {
+            showToast('Search failed: ' + error.message, 'error');
+            resultsContainer.innerHTML = '';
+        } finally {
+            searchBtn.disabled = false;
+            searchBtn.innerHTML = originalBtnHtml;
+        }
+    }
+
+    /**
+     * Search by domain
+     */
+    async function searchDomain() {
+        const domain = document.getElementById('domainSearch').value.trim();
+        const area = document.getElementById('areaSearch').value.trim();
+        if (!domain) {
+            showToast('Please enter a domain', 'error');
+            return;
+        }
+
+        const searchBtn = document.querySelector('#domainTab-content button');
+        const originalBtnHtml = searchBtn.innerHTML;
+        searchBtn.disabled = true;
+        searchBtn.innerHTML = '<svg class="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg> Searching...';
+
+        const resultsContainer = document.getElementById('resultsContainer');
+        resultsContainer.innerHTML = `
+            <div class="text-center py-16">
+                <div class="inline-flex items-center justify-center mb-4">
+                    <div class="animate-spin">
+                        <svg class="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
+                    </div>
+                </div>
+                <p class="text-slate-300">Searching LinkedIn for profiles...</p>
+                <p class="text-slate-500 text-sm mt-2">This may take a few seconds</p>
+            </div>
+        `;
+
+        try {
+            const response = await fetch(`/scraper/search/domain/?domain=${encodeURIComponent(domain)}&area=${encodeURIComponent(area)}`);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const data = await response.json();
+
+            if (data.error) {
+                showToast(data.error, 'error');
+                resultsContainer.innerHTML = '';
+                return;
+            }
+
+            const profiles = data.profiles || [];
+
+            if (!profiles || profiles.length === 0) {
+                resultsContainer.innerHTML = `
+                    <div class="text-center py-16 bg-slate-800/30 rounded-2xl border border-slate-700">
+                        <svg class="w-16 h-16 text-slate-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
+                        <p class="text-slate-300 text-lg">No profiles found</p>
+                        <p class="text-slate-500 mt-2">Try adjusting your search terms</p>
+                    </div>
+                `;
+                return;
+            }
+
+            displayResults(profiles, 'domain');
+        } catch (error) {
+            showToast('Search failed: ' + error.message, 'error');
+            resultsContainer.innerHTML = '';
+        } finally {
+            searchBtn.disabled = false;
+            searchBtn.innerHTML = originalBtnHtml;
+        }
+    }
+
+    /**
+     * Display search results with auto-analysis
+     */
+    function displayResults(profiles, searchType) {
+        const resultsContainer = document.getElementById('resultsContainer');
+        resultsContainer.innerHTML = '';
+
+        profiles.forEach((profile, index) => {
+            const resultCard = document.createElement('div');
+            resultCard.className = 'profile-card bg-slate-800/50 rounded-2xl border border-slate-700 p-6 hover:border-slate-600 transition-all hover:shadow-lg hover:shadow-purple-900/20';
+            
+            const title = profile.title || 'Unknown Profile';
+            const link = profile.link || '#';
+            const snippet = profile.snippet || profile.description || 'No description available';
+
+            const hasPosition = profile.position || profile.company || profile.location;
+            const hasDetails = profile.education || (profile.skills && profile.skills.length > 0) || profile.about;
+
+            resultCard.innerHTML = `
+                <div class="flex items-start justify-between mb-4">
+                    <div class="flex-1">
+                        <h3 class="text-xl font-semibold text-white mb-2">${escapeHtml(title)}</h3>
+                        ${hasPosition ? `
+                        <div class="flex flex-wrap gap-2 mb-3">
+                            ${profile.position ? `<span class="text-xs bg-purple-900/40 text-purple-300 border border-purple-800/50 px-2.5 py-1 rounded-lg">${escapeHtml(profile.position)}</span>` : ''}
+                            ${profile.company ? `<span class="text-xs bg-blue-900/40 text-blue-300 border border-blue-800/50 px-2.5 py-1 rounded-lg">${escapeHtml(profile.company)}</span>` : ''}
+                            ${profile.location ? `<span class="text-xs bg-slate-700 text-slate-300 px-2.5 py-1 rounded-lg">${escapeHtml(profile.location)}</span>` : ''}
+                        </div>` : ''}
+                        <div class="space-y-2 text-sm text-slate-400">
+                            <p>${escapeHtml(snippet)}</p>
+                            ${hasDetails ? `
+                            <div class="flex flex-wrap gap-1.5 mt-1">
+                                ${profile.education ? `<span class="text-xs bg-amber-900/30 text-amber-300 px-2 py-0.5 rounded">🎓 ${escapeHtml(profile.education)}</span>` : ''}
+                                ${profile.skills && profile.skills.length > 0 ? `<span class="text-xs bg-cyan-900/30 text-cyan-300 px-2 py-0.5 rounded">⚡ ${escapeHtml(profile.skills.slice(0, 3).join(', '))}${profile.skills.length > 3 ? '...' : ''}</span>` : ''}
+                            </div>` : ''}
+                            <p class="flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.658 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path>
+                                </svg>
+                                <a href="${escapeHtml(link)}" target="_blank" class="text-purple-600 hover:text-purple-400">View Profile</a>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <input type="hidden" class="profileData" value='${JSON.stringify(profile)}'>
+                <!-- Auto-analysis loading indicator -->
+                <div id="analysisLoading-${searchType}-${index}" class="mt-4 flex items-center gap-3 text-slate-400 text-sm">
+                    <div class="animate-spin">
+                        <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
+                    </div>
+                    <span>Analyzing profile...</span>
+                </div>
+                <!-- Analysis Panel -->
+                <div id="analysisPanel-${searchType}-${index}" class="hidden mt-6"></div>
+            `;
+            resultsContainer.appendChild(resultCard);
+        });
+
+        // Auto-analyze all profiles sequentially
+        let currentIndex = 0;
+        function analyzeNext() {
+            if (currentIndex < profiles.length) {
+                analyzeProfile(currentIndex, searchType).then(() => {
+                    currentIndex++;
+                    analyzeNext();
+                });
+            }
+        }
+        analyzeNext();
+    }
+
+    /**
+     * Analyze profile automatically on extraction
+     */
+    async function analyzeProfile(index, searchType) {
+        const profileCards = document.querySelectorAll('.profile-card');
+        const profileCard = profileCards[index];
+        if (!profileCard) return;
+        
+        const profileDataInput = profileCard.querySelector('.profileData');
+        if (!profileDataInput) return;
+        
+        const profile = JSON.parse(profileDataInput.value);
+        const loadingEl = document.getElementById(`analysisLoading-${searchType}-${index}`);
+
+        try {
+            const titleText = profile.title || '';
+            let name = profile.name || '';
+            let headline = profile.position || profile.headline || '';
+            let company = profile.company || '';
+            let location = profile.location || '';
+            let education = profile.education || '';
+            let about = profile.about || '';
+            let skills = profile.skills || [];
+
+            // Fallback parsing for Google-search results without structured fields
+            if (!name && !company) {
+                const parts = titleText.split(' - ');
+                if (parts.length >= 1) name = parts[0]?.trim() || '';
+                if (parts.length >= 3) {
+                    if (!headline) headline = parts[1]?.trim() || '';
+                    const rest = parts.slice(2).join(' - ');
+                    if (!company && !location) {
+                        const locMatch = rest.match(/,\s*[A-Z]{2}|,\s*[A-Z][a-z]+\s*[A-Z][a-z]+/);
+                        if (locMatch) {
+                            company = rest.substring(0, locMatch.index)?.trim() || rest;
+                            location = rest.substring(locMatch.index + 1)?.trim() || '';
+                        } else {
+                            company = rest;
+                        }
+                    }
+                }
+            }
+
+            const analyzeData = {
+                name: name,
+                headline: headline,
+                company: company,
+                location: location,
+                snippet: profile.snippet || '',
+                link: profile.link || '',
+                education: education,
+                about: about,
+                skills: skills
+            };
+
+            profile.parsed_data = analyzeData;
+
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => {
+                controller.abort();
+            }, 45000); // Reduced from 60000ms to 45 seconds
+
+            try {
+                const response = await fetch('/scraper/analyze/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(analyzeData),
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
+
+                if (!response.ok) {
+                    // Handle different HTTP error codes
+                    if (response.status === 504) {
+                        showToast('Analysis timed out - API is taking too long. Try again.', 'error');
+                    } else if (response.status === 500) {
+                        const errorData = await response.json();
+                        showToast(`Analysis error: ${errorData.error || 'Server error'}`, 'error');
+                    } else {
+                        showToast(`Analysis failed: HTTP ${response.status}`, 'error');
+                    }
+                    if (loadingEl) {
+                        loadingEl.innerHTML = '<span class="text-red-400 text-sm">Analysis failed. <button onclick="analyzeProfile(' + index + ', \'' + searchType + '\')" class="text-purple-400 hover:underline">Retry</button></span>';
+                    }
+                    return;
+                }
+                
+                const analysis = await response.json();
+
+                if (analysis.error) {
+                    showToast(`Analysis error: ${analysis.error}`, 'error');
+                    if (loadingEl) loadingEl.remove();
+                    return;
+                }
+
+                profile.analysis = analysis;
+                profileDataInput.value = JSON.stringify(profile);
+
+                // Remove loading, show analysis
+                if (loadingEl) loadingEl.remove();
+                displayAnalysis(analysis, index, searchType, profile);
+
+            } catch (fetchError) {
+                clearTimeout(timeoutId);
+                
+                // Distinguish between timeout and other errors
+                if (fetchError.name === 'AbortError') {
+                    showToast('Analysis timed out (45s) - API took too long. Check your internet or try again.', 'error');
+                } else {
+                    showToast('Network error analyzing profile: ' + fetchError.message, 'error');
+                }
+                
+                if (loadingEl) {
+                    loadingEl.innerHTML = '<span class="text-red-400 text-sm">Analysis failed. <button onclick="analyzeProfile(' + index + ', \'' + searchType + '\')" class="text-purple-400 hover:underline">Retry</button></span>';
+                }
+            }
+
+        } catch (error) {
+            showToast('Error parsing profile: ' + error.message, 'error');
+            if (loadingEl) {
+                loadingEl.innerHTML = '<span class="text-red-400 text-sm">Analysis failed. <button onclick="analyzeProfile(' + index + ', \'' + searchType + '\')" class="text-purple-400 hover:underline">Retry</button></span>';
+            }
+        }
+    }
+
+    /**
+     * Display analysis results with AI Need Score, Post Insights, and LinkedIn Pitch
+     */
+    function displayAnalysis(analysis, index, searchType, profile) {
+        const profileCards = document.querySelectorAll('.profile-card');
+        const resultContainer = profileCards[index];
+        if (!resultContainer) return;
+        
+        let analysisDiv = resultContainer.querySelector('#analysisPanel-' + searchType + '-' + index);
+        if (!analysisDiv) {
+            analysisDiv = document.createElement('div');
+            analysisDiv.id = 'analysisPanel-' + searchType + '-' + index;
+            analysisDiv.className = 'mt-6 space-y-4';
+            resultContainer.appendChild(analysisDiv);
+        }
+        analysisDiv.classList.remove('hidden');
+
+        const scoreBar = (score) => {
+            const pct = Math.min(100, Math.max(0, score * 10));
+            const color = pct >= 70 ? 'bg-green-500' : pct >= 50 ? 'bg-yellow-500' : 'bg-red-500';
+            return `<div class="w-full bg-slate-700 rounded-full h-2.5"><div class="${color} h-2.5 rounded-full transition-all duration-1000" style="width: ${pct}%"></div></div>`;
+        };
+
+        const aiScore = analysis.ai_need_score || 0;
+        const aiScoreColor = aiScore >= 7 ? 'text-green-400' : aiScore >= 5 ? 'text-yellow-400' : 'text-red-400';
+
+        analysisDiv.innerHTML = `
+            <!-- AI Solution Need Score - Prominent -->
+            <div class="bg-gradient-to-r from-purple-900/40 to-indigo-900/40 border border-purple-700/50 rounded-2xl p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <p class="text-xs text-slate-400 font-medium uppercase tracking-wider">AI Solution Need Score</p>
+                        <p class="text-4xl font-bold ${aiScoreColor} mt-1">${aiScore}/10</p>
+                        <p class="text-sm text-slate-400 mt-1">${escapeHtml(analysis.ai_need_reason || '')}</p>
+                    </div>
+                    <div class="w-32">
+                        ${scoreBar(aiScore)}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Intent & Pitch Angle -->
+            <div class="grid grid-cols-2 gap-4">
+                <div class="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
+                    <p class="text-xs text-slate-400 font-medium mb-2 uppercase tracking-wider">Intent</p>
+                    <p class="text-sm text-white">${escapeHtml(analysis.intent || '')}</p>
+                </div>
+                <div class="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
+                    <p class="text-xs text-slate-400 font-medium mb-2 uppercase tracking-wider">Pitch Angle</p>
+                    <p class="text-sm text-white">${escapeHtml(analysis.pitch_angle || '')}</p>
+                </div>
+            </div>
+
+            <!-- Pain Points -->
+            <div class="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
+                <p class="text-xs text-slate-400 font-medium mb-3 uppercase tracking-wider">Pain Points</p>
+                <div class="flex flex-wrap gap-2">
+                    ${(analysis.pain_points || []).map(point =>
+                        `<span class="bg-red-900/40 text-red-300 border border-red-800/50 px-3 py-1.5 rounded-lg text-sm">${escapeHtml(point)}</span>`
+                    ).join('')}
+                </div>
+            </div>
+
+            <!-- Post Insights (new) -->
+            <div class="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
+                <p class="text-xs text-slate-400 font-medium mb-2 uppercase tracking-wider flex items-center gap-2">
+                    <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"></path>
+                    </svg>
+                    Post Insights
+                </p>
+                <p class="text-sm text-slate-300 leading-relaxed">${escapeHtml(analysis.post_insights || 'No post data available.')}</p>
+            </div>
+
+            <!-- Branding Score -->
+            <div class="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-xs text-slate-400 font-medium uppercase tracking-wider">Branding Need Score</p>
+                        <p class="text-xl font-bold text-white mt-1">${analysis.branding_need_score || 0}/10</p>
+                        <p class="text-xs text-slate-400 mt-1">${escapeHtml(analysis.branding_need_reason || '')}</p>
+                    </div>
+                    <div class="w-24">
+                        ${scoreBar(analysis.branding_need_score || 0)}
+                    </div>
+                </div>
+            </div>
+
+            <!-- LinkedIn Pitch (auto-generated, new) -->
+            <div class="bg-gradient-to-r from-blue-900/30 to-indigo-900/30 border border-blue-700/40 rounded-xl p-4">
+                <p class="text-xs text-slate-400 font-medium mb-2 uppercase tracking-wider flex items-center gap-2">
+                    <svg class="w-4 h-4 text-blue-400" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.475-2.236-1.986-2.236-1.081 0-1.722.721-2.004 1.418-.103.249-.129.597-.129.946v5.441h-3.554s.047-8.733 0-9.635h3.554v1.365c.427-.659 1.191-1.597 2.897-1.597 2.117 0 3.704 1.381 3.704 4.349v5.518zM5.337 8.855c-1.144 0-1.915-.758-1.915-1.706 0-.963.771-1.71 1.960-1.71 1.188 0 1.914.747 1.939 1.71 0 .948-.751 1.706-1.984 1.706zm1.581 11.597H3.635V9.817h3.283v10.635zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.225 0z"/>
+                    </svg>
+                    LinkedIn Pitch
+                </p>
+                <div class="bg-slate-900/50 border border-slate-700 rounded-lg p-4 mb-3 max-h-48 overflow-y-auto">
+                    <p class="text-sm text-slate-200 whitespace-pre-wrap leading-relaxed">${escapeHtml(analysis.linkedin_pitch || 'Pitch not available.')}</p>
+                </div>
+                <button onclick="copyToClipboard('${escapeHtml(analysis.linkedin_pitch || '').replace(/'/g, "\\'")}', 'LinkedIn pitch copied!')" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm font-medium flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                    </svg>
+                    Copy LinkedIn Message
+                </button>
+            </div>
+
+            <!-- Email & WhatsApp Pitch Generation -->
+            <div class="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
+                <p class="text-xs text-slate-400 font-medium mb-3 uppercase tracking-wider">Generate Additional Pitches</p>
+                <div class="grid grid-cols-2 gap-3 mb-4">
+                    <label class="flex items-center p-3 bg-slate-800 border border-slate-600 rounded-lg cursor-pointer hover:border-purple-600 transition-colors">
+                        <input type="checkbox" value="email" class="pitchChannel w-4 h-4 rounded accent-purple-600">
+                        <svg class="w-4 h-4 ml-2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                        <span class="text-xs font-medium text-slate-300 ml-2">Email</span>
+                    </label>
+                    <label class="flex items-center p-3 bg-slate-800 border border-slate-600 rounded-lg cursor-pointer hover:border-purple-600 transition-colors">
+                        <input type="checkbox" value="whatsapp" class="pitchChannel w-4 h-4 rounded accent-purple-600">
+                        <svg class="w-4 h-4 ml-2 text-slate-400" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.67-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.076 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421-7.403h-.004a9.87 9.87 0 00-5.031 1.378c-1.533.867-2.771 2.1-3.495 3.5-.722 1.397-.905 2.909-.557 4.35.35 1.44 1.165 2.76 2.291 3.78.516.467 1.035.93 1.558 1.388 1.236 1.067 2.468 2.136 3.701 3.2.266.23.543.457.822.674 1.075.921 2.156 1.844 3.238 2.773.288-.25.572-.498.854-.745 1.078-.934 2.156-1.868 3.23-2.804.279-.241.556-.482.83-.723 1.138-1.026 1.96-2.356 2.315-3.79.358-1.45.174-2.954-.533-4.336-.707-1.384-1.93-2.607-3.458-3.461a9.87 9.87 0 00-5.036-1.376z"/></svg>
+                        <span class="text-xs font-medium text-slate-300 ml-2">WhatsApp</span>
+                    </label>
+                </div>
+                <button onclick="generatePitch(${index}, '${searchType}')" id="generateBtn-${searchType}-${index}" class="w-full px-4 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors font-medium text-sm flex items-center justify-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                    </svg>
+                    Generate Email & WhatsApp Pitches
+                </button>
+            </div>
+        `;
+
+        // Add pitch output container
+        let pitchOutput = resultContainer.querySelector('#pitchOutput-' + searchType + '-' + index);
+        if (!pitchOutput) {
+            pitchOutput = document.createElement('div');
+            pitchOutput.id = 'pitchOutput-' + searchType + '-' + index;
+            pitchOutput.className = 'hidden mt-4';
+            resultContainer.appendChild(pitchOutput);
+        }
+    }
+
+    /**
+     * Generate email and WhatsApp pitches
+     */
+    async function generatePitch(index, searchType) {
+        const channels = [];
+        document.querySelectorAll('.pitchChannel:checked').forEach(checkbox => {
+            channels.push(checkbox.value);
+        });
+
+        if (channels.length === 0) {
+            showToast('Please select at least one channel', 'error');
+            return;
+        }
+
+        const profileCards = document.querySelectorAll('.profile-card');
+        const profileCard = profileCards[index];
+        if (!profileCard) return;
+        
+        const profileDataInput = profileCard.querySelector('.profileData');
+        if (!profileDataInput) return;
+        
+        const profile = JSON.parse(profileDataInput.value);
+        const analysis = profile.analysis;
+        const parsedData = profile.parsed_data || {};
+
+        const generateBtn = document.getElementById('generateBtn-' + searchType + '-' + index);
+        generateBtn.disabled = true;
+        generateBtn.innerHTML = '<svg class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg> Generating...';
+
+        try {
+            const response = await fetch('/scraper/pitch/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: parsedData.name || profile.title.split(' at ')[0] || '',
+                    headline: parsedData.headline || profile.title,
+                    company: parsedData.company || '',
+                    intent: analysis.intent,
+                    pain_points: analysis.pain_points,
+                    pitch_angle: analysis.pitch_angle,
+                    channels: channels
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error('HTTP ' + response.status);
+            }
+
+            const pitches = await response.json();
+
+            if (pitches.error) {
+                showToast(pitches.error, 'error');
+                return;
+            }
+
+            profile.pitches = pitches;
+            profileDataInput.value = JSON.stringify(profile);
+
+            displayPitches(pitches, index, searchType);
+            document.getElementById('pitchOutput-' + searchType + '-' + index).classList.remove('hidden');
+
+        } catch (error) {
+            showToast('Error generating pitch: ' + error.message, 'error');
+        } finally {
+            generateBtn.disabled = false;
+            generateBtn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg> Generate Email & WhatsApp Pitches';
+        }
+    }
+
+    /**
+     * Display generated email/WhatsApp pitches
+     */
+    function displayPitches(pitches, index, searchType) {
+        const content = document.getElementById('pitchOutput-' + searchType + '-' + index);
+        
+        let html = '<div class="bg-slate-800/50 border border-slate-700 rounded-xl p-4">';
+        html += '<h4 class="font-semibold text-white mb-4 flex items-center gap-2">';
+        html += '<svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>';
+        html += 'Generated Pitches</h4>';
+        
+        // Tabs
+        html += '<div class="flex gap-2 mb-4 border-b border-slate-600">';
+        var channelKeys = Object.keys(pitches);
+        channelKeys.forEach(function(channel) {
+            html += '<button onclick="switchPitchTab(\'' + channel + '\', ' + index + ', \'' + searchType + '\')" class="px-4 py-2 text-sm font-medium pitchTab flex items-center gap-2 text-slate-400 border-b-2 border-transparent hover:text-slate-200 transition-colors" data-channel="' + channel + '">' + channel.charAt(0).toUpperCase() + channel.slice(1) + '</button>';
+        });
+        html += '</div>';
+
+        // Content for each channel
+        channelKeys.forEach(function(channel, idx) {
+            var pitch = pitches[channel];
+            var isHidden = idx !== 0;
+            var hiddenClass = isHidden ? 'hidden' : '';
+            
+            if (channel === 'email') {
+                var subject = pitch.subject || '';
+                var body = pitch.body || '';
+                html += '<div class="pitchContent ' + hiddenClass + '" data-channel="' + channel + '">';
+                html += '<div class="mb-4"><p class="text-xs text-slate-400 mb-2 font-medium">SUBJECT LINE</p>';
+                html += '<div class="bg-slate-800 border border-slate-600 p-3 rounded-lg mb-2"><p class="text-sm text-slate-200">' + escapeHtml(subject) + '</p></div>';
+                html += '<button onclick="copyToClipboard(\'' + escapeHtml(subject).replace(/'/g, "\\'") + '\', \'Subject copied!\')" class="text-xs text-purple-400 hover:text-purple-300">Copy Subject</button></div>';
+                html += '<div><p class="text-xs text-slate-400 mb-2 font-medium">EMAIL BODY</p>';
+                html += '<div class="bg-slate-800 border border-slate-600 p-3 rounded-lg mb-2 max-h-48 overflow-y-auto"><p class="text-sm text-slate-300 whitespace-pre-wrap">' + escapeHtml(body) + '</p></div>';
+                html += '<button onclick="copyToClipboard(\'' + escapeHtml(body).replace(/'/g, "\\'") + '\', \'Email body copied!\')" class="text-xs text-purple-400 hover:text-purple-300">Copy Body</button></div>';
+                html += '</div>';
+            } else {
+                html += '<div class="pitchContent ' + hiddenClass + '" data-channel="' + channel + '">';
+                html += '<div class="bg-slate-800 border border-slate-600 p-3 rounded-lg mb-2 max-h-48 overflow-y-auto"><p class="text-sm text-slate-300 whitespace-pre-wrap">' + escapeHtml(pitch) + '</p></div>';
+                html += '<button onclick="copyToClipboard(\'' + escapeHtml(pitch).replace(/'/g, "\\'") + '\', \'' + channel.charAt(0).toUpperCase() + channel.slice(1) + ' message copied!\')" class="text-xs text-purple-400 hover:text-purple-300">Copy Message</button>';
+                html += '</div>';
+            }
+        });
+
+        html += '<div class="border-t border-slate-600 mt-4 pt-4">';
+        html += '<button onclick="saveToContacts(' + index + ', \'' + searchType + '\')" class="w-full px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors font-medium text-sm flex items-center justify-center gap-2">';
+        html += '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>';
+        html += 'Save to Contacts</button></div></div>';
+
+        content.innerHTML = html;
+
+        // Set first tab as active
+        setTimeout(function() {
+            var firstTab = document.querySelector('[data-channel="' + channelKeys[0] + '"]');
+            if (firstTab) {
+                firstTab.classList.add('text-white', 'border-b-2', 'border-purple-600');
+                firstTab.classList.remove('text-slate-400', 'border-transparent');
+            }
+        }, 0);
+    }
+
+    /**
+     * Switch pitch tab
+     */
+    function switchPitchTab(channel, index, searchType) {
+        var tabs = document.querySelectorAll('.pitchTab');
+        tabs.forEach(function(tab) {
+            tab.classList.remove('text-white', 'border-b-2', 'border-purple-600');
+            tab.classList.add('text-slate-400', 'border-transparent');
+        });
+        var contents = document.querySelectorAll('.pitchContent');
+        contents.forEach(function(content) {
+            content.classList.add('hidden');
+        });
+
+        var selectedTab = document.querySelector('[data-channel="' + channel + '"]');
+        if (selectedTab) {
+            selectedTab.classList.add('text-white', 'border-b-2', 'border-purple-600');
+            selectedTab.classList.remove('text-slate-400', 'border-transparent');
+        }
+        
+        var selectedContent = document.querySelector('.pitchContent[data-channel="' + channel + '"]');
+        if (selectedContent) {
+            selectedContent.classList.remove('hidden');
+        }
+    }
+
+    /**
+     * Save profile to contacts (GCS + Sheets + CSV)
+     */
+    async function saveToContacts(index, searchType) {
+        const profileCards = document.querySelectorAll('.profile-card');
+        const profileCard = profileCards[index];
+        if (!profileCard) return;
+        
+        const profileDataInput = profileCard.querySelector('.profileData');
+        if (!profileDataInput) return;
+        
+        const profile = JSON.parse(profileDataInput.value);
+        const parsedData = profile.parsed_data || {};
+
+        try {
+            const profileDataToSave = {
+                title: profile.title,
+                link: profile.link,
+                snippet: profile.snippet,
+                name: parsedData.name || '',
+                company: parsedData.company || '',
+                headline: parsedData.headline || '',
+                location: parsedData.location || ''
+            };
+
+            const response = await fetch('/scraper/save/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    profile_data: profileDataToSave,
+                    analysis: profile.analysis,
+                    pitches: profile.pitches || {}
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error('HTTP ' + response.status);
+            }
+
+            const result = await response.json();
+
+            if (result.error) {
+                showToast(result.error, 'error');
+            } else {
+                showToast('✓ Contact saved successfully!', 'success');
+            }
+        } catch (error) {
+            showToast('Error saving contact: ' + error.message, 'error');
+        }
+    }
+
+</script>
+
+{% endblock %}

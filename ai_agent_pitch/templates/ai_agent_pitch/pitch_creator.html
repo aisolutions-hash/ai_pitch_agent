@@ -1,0 +1,551 @@
+{% extends "base.html" %}
+
+{% block title %}AI Pitch Creator{% endblock %}
+{% block header_title %}AI Gmail Pitch Agent{% endblock %}
+{% block header_lead %}Craft, Enhance, and Send Professional HTML Emails Instantly.{% endblock %}
+
+{% block content %}
+{% if messages %}
+<div id="django-messages" style="display:none;">
+    {% for message in messages %}
+    <div data-level="{{ message.level }}" data-tags="{{ message.tags }}">{{ message|escape }}</div>
+    {% endfor %}
+</div>
+{% endif %}
+<div
+  class="w-full h-screen bg-slate-900 text-slate-300 flex flex-col p-4 sm:p-6 lg:p-8"
+  x-data="{
+    subject: '',
+    htmlContent: '',
+    aiPrompt: '',
+    recipientType: 'csv',
+    singleEmail: '',
+    singleName: '',
+    init() {
+      // Restore saved data from localStorage
+      this.subject = localStorage.getItem('pitch_subject') || '';
+      this.htmlContent = localStorage.getItem('pitch_html') || '';
+      this.aiPrompt = localStorage.getItem('pitch_ai_prompt') || '';
+      this.recipientType = localStorage.getItem('pitch_recipient_type') || 'csv';
+      this.singleEmail = localStorage.getItem('pitch_single_email') || '';
+      this.singleName = localStorage.getItem('pitch_single_name') || '';
+      
+      // Update form fields
+      this.$nextTick(() => {
+        if (this.subject) document.getElementById('subject').value = this.subject;
+        if (this.htmlContent) {
+          document.getElementById('html_content').value = this.htmlContent;
+          updatePreview();
+        }
+        if (this.aiPrompt) document.getElementById('ai_prompt').value = this.aiPrompt;
+        if (this.singleEmail) document.getElementById('single_email').value = this.singleEmail;
+        if (this.singleName) document.getElementById('single_name').value = this.singleName;
+        
+        // Show restoration message if data exists
+        if (this.subject || this.htmlContent) {
+          setTimeout(() => {
+            const toast = document.createElement('div');
+            toast.className = 'fixed bottom-4 left-4 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg text-sm z-50';
+            toast.innerHTML = '💾 Previous work restored from last session';
+            document.body.appendChild(toast);
+            setTimeout(() => {
+              toast.style.opacity = '0';
+              toast.style.transition = 'opacity 0.3s';
+              setTimeout(() => toast.remove(), 300);
+            }, 3000);
+          }, 500);
+        }
+      });
+    }
+  }"
+>
+  <form
+    id="pitch-form"
+    method="post"
+    enctype="multipart/form-data"
+    action="{% url 'ai_agent_pitch:pitch_creator' %}"
+    class="flex-grow min-h-0 relative"
+  >
+    <!-- Auto-save indicator -->
+    <div x-show="subject || htmlContent" class="fixed top-20 right-4 bg-slate-800 text-slate-300 px-3 py-1.5 rounded-full shadow-lg text-xs flex items-center gap-2 z-50 border border-slate-700">
+      <svg class="w-3 h-3 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+      </svg>
+      <span>Auto-saving...</span>
+    </div>
+    {% csrf_token %}
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 h-full">
+      <div
+        class="bg-slate-800/50 border border-slate-700 rounded-2xl p-6 flex flex-col space-y-6 overflow-y-auto"
+      >
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label
+              for="load_template"
+              class="text-sm font-medium text-slate-400 mb-2 block"
+              >Load Template</label
+            >
+            <select
+              id="load_template"
+              class="w-full p-2.5 bg-slate-700 border border-slate-600 rounded-lg text-slate-200 focus:ring-purple-500 focus:border-purple-500"
+            >
+              <option value="">-- Select Template --</option>
+              {% for template in templates %}
+              <option value="{{ template.id }}">{{ template.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label
+              for="save_template_name"
+              class="text-sm font-medium text-slate-400 mb-2 block"
+              >Save Template As</label
+            >
+            <div class="flex">
+              <input
+                type="text"
+                id="save_template_name"
+                placeholder="Template Name"
+                class="flex-grow p-2.5 bg-slate-700 border border-slate-600 rounded-l-lg text-slate-200 focus:ring-purple-500 focus:border-purple-500"
+              />
+              <button
+                type="button"
+                id="save_template_btn"
+                class="bg-green-600 text-white p-2.5 rounded-r-lg hover:bg-green-700 transition"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <label
+            for="subject"
+            class="text-sm font-medium text-slate-400 mb-2 block"
+            >Subject Line</label
+          >
+          <div class="flex space-x-2">
+            <input
+              type="text"
+              name="subject"
+              id="subject"
+              required
+              placeholder="e.g., A quick question about your [Product]"
+              class="flex-grow p-2.5 bg-slate-700 border border-slate-600 rounded-l-lg text-slate-200 focus:ring-purple-500 focus:border-purple-500"
+              x-model="subject"
+              @input="localStorage.setItem('pitch_subject', subject)"
+            />
+            <button
+              type="button"
+              id="generate_subject_btn"
+              class="bg-purple-600 text-white p-2.5 rounded-r-lg hover:bg-purple-700 transition"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="m3.75 13.5 10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <label
+            for="html_content"
+            class="text-sm font-medium text-slate-400 mb-2 block"
+            >HTML Content (for rich text/email formatting)</label
+          >
+          <textarea
+            name="html_content"
+            id="html_content"
+            rows="10"
+            class="w-full p-3 bg-slate-700 border border-slate-600 rounded-lg text-slate-200 font-mono text-sm focus:ring-purple-500 focus:border-purple-500"
+            required
+            placeholder="Paste your HTML email template here."
+            x-model="htmlContent"
+            @input="localStorage.setItem('pitch_html', htmlContent)"
+          ></textarea>
+        </div>
+
+        <div class="border-t border-slate-700 pt-4">
+          <h3 class="text-lg font-semibold text-white mb-3">✨ AI Enhance</h3>
+          <p class="text-xs text-slate-400 mb-2">Ask AI to improve your email content (e.g., "Make it more urgent" or "Add emojis")</p>
+          <input
+            type="text"
+            id="ai_prompt"
+            placeholder="e.g., Make the tone more professional and engaging."
+            class="w-full p-2.5 bg-slate-700 border border-slate-600 rounded-lg text-slate-200 mb-3 focus:ring-purple-500 focus:border-purple-500"
+            x-model="aiPrompt"
+            @input="localStorage.setItem('pitch_ai_prompt', aiPrompt)"
+          />
+          <button
+            type="button"
+            id="enhance_with_ai_btn"
+            class="w-full bg-indigo-600 text-white p-2.5 rounded-lg hover:bg-indigo-700 transition"
+          >
+            Enhance
+          </button>
+        </div>
+
+        <div class="border-t border-slate-700 pt-4">
+          <h3 class="text-lg font-semibold text-white mb-3">📧 Recipients</h3>
+          
+          <!-- Recipient Type Selector -->
+          <div class="flex gap-2 mb-4">
+            <button
+              type="button"
+              @click="recipientType = 'single'; localStorage.setItem('pitch_recipient_type', 'single')"
+              :class="recipientType === 'single' ? 'bg-purple-600 text-white' : 'bg-slate-700 text-slate-300'"
+              class="flex-1 py-2 px-4 rounded-lg font-medium transition"
+            >
+              Single Email
+            </button>
+            <button
+              type="button"
+              @click="recipientType = 'csv'; localStorage.setItem('pitch_recipient_type', 'csv')"
+              :class="recipientType === 'csv' ? 'bg-purple-600 text-white' : 'bg-slate-700 text-slate-300'"
+              class="flex-1 py-2 px-4 rounded-lg font-medium transition"
+            >
+              CSV Upload
+            </button>
+          </div>
+          
+          <!-- Single Recipient Form -->
+          <div x-show="recipientType === 'single'" class="space-y-3">
+            <div>
+              <label class="text-sm text-slate-400 block mb-1">Recipient Email *</label>
+              <input
+                type="email"
+                name="recipient"
+                id="single_email"
+                placeholder="john@example.com"
+                class="w-full p-2.5 bg-slate-700 border border-slate-600 rounded-lg text-slate-200 focus:ring-purple-500 focus:border-purple-500"
+                :required="recipientType === 'single'"
+                x-model="singleEmail"
+                @input="localStorage.setItem('pitch_single_email', singleEmail)"
+              />
+            </div>
+            <div>
+              <label class="text-sm text-slate-400 block mb-1">Recipient Name (Optional)</label>
+              <input
+                type="text"
+                name="recipient_name"
+                id="single_name"
+                placeholder="John Doe"
+                class="w-full p-2.5 bg-slate-700 border border-slate-600 rounded-lg text-slate-200 focus:ring-purple-500 focus:border-purple-500"
+                x-model="singleName"
+                @input="localStorage.setItem('pitch_single_name', singleName)"
+              />
+            </div>
+            <p class="text-xs text-slate-500">💡 Tip: Use [Recipient] in your email to personalize with the name</p>
+          </div>
+          
+          <!-- CSV Upload Form -->
+          <div x-show="recipientType === 'csv'" class="space-y-2">
+            <p class="text-sm text-slate-400">Upload a CSV with columns: <strong>email</strong>, <strong>name</strong> (or <strong>fname</strong>), <strong>company</strong></p>
+            <input
+              type="file"
+              name="csv_file"
+              id="csv_file"
+              accept=".csv"
+              class="w-full text-slate-200 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-100 file:text-purple-700 hover:file:bg-purple-200"
+              :required="recipientType === 'csv'"
+            />
+          </div>
+        </div>
+
+        <div class="mt-6 space-y-3">
+          <button
+            type="submit"
+            id="send_pitch_btn"
+            class="w-full bg-green-500 text-white font-bold py-3 rounded-lg hover:bg-green-600 transition"
+          >
+            🚀 Send Campaign
+          </button>
+          
+          <button
+            type="button"
+            @click="
+              subject = '';
+              htmlContent = '';
+              aiPrompt = '';
+              singleEmail = '';
+              singleName = '';
+              localStorage.removeItem('pitch_subject');
+              localStorage.removeItem('pitch_html');
+              localStorage.removeItem('pitch_ai_prompt');
+              localStorage.removeItem('pitch_single_email');
+              localStorage.removeItem('pitch_single_name');
+              document.getElementById('subject').value = '';
+              document.getElementById('html_content').value = '';
+              document.getElementById('ai_prompt').value = '';
+              document.getElementById('single_email').value = '';
+              document.getElementById('single_name').value = '';
+              document.getElementById('csv_file').value = '';
+              updatePreview();
+            "
+            class="w-full bg-slate-700 text-slate-300 font-medium py-2 rounded-lg hover:bg-slate-600 transition text-sm"
+          >
+            🗑️ Clear Form & Start Fresh
+          </button>
+        </div>
+      </div>
+
+      <div class="flex flex-col bg-slate-800/50 border border-slate-700 rounded-2xl h-full p-0">
+        <div class="p-4 flex justify-between items-center flex-shrink-0 border-b border-slate-700">
+          <h2 class="text-xl font-semibold text-white">Email Preview</h2>
+          <div class="flex space-x-2">
+            <button type="button" id="zoom_out_btn" class="text-slate-400 hover:text-white transition" title="Zoom Out">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
+            </button>
+            <button type="button" id="zoom_in_btn" class="text-slate-400 hover:text-white transition" title="Zoom In">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v6m3-3H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
+            </button>
+          </div>
+        </div>
+        
+        <iframe
+          id="email_preview"
+          class="flex-grow w-full border-0 bg-white rounded-b-2xl"
+          style="transform-origin: top left; transform: scale(1);"
+        ></iframe>
+      </div>
+    </div>
+  </form>
+</div>
+
+<script>
+    // Function to update the iframe preview
+    function updatePreview() {
+        const content = htmlContentEl.value;
+        const iframe = document.getElementById('email_preview');
+        const iframeDoc = iframe.contentWindow.document;
+        
+        // Write the HTML content to the iframe document
+        iframeDoc.open();
+        // Wrap content in a body with a white background for better visibility
+        iframeDoc.write(`
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Email Preview</title>
+                </head>
+            <body style="margin: 0; padding: 20px; background-color: #ffffff;">
+                ${content}
+            </body>
+            </html>
+        `);
+        iframeDoc.close();
+    }
+
+    // Get elements
+    const htmlContentEl = document.getElementById('html_content');
+    const subjectEl = document.getElementById('subject');
+    const loadTemplateEl = document.getElementById('load_template');
+    const saveTemplateNameEl = document.getElementById('save_template_name');
+    const saveTemplateBtn = document.getElementById('save_template_btn');
+    const generateSubjectBtn = document.getElementById('generate_subject_btn');
+    const enhanceBtn = document.getElementById('enhance_with_ai_btn');
+    const aiPromptEl = document.getElementById('ai_prompt');
+    const zoomInBtn = document.getElementById('zoom_in_btn');
+    const zoomOutBtn = document.getElementById('zoom_out_btn');
+    const iframe = document.getElementById('email_preview');
+
+    // --- Event Listeners ---
+
+    // 1. Live Preview Update
+    htmlContentEl.addEventListener('input', updatePreview);
+
+    // Initial load of the preview
+    document.addEventListener('DOMContentLoaded', () => {
+        // Small delay to let Alpine.js initialize first
+        setTimeout(() => {
+            updatePreview();
+        }, 100);
+    });
+
+    // 2. Load Template
+    loadTemplateEl.addEventListener('change', async function() {
+        const templateId = this.value;
+        if (!templateId) return;
+
+        try {
+            const response = await fetch(`{% url 'ai_agent_pitch:load_template' 999 %}`.replace('999', templateId));
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            const data = await response.json();
+            if (data.status === 'success') {
+                htmlContentEl.value = data.html_content;
+                updatePreview();
+                showToast(`Template '${data.name}' loaded successfully.`, 'success');
+            } else {
+                showToast(data.message, 'error');
+            }
+        } catch (error) {
+            showToast(`An error occurred while loading template: ${error.message}`, 'error');
+        }
+    });
+
+    // 3. Save Template
+    saveTemplateBtn.addEventListener('click', async function() {
+        const templateName = saveTemplateNameEl.value.trim();
+        const content = htmlContentEl.value.trim();
+
+        if (!templateName || !content) {
+            showToast('Please enter a template name and ensure content is not empty.', 'error');
+            return;
+        }
+
+        try {
+            const response = await fetch("{% url 'ai_agent_pitch:save_template' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({ name: templateName, html_content: content })
+            });
+
+            const data = await response.json();
+            if (data.status === 'success') {
+                showToast('Template saved successfully!', 'success');
+                // Optionally add the new template to the load dropdown
+                const newOption = new Option(data.name, data.id);
+                loadTemplateEl.add(newOption);
+                loadTemplateEl.value = data.id; // Select the newly saved template
+            } else {
+                showToast(data.message, 'error');
+            }
+        } catch (error) {
+            showToast('An error occurred while saving the template.', 'error');
+        }
+    });
+
+    // 4. Generate Subject (AI)
+    generateSubjectBtn.addEventListener('click', async function() {
+        const content = htmlContentEl.value.trim();
+        if (!content) {
+            showToast('HTML content is empty. Load a template first.', 'error');
+            return;
+        }
+
+        generateSubjectBtn.textContent = 'Generating...';
+        generateSubjectBtn.disabled = true;
+
+        try {
+            const response = await fetch("{% url 'ai_agent_pitch:generate_subject' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({ html_content: content })
+            });
+            const data = await response.json();
+            if (data.status === 'success') {
+                subjectEl.value = data.subjects[0];
+                showToast(`3 suggestions generated. Using: "${data.subjects[0]}"`, 'success');
+            } else {
+                showToast(data.message, 'error');
+            }
+        } catch (error) {
+            showToast('An error occurred during subject generation.', 'error');
+        } finally {
+            generateSubjectBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="m3.75 13.5 10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" /></svg>';
+            generateSubjectBtn.disabled = false;
+        }
+    });
+
+    // 5. Enhance Content (AI)
+    enhanceBtn.addEventListener('click', async function() {
+      const prompt = aiPromptEl.value.trim();
+      const content = htmlContentEl.value.trim();
+      
+      if (!prompt) {
+        showToast('Please enter a prompt for the AI.', 'error');
+        return;
+      }
+      if (!content) {
+        showToast('HTML content is empty. Load a template first.', 'error');
+        return;
+      }
+
+      enhanceBtn.textContent = 'Enhancing...';
+      enhanceBtn.disabled = true;
+
+      try {
+        const response = await fetch("{% url 'ai_agent_pitch:enhance_with_ai' %}", {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+          },
+          body: JSON.stringify({ prompt: prompt, html_content: content })
+        });
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        const data = await response.json();
+        if (data.status === 'success') {
+          htmlContentEl.value = data.html_content;
+          updatePreview();
+          showToast('Email content enhanced successfully!', 'success');
+        } else {
+          showToast(data.message, 'error');
+        }
+      } catch (error) {
+        showToast(`An error occurred during enhancement: ${error.message}`, 'error');
+      } finally {
+        enhanceBtn.textContent = 'Enhance';
+        enhanceBtn.disabled = false;
+      }
+    });
+
+    // 6. Zoom Controls for Iframe
+    let currentScale = 1;
+    const scaleStep = 0.1;
+
+    zoomOutBtn.addEventListener('click', () => {
+        currentScale = Math.max(0.5, currentScale - scaleStep); // Minimum zoom 0.5
+        iframe.style.transform = `scale(${currentScale})`;
+    });
+
+    zoomInBtn.addEventListener('click', () => {
+        currentScale = Math.min(1.5, currentScale + scaleStep); // Maximum zoom 1.5
+        iframe.style.transform = `scale(${currentScale})`;
+    });
+
+    // 7. Show "Processing..." on Send Campaign button during form submit
+    document.getElementById('pitch-form').addEventListener('submit', function() {
+        const btn = document.getElementById('send_pitch_btn');
+        btn.innerHTML = '<svg class="w-5 h-5 animate-spin inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg> Processing...';
+        btn.disabled = true;
+    });
+
+    // 8. Show Django messages as toast notifications on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        const messagesContainer = document.getElementById('django-messages');
+        if (messagesContainer) {
+            const messages = messagesContainer.querySelectorAll('div[data-level]');
+            messages.forEach(function(msg) {
+                const level = parseInt(msg.getAttribute('data-level'));
+                const text = msg.textContent.trim();
+                let type = 'info';
+                if (level === 40) type = 'error';       // ERROR
+                else if (level === 30) type = 'warning'; // WARNING
+                else if (level === 25) type = 'success'; // SUCCESS
+                else if (level === 20) type = 'info';    // INFO
+                
+                if (type === 'success' && text.includes('Success')) {
+                    showToast('✅ Mail Sent Successfully!', 'success');
+                } else {
+                    showToast(text, type);
+                }
+            });
+        }
+    });
+
+</script>
+{% endblock %}
