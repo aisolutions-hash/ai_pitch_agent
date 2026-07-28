@@ -241,7 +241,7 @@
           
           <!-- CSV Upload Form -->
           <div x-show="recipientType === 'csv'" class="space-y-2">
-            <p class="text-sm text-slate-400">Upload a CSV with columns: <strong>email</strong>, <strong>name</strong> (or <strong>fname</strong>), <strong>company</strong></p>
+            <p class="text-sm text-slate-400">Upload any CSV — we'll auto-detect <strong>Email</strong>, <strong>Name</strong>, and <strong>Company</strong> columns. Use <code>[Recipient]</code> and <code>[Company]</code> in your email.</p>
             <input
               type="file"
               name="csv_file"

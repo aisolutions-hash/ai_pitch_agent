@@ -15,4 +15,6 @@ RUN python manage.py collectstatic --noinput
 
 EXPOSE 8080
 
-CMD python manage.py migrate --noinput && gunicorn sales_project.wsgi:application --bind :$PORT --workers 4 --timeout 120 --access-logfile -
+CMD python manage.py migrate --noinput && \
+    python manage.py create_app_user && \
+    gunicorn sales_project.wsgi:application --bind :$PORT --workers 4 --timeout 120 --access-logfile -

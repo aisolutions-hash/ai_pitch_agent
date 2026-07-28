@@ -66,6 +66,14 @@ def _parse_recipient_emails(raw_recipients):
     return valid_emails, invalid_emails
 
 
+def _find_column(headers, keywords):
+    lower_headers = {h.lower().strip(): h for h in headers}
+    for lh, original in lower_headers.items():
+        for kw in keywords:
+            if kw in lh:
+                return original
+    return None
+
 def pitch_creator_view(request):
     if request.method == 'POST':
         subject = request.POST.get('subject')
@@ -81,19 +89,14 @@ def pitch_creator_view(request):
                     decoded_file = csv_file.read().decode('utf-8-sig')
                     io_string = io.StringIO(decoded_file)
                     reader = csv.DictReader(io_string)
-                    
-                    headers = {h.lower().strip(): h for h in reader.fieldnames}
-                    
-                    email_aliases = ['email', 'email address', 'e-mail']
-                    # --- CHANGE #1: Added 'fname' here ---
-                    first_name_aliases = ['first name', 'first', 'fname'] 
-                    last_name_aliases = ['last name', 'last']
-                    full_name_aliases = ['name', 'contact name', 'recipient name', 'company name']
 
-                    email_col = next((headers[h] for h in headers if h in email_aliases), None)
-                    first_name_col = next((headers[h] for h in headers if h in first_name_aliases), None)
-                    last_name_col = next((headers[h] for h in headers if h in last_name_aliases), None)
-                    full_name_col = next((headers[h] for h in headers if h in full_name_aliases), None)
+                    headers = [h.strip() for h in reader.fieldnames]
+
+                    email_col = _find_column(headers, ['email', 'e-mail'])
+                    company_col = _find_column(headers, ['company', 'organization', 'business', 'org'])
+                    first_name_col = _find_column(headers, ['first name', 'first', 'fname'])
+                    last_name_col = _find_column(headers, ['last name', 'last'])
+                    full_name_col = _find_column(headers, ['name', 'contact name', 'recipient name', 'full name'])
 
                     if not email_col:
                         messages.error(request, 'Error: Could not find an "Email" column in the CSV file.')
@@ -104,18 +107,22 @@ def pitch_creator_view(request):
                         if email and email not in recipient_data:
                             first_name = row.get(first_name_col, '').strip() if first_name_col else ''
                             last_name = row.get(last_name_col, '').strip() if last_name_col else ''
-                            
+                            company = row.get(company_col, '').strip() if company_col else ''
+
                             if first_name and last_name:
                                 name = f"{first_name} {last_name}"
                             elif first_name:
-                                name = first_name.capitalize() # Capitalize the first name
+                                name = first_name.capitalize()
                             elif last_name:
                                 name = last_name.capitalize()
                             else:
-                                name = row.get(full_name_col, 'Partner').strip() if full_name_col else 'Partner'
+                                name = row.get(full_name_col, '').strip() if full_name_col else ''
 
-                            recipient_data[email] = {'name': name}
-                    
+                            if not name:
+                                name = company if company else 'Partner'
+
+                            recipient_data[email] = {'name': name, 'company': company}
+
                     if recipient_data:
                         messages.success(request, f'Success: Loaded {len(recipient_data)} unique emails from CSV.')
                     else:
@@ -155,8 +162,9 @@ def pitch_creator_view(request):
             for email, data in recipient_data.items():
                 tracking_pixel_url = f"{settings.SITE_URL}/pitch/mark-opened/{campaign.id}/{email}/"
 
-                personalized_subject = subject.replace('[Recipient]', data['name'])
-                personalized_content = html_content.replace('[Recipient]', data['name'])
+                company = data.get('company', '')
+                personalized_subject = subject.replace('[Recipient]', data['name']).replace('[Company]', company)
+                personalized_content = html_content.replace('[Recipient]', data['name']).replace('[Company]', company)
                 personalized_content += f'<img src="{tracking_pixel_url}" width="1" height="1" style="display:none;">'
 
                 try:
