@@ -29,6 +29,7 @@ scraped_contacts/
 .DS_Store
 Thumbs.db
 .env
+cloudrun.env
 
 
 

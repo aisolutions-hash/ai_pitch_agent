@@ -1,34 +1,27 @@
-# MyMainProject/settings.py
-
 import os
 from pathlib import Path
 from dotenv import load_dotenv
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# --- .env file loading ---
-# Load the .env file from the project root directory
 env_path = BASE_DIR / '.env'
 load_dotenv(dotenv_path=env_path)
-# -------------------------
 
-# Quick-start development settings - unsuitable for production
-SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'default-django-secret-key-for-local')
-DEBUG =True
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'change-me-in-production')
+DEBUG = os.getenv('DJANGO_DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '127.0.0.1,localhost').split(',')
 
-# Application definition
+CSRF_TRUSTED_ORIGINS = os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',') if os.getenv('CSRF_TRUSTED_ORIGINS') else []
+
 INSTALLED_APPS = [
-    'django.contrib.admin',  # <-- ADMIN PART RE-ADDED
+    'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    
-    # My Apps
+    'whitenoise.runserver_nostatic',
     'extractor',
     'ai_agent_pitch',
     'pitch_generator',
@@ -38,6 +31,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -51,7 +45,7 @@ ROOT_URLCONF = 'sales_project.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates'], # Central templates folder
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -66,17 +60,19 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'sales_project.wsgi.application'
 
-# Database Configuration - PostgreSQL
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': os.getenv('DB_NAME'),
         'USER': os.getenv('DB_USER'),
         'PASSWORD': os.getenv('DB_PASSWORD'),
-        'HOST': os.getenv('DB_HOST'),
-        'PORT': os.getenv('DB_PORT'),
-        'ATOMIC_REQUESTS': True,  # Ensures atomicity of database transactions
-        'CONN_MAX_AGE': 600,  # Connection pooling
+        'HOST': os.getenv('DB_HOST', 'localhost'),
+        'PORT': os.getenv('DB_PORT', '5432'),
+        'ATOMIC_REQUESTS': True,
+        'CONN_MAX_AGE': 600,
+        'OPTIONS': {
+            'sslmode': os.getenv('DB_SSLMODE', 'require'),
+        },
     }
 }
 
@@ -138,9 +134,9 @@ SITE_URL = os.getenv('SITE_URL', 'http://127.0.0.1:8000')
 # Shared Credentials (used by both apps)
 GOOGLE_CREDENTIALS_PATH = os.getenv('GOOGLE_CREDENTIALS_PATH')
 if GOOGLE_CREDENTIALS_PATH:
-    GOOGLE_CREDENTIALS_FILE = os.path.normpath(GOOGLE_CREDENTIALS_PATH)
+    GOOGLE_CREDENTIALS_FILE = GOOGLE_CREDENTIALS_PATH
 else:
-    GOOGLE_CREDENTIALS_FILE = str(BASE_DIR / 'credentials.json')
+    GOOGLE_CREDENTIALS_FILE = ''
 
 # App 1: Extractor Sheet
 GOOGLE_SHEET_ID = os.getenv('GOOGLE_SHEET_ID')

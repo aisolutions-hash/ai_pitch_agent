@@ -3,6 +3,7 @@ Google Sheets integration for storing and managing LinkedIn scraper data.
 """
 
 import logging
+import google.auth
 from google.auth.transport.requests import Request
 from google.oauth2.service_account import Credentials
 from google.api_core.exceptions import GoogleAPIError
@@ -44,14 +45,13 @@ HEADERS = [
 def _get_gsheet_client():
     """Initialize and return a Google Sheets client."""
     try:
-        if not settings.GOOGLE_CREDENTIALS_FILE or not settings.GOOGLE_CREDENTIALS_FILE.endswith('.json'):
-            logger.error("Invalid or missing GOOGLE_CREDENTIALS_FILE")
-            return None
-        
-        credentials = Credentials.from_service_account_file(
-            settings.GOOGLE_CREDENTIALS_FILE,
-            scopes=SCOPES
-        )
+        if settings.GOOGLE_CREDENTIALS_FILE:
+            credentials = Credentials.from_service_account_file(
+                settings.GOOGLE_CREDENTIALS_FILE,
+                scopes=SCOPES
+            )
+        else:
+            credentials, _ = google.auth.default(scopes=SCOPES)
         client = gspread.authorize(credentials)
         return client
     except Exception as e:

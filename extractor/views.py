@@ -16,6 +16,7 @@ from .models import Supplier
 import google.generativeai as genai
 
 # --- NEW Google Sheet Imports ---
+import google.auth
 import gspread
 from google.oauth2.service_account import Credentials
 # --- END NEW ---
@@ -46,24 +47,24 @@ def get_google_worksheet():
             "https://www.googleapis.com/auth/spreadsheets",
             "https://www.googleapis.com/auth/drive.file"
         ]
-        
-        # Build the full path to the credentials file
-        # Assumes credentials.json is in the BASE_DIR (same as manage.py)
-        # You might need to adjust this if your BASE_DIR is different
-        creds_path = os.path.join(settings.BASE_DIR, os.getenv('GOOGLE_CREDENTIALS_PATH'))
-        
-        creds = Credentials.from_service_account_file(creds_path, scopes=SCOPES)
+
+        if settings.GOOGLE_CREDENTIALS_FILE:
+            creds = Credentials.from_service_account_file(
+                settings.GOOGLE_CREDENTIALS_FILE, scopes=SCOPES
+            )
+        else:
+            creds, _ = google.auth.default(scopes=SCOPES)
+
         client = gspread.authorize(creds)
-        
+
         sheet_id = os.getenv('GOOGLE_SHEET_ID')
         spreadsheet = client.open_by_key(sheet_id)
-        worksheet = spreadsheet.get_worksheet(0) # Get the first sheet
-        
-        # Check for header and add if missing
+        worksheet = spreadsheet.get_worksheet(0)
+
         header = ['Company Name', 'Email Address', 'Contact Name', 'Contact Number']
         if worksheet.get_all_values() == []:
              worksheet.append_row(header)
-        
+
         _worksheet_cache = worksheet
         return worksheet
 

@@ -1,0 +1,15 @@
+.env
+cloudrun.env
+.git
+.gitignore
+*.md
+.DS_Store
+__pycache__/
+*.pyc
+*.pyo
+*.sqlite3
+venv/
+.venv/
+credentials.json
+deploy.sh
+opencode_task*

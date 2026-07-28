@@ -2,6 +2,7 @@ import os
 import json
 import re
 import requests
+import google.auth
 import google.generativeai as genai
 from django.conf import settings
 from google.oauth2 import service_account
@@ -187,28 +188,18 @@ def export_to_google_sheets(pitch_data):
     """
     SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
     
-    # --- CHANGE THIS LINE ---
-    # Use the specific ID for this app, not the generic one
     SPREADSHEET_ID = getattr(settings, 'PITCH_SHEET_ID', None)
-    
-    # Try to find the credentials file path
-    SERVICE_ACCOUNT_FILE = getattr(settings, 'GOOGLE_CREDENTIALS_FILE', None)
-    if not SERVICE_ACCOUNT_FILE:
-        SERVICE_ACCOUNT_FILE = getattr(settings, 'GOOGLE_CREDENTIALS_PATH', None)
-
-    # 2. Validation
     if not SPREADSHEET_ID:
-        print("⚠️ Google Sheets Export Skipped: GOOGLE_SHEET_ID missing in settings.")
-        return False
-        
-    if not SERVICE_ACCOUNT_FILE or not os.path.exists(str(SERVICE_ACCOUNT_FILE)):
-        print(f"⚠️ Google Sheets Export Skipped: Credentials file not found at {SERVICE_ACCOUNT_FILE}")
+        print("⚠️ Google Sheets Export Skipped: PITCH_SHEET_ID missing in settings.")
         return False
 
     try:
-        # 3. Authenticate
-        creds = service_account.Credentials.from_service_account_file(
-            str(SERVICE_ACCOUNT_FILE), scopes=SCOPES)
+        SERVICE_ACCOUNT_FILE = getattr(settings, 'GOOGLE_CREDENTIALS_FILE', None)
+        if SERVICE_ACCOUNT_FILE and os.path.exists(str(SERVICE_ACCOUNT_FILE)):
+            creds = service_account.Credentials.from_service_account_file(
+                str(SERVICE_ACCOUNT_FILE), scopes=SCOPES)
+        else:
+            creds, _ = google.auth.default(scopes=SCOPES)
         service = build('sheets', 'v4', credentials=creds)
 
         # 4. Prepare Row Data
