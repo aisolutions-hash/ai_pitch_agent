@@ -83,11 +83,11 @@ function animateCount(element, targetValue, duration = 500) {
 
 function createSkeletonCard() {
     return `
-        <div class="animate-pulse bg-white border border-slate-200 rounded-2xl p-4 h-48">
-            <div class="h-4 bg-slate-200 rounded w-3/4 mb-3"></div>
-            <div class="h-3 bg-slate-200 rounded w-1/2 mb-2"></div>
-            <div class="h-3 bg-slate-200 rounded w-2/3 mb-2"></div>
-            <div class="h-3 bg-slate-200 rounded w-1/2"></div>
+        <div class="animate-pulse bg-slate-800/50 border border-slate-700 rounded-2xl p-4 h-48">
+            <div class="h-4 bg-slate-700 rounded w-3/4 mb-3"></div>
+            <div class="h-3 bg-slate-700 rounded w-1/2 mb-2"></div>
+            <div class="h-3 bg-slate-700 rounded w-2/3 mb-2"></div>
+            <div class="h-3 bg-slate-700 rounded w-1/2"></div>
         </div>
     `;
 }

@@ -13,6 +13,8 @@ class LoginRequiredMiddleware:
                 settings.LOGIN_URL,
                 '/static/',
                 '/pitch/mark-opened/',
+                # Token-protected scheduler endpoint (validated inside the view)
+                '/scraper/scheduler/',
             )
             if not path.startswith(allowed_prefixes):
                 return redirect(f'{settings.LOGIN_URL}?next={path}')

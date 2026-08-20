@@ -2,20 +2,31 @@ import csv
 import json
 import logging
 import os
-import requests
-import re
+import threading
 from django.shortcuts import render
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
 from django.conf import settings
 from datetime import datetime
 import google.generativeai as genai
 
 from dashboard.gcs import upload_contact
+from dashboard import gcs
 from .sheets_util import append_profile as sheets_append_profile
 from .sheets_util import update_profile as sheets_update_profile
 from .sheets_util import delete_profile as sheets_delete_profile
 from .sheets_util import get_all_profiles as sheets_get_all_profiles
+from .services import (
+    _serpapi_linkedin_profile,
+    _serpapi_linkedin_search,
+    _parse_linkedin_title,
+    _extract_profile_fields,
+    fetch_linkedin_profile_by_url,
+    analyze_profile_record,
+    build_contact_data,
+    run_daily_scrape,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -74,230 +85,8 @@ def _update_csv_by_url(linkedin_url, updated_row):
         writer.writerows(rows)
 
 
-def _serpapi_linkedin_profile(linkedin_url):
-    """
-    Fetch full LinkedIn profile data using SerpAPI's LinkedIn Profile API.
-    Returns structured data: name, headline, location, about, experience, education, skills.
-    No cookies required — uses LinkedIn's public profile.
-    """
-    try:
-        params = {
-            "engine": "linkedin_profile",
-            "url": linkedin_url,
-            "api_key": settings.SERPAPI_API_KEY,
-        }
-        resp = requests.get("https://serpapi.com/search", params=params, timeout=15)
-        data = resp.json()
-        if data.get("error"):
-            logger.warning(f"SerpAPI LinkedIn profile error: {data['error']}")
-            return None
-
-        profile = data.get("profile", data)
-        name = profile.get("name", profile.get("title", ""))
-        headline = profile.get("headline", profile.get("headline", ""))
-        location = profile.get("location", "")
-        about = profile.get("about", profile.get("summary", ""))
-        education = profile.get("education", [])
-        skills = [s.get("name", s) if isinstance(s, dict) else s for s in profile.get("skills", [])]
-
-        experiences = profile.get("experience", []) or profile.get("positions", [])
-        current_position = ""
-        current_company = ""
-        if experiences:
-            exp = experiences[0]
-            current_position = exp.get("title", exp.get("position", ""))
-            current_company = exp.get("company", exp.get("company_name", ""))
-
-        return {
-            "title": f"{name} - {current_position} at {current_company} - {location}" if current_company else name,
-            "link": linkedin_url,
-            "snippet": about[:300] if about else headline,
-            "position": current_position,
-            "company": current_company,
-            "location": location,
-            "education": ", ".join([e.get("name", e.get("school_name", "")) if isinstance(e, dict) else str(e) for e in education]) if education else "",
-            "about": about,
-            "skills": skills
-        }
-    except Exception as e:
-        logger.warning(f"SerpAPI LinkedIn profile API failed ({e})")
-        return None
-
-
-def _serpapi_linkedin_search(query, num=10):
-    """
-    Search LinkedIn via SerpAPI — tries LinkedIn Profile API for full profiles,
-    falls back to LinkedIn search, then to Google search.
-    """
-    # Try direct profile fetch if query looks like a URL
-    if "linkedin.com/in/" in query:
-        profile = _serpapi_linkedin_profile(query)
-        if profile:
-            return [profile]
-
-    # Attempt 1: SerpAPI LinkedIn search engine (public search, no cookies needed)
-    try:
-        parts = query.strip().split()
-        params = {
-            "engine": "linkedin",
-            "api_key": settings.SERPAPI_API_KEY,
-        }
-        if parts:
-            params["first_name"] = parts[0]
-        if len(parts) > 1:
-            params["last_name"] = " ".join(parts[1:])
-        else:
-            params["last_name"] = ""
-
-        resp = requests.get("https://serpapi.com/search", params=params, timeout=10)
-        data = resp.json()
-        results = data.get('organic_results', []) or data.get('profiles', []) or data.get('people_results', [])
-
-        profiles = []
-        for r in results:
-            link = r.get("profile_url", r.get("link", ""))
-            if not link or "linkedin.com/in/" not in link:
-                continue
-            name = r.get("name", r.get("title", ""))
-            headline = r.get("headline", r.get("occupation", ""))
-            location = r.get("location", "")
-            about = r.get("summary", r.get("about", ""))
-            education = r.get("education", [])
-            skills = [s.get("name", s) if isinstance(s, dict) else s for s in r.get("skills", [])]
-            exp = (r.get("experience", []) or r.get("positions", []))
-            position = ""
-            company = ""
-            if exp:
-                position = exp[0].get("title", exp[0].get("position", ""))
-                company = exp[0].get("company", exp[0].get("company_name", ""))
-
-            profiles.append({
-                "title": f"{name} - {position} at {company} - {location}" if company else name,
-                "link": link,
-                "snippet": about[:300] if about else headline,
-                "position": position,
-                "company": company,
-                "location": location,
-                "education": ", ".join([e.get("name", e.get("school_name", "")) if isinstance(e, dict) else str(e) for e in education]) if education else "",
-                "about": about,
-                "skills": skills
-            })
-
-        if profiles:
-            logger.info(f"SerpAPI LinkedIn search returned {len(profiles)} profiles")
-            return profiles
-    except Exception as e:
-        logger.warning(f"SerpAPI LinkedIn search failed ({e}), trying Google")
-
-    # Attempt 2: Google search proxy (always works)
-    try:
-        params = {
-            "engine": "google",
-            "q": f'site:linkedin.com/in/ "{query}"',
-            "api_key": settings.SERPAPI_API_KEY,
-            "num": num
-        }
-        resp = requests.get("https://serpapi.com/search", params=params, timeout=10)
-        results = resp.json().get('organic_results', [])
-        profiles = []
-        for r in results:
-            link = r.get("link", "")
-            if "linkedin.com/in/" not in link:
-                continue
-            title = r.get("title", "")
-            snippet = r.get("snippet", "")
-            pos, comp, loc = _parse_linkedin_title(title)
-            profiles.append({
-                "title": title, "link": link, "snippet": snippet,
-                "position": pos, "company": comp, "location": loc,
-                "education": "", "about": "", "skills": []
-            })
-        return profiles
-    except Exception as e:
-        logger.error(f"Google search fallback failed: {e}")
-        return []
-
-
-def _parse_linkedin_title(title):
-    """Parse LinkedIn-style title -> (position, company, location)."""
-    position = company = location = ""
-    try:
-        parts = title.split(" - ")
-        if len(parts) >= 3:
-            position = parts[1].strip()
-            rest = parts[2].strip()
-            if "," in rest:
-                company, location = rest.split(",", 1)
-                company = company.strip()
-                location = location.strip()
-            else:
-                company = rest
-    except Exception:
-        pass
-    return position, company, location
-
-
-def _extract_profile_fields(profiles):
-    """Normalize profile fields across LinkedIn engine and Google fallback results."""
-    for p in profiles:
-        p.setdefault("position", "")
-        p.setdefault("company", "")
-        p.setdefault("location", "")
-        p.setdefault("education", "")
-        p.setdefault("about", "")
-        p.setdefault("skills", [])
-        if not p.get("position") and not p.get("company"):
-            pos, comp, loc = _parse_linkedin_title(p.get("title", ""))
-            if not p.get("position"):
-                p["position"] = pos
-            if not p.get("company"):
-                p["company"] = comp
-            if not p.get("location"):
-                p["location"] = loc
-    return profiles
-
-
-def fetch_linkedin_profile_by_url(linkedin_url):
-    """Fetch LinkedIn profile by URL using SerpAPI LinkedIn Profile API, with fallback."""
-    try:
-        linkedin_url = linkedin_url.strip()
-        if not linkedin_url.startswith('http'):
-            linkedin_url = 'https://' + linkedin_url
-        if not linkedin_url.endswith('/'):
-            linkedin_url += '/'
-
-        username_match = re.search(r'linkedin\.com/in/([a-zA-Z0-9\-]+)', linkedin_url)
-        if not username_match:
-            logger.warning(f"Could not extract username from LinkedIn URL: {linkedin_url}")
-            return []
-
-        username = username_match.group(1)
-
-        # Try LinkedIn Profile API first
-        profile = _serpapi_linkedin_profile(linkedin_url)
-        if profile:
-            return [profile]
-
-        # Fallback to search
-        profiles = _serpapi_linkedin_search(username, num=5)
-        profiles = _extract_profile_fields(profiles)
-        exact = [p for p in profiles if username.lower() in p.get("link", "").lower()]
-        if exact:
-            return exact[:1]
-        if profiles:
-            profiles[0]["link"] = linkedin_url
-            return profiles[:1]
-
-        return [{
-            "title": f"{username.replace('-', ' ').title()} - LinkedIn Profile",
-            "link": linkedin_url,
-            "snippet": "LinkedIn profile accessed directly via URL",
-            "position": "", "company": "", "location": "",
-            "education": "", "about": "", "skills": []
-        }]
-    except Exception as e:
-        logger.error(f"Error fetching LinkedIn profile by URL: {e}")
-        return []
+# NOTE: SerpAPI/Gemini pipeline helpers live in scraper/services.py and are
+# imported above (kept here as imported names for backward compatibility).
 
 
 def scraper_home(request):
@@ -371,103 +160,17 @@ def analyze_profile(request):
         education = body.get('education', '')
         about = body.get('about', '')
         skills = body.get('skills', [])
-        
-        # Extract username for post search
-        linkedin_posts = []
-        if linkedin_url:
-            username_match = re.search(r'linkedin\.com/in/([a-zA-Z0-9\-]+)', linkedin_url)
-            if username_match:
-                username = username_match.group(1)
-                try:
-                    url = "https://serpapi.com/search"
-                    params = {
-                        "engine": "google",
-                        "q": f'site:linkedin.com/posts/ {username}',
-                        "api_key": settings.SERPAPI_API_KEY,
-                        "num": 5
-                    }
-                    # Reduced timeout to 5 seconds - fail gracefully if SerpAPI is slow
-                    response = requests.get(url, params=params, timeout=5)
-                    posts_results = response.json().get('organic_results', [])
-                    linkedin_posts = [r.get('snippet', '') for r in posts_results if r.get('snippet')]
-                except requests.exceptions.Timeout:
-                    logger.warning(f"SerpAPI timeout for {username} - proceeding without posts")
-                except requests.exceptions.RequestException as e:
-                    logger.warning(f"SerpAPI request failed for {username}: {e} - proceeding without posts")
-                except Exception as e:
-                    logger.warning(f"Failed to search LinkedIn posts: {e}")
-        
-        posts_text = '\n'.join([f"- {p}" for p in linkedin_posts]) if linkedin_posts else 'No recent posts found in search results.' 
-        
-        skills_text = ', '.join(skills) if skills else 'Not listed'
 
-        prompt = f"""You are an AI sales intelligence analyst. Analyze the following LinkedIn profile and provide comprehensive insights in JSON format.
-
-PROFILE:
-Name: {name}
-Headline: {headline}
-Company: {company}
-Location: {location}
-Profile Summary: {snippet}
-About Section: {about}
-Education: {education}
-Skills: {skills_text}
-
-RECENT LINKEDIN POSTS:
-{posts_text}
-
-Return ONLY valid JSON with exactly these fields:
-{{
-    "intent": "brief description of their likely business intent and priorities",
-    "pain_points": ["pain point 1", "pain point 2", "pain point 3"],
-    "ai_need_score": (integer 1-10, how likely they need AI/automation solutions),
-    "ai_need_reason": "one sentence explaining why they might need AI solutions",
-    "branding_need_score": (integer 1-10, how likely they need branding/content solutions),
-    "branding_need_reason": "one sentence explaining why they might need branding solutions",
-    "pitch_angle": "recommended approach for sales pitch",
-    "post_insights": "analysis of what their recent LinkedIn posts reveal about their interests, challenges, and needs",
-    "linkedin_pitch": "a personalized LinkedIn outreach message under 100 words that references their profile and posts, offers a tailored solution, and has a clear call-to-action",
-    "industry": "inferred industry based on their profile",
-    "seniority_level": "inferred seniority (entry/mid/senior/executive/c-suite)",
-    "company_size": "inferred company size range (startup/sme/enterprise)"
-}}
-        
-Return ONLY valid JSON, no other text."""
-        
+        # Run the shared analysis pipeline (posts fetch + Gemini + JSON parse)
         try:
-            model = genai.GenerativeModel('gemini-2.5-flash')
-        except Exception as model_error:
-            logger.error(f"Model initialization error: {model_error}")
-            return JsonResponse({'error': f'AI model not available: {str(model_error)}'}, status=500)
-        
-        try:
-            # Reduced timeout to 30 seconds for gemini-2.5-flash (typical: 2-5 seconds)
-            response = model.generate_content(
-                prompt,
-                request_options={'timeout': 30.0}
+            analysis = analyze_profile_record(
+                name=name, headline=headline, company=company, location=location,
+                snippet=snippet, linkedin_url=linkedin_url, education=education,
+                about=about, skills=skills,
             )
-        except Exception as gemini_error:
-            logger.error(f"Gemini API error: {gemini_error}")
-            if "timeout" in str(gemini_error).lower():
-                return JsonResponse({'error': 'AI analysis timed out - please try again'}, status=504)
-            else:
-                return JsonResponse({'error': f'AI analysis failed: {str(gemini_error)}'}, status=500)
-        
-        # Parse response
-        try:
-            response_text = response.text.strip()
-            # Remove markdown code blocks if present
-            if response_text.startswith('```'):
-                response_text = response_text.split('```')[1]
-                if response_text.startswith('json'):
-                    response_text = response_text[4:]
-            response_text = response_text.strip()
-            
-            analysis = json.loads(response_text)
-        except json.JSONDecodeError as e:
-            logger.error(f"Error parsing Gemini response: {e}")
-            logger.error(f"Raw response: {response_text[:200]}")
-            return JsonResponse({'error': 'Failed to parse analysis response - invalid JSON from AI'}, status=500)
+        except RuntimeError as analysis_error:
+            status = 504 if 'timed out' in str(analysis_error) else 500
+            return JsonResponse({'error': str(analysis_error)}, status=status)
         
         # Auto-save to CSV
         try:
@@ -527,26 +230,10 @@ Return ONLY valid JSON, no other text."""
         # Auto-save to GCS so it appears in Dashboard -> LinkedIn Contacts
         try:
             uid = linkedin_url.rstrip('/').split('/')[-1] if linkedin_url else name.replace(' ', '-').lower()
-            contact_data = {
-                'name': name,
-                'company': company,
-                'headline': headline,
-                'location': location,
-                'linkedin_url': linkedin_url,
-                'snippet': snippet,
-                'intent': analysis.get('intent', ''),
-                'pain_points': analysis.get('pain_points', []),
-                'ai_need_score': analysis.get('ai_need_score', 0),
-                'ai_need_reason': analysis.get('ai_need_reason', ''),
-                'branding_need_score': analysis.get('branding_need_score', 0),
-                'branding_need_reason': analysis.get('branding_need_reason', ''),
-                'pitch_angle': analysis.get('pitch_angle', ''),
-                'post_insights': analysis.get('post_insights', ''),
-                'linkedin_pitch': analysis.get('linkedin_pitch', ''),
-                'industry': analysis.get('industry', ''),
-                'seniority_level': analysis.get('seniority_level', ''),
-                'company_size': analysis.get('company_size', '')
-            }
+            contact_data = build_contact_data(
+                name=name, company=company, headline=headline, location=location,
+                linkedin_url=linkedin_url, snippet=snippet, analysis=analysis,
+            )
             upload_contact('linkedin', uid, contact_data)
             logger.info(f"Profile saved to GCS: {name}")
         except Exception as gcs_error:
@@ -939,3 +626,228 @@ def check_api_status(request):
         ])
     }
     return JsonResponse(status)
+
+
+# ---------------------------------------------------------------------------
+# Scheduled Scraper endpoints (keywords config, run history, manual/scheduled runs)
+# ---------------------------------------------------------------------------
+
+def scrape_keywords_list(request):
+    """GET — list configured scrape keywords (from GCS config)."""
+    try:
+        keywords = gcs.get_scrape_keywords()
+        return JsonResponse({'success': True, 'keywords': keywords})
+    except Exception as e:
+        logger.error(f"Error listing scrape keywords: {e}")
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@csrf_exempt
+@require_POST
+def scrape_keyword_add(request):
+    """POST JSON {keyword} — add a new scrape keyword."""
+    try:
+        body = json.loads(request.body)
+        keyword = (body.get('keyword') or '').strip()
+        if not keyword:
+            return JsonResponse({'success': False, 'error': 'Keyword cannot be empty'}, status=400)
+
+        keywords = gcs.get_scrape_keywords()
+        if any(k['keyword'].lower() == keyword.lower() for k in keywords):
+            return JsonResponse({'success': False, 'error': 'Keyword already exists'}, status=400)
+
+        keywords.append({
+            'keyword': keyword,
+            'active': True,
+            'created_at': datetime.now().isoformat(),
+        })
+        if not gcs.save_scrape_keywords(keywords):
+            return JsonResponse({'success': False, 'error': 'Failed to save keywords to GCS'}, status=500)
+        return JsonResponse({'success': True, 'keywords': keywords})
+    except Exception as e:
+        logger.error(f"Error adding scrape keyword: {e}")
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@csrf_exempt
+@require_POST
+def scrape_keyword_toggle(request):
+    """POST JSON {keyword} — toggle a keyword's active flag."""
+    try:
+        body = json.loads(request.body)
+        keyword = (body.get('keyword') or '').strip()
+        keywords = gcs.get_scrape_keywords()
+        found = False
+        for k in keywords:
+            if k['keyword'].lower() == keyword.lower():
+                k['active'] = not k.get('active', True)
+                found = True
+                break
+        if not found:
+            return JsonResponse({'success': False, 'error': 'Keyword not found'}, status=404)
+        if not gcs.save_scrape_keywords(keywords):
+            return JsonResponse({'success': False, 'error': 'Failed to save keywords to GCS'}, status=500)
+        return JsonResponse({'success': True, 'keywords': keywords})
+    except Exception as e:
+        logger.error(f"Error toggling scrape keyword: {e}")
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@csrf_exempt
+@require_POST
+def scrape_keyword_delete(request):
+    """POST JSON {keyword} — delete a scrape keyword."""
+    try:
+        body = json.loads(request.body)
+        keyword = (body.get('keyword') or '').strip()
+        keywords = gcs.get_scrape_keywords()
+        new_keywords = [k for k in keywords if k['keyword'].lower() != keyword.lower()]
+        if len(new_keywords) == len(keywords):
+            return JsonResponse({'success': False, 'error': 'Keyword not found'}, status=404)
+        if not gcs.save_scrape_keywords(new_keywords):
+            return JsonResponse({'success': False, 'error': 'Failed to save keywords to GCS'}, status=500)
+        return JsonResponse({'success': True, 'keywords': new_keywords})
+    except Exception as e:
+        logger.error(f"Error deleting scrape keyword: {e}")
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+def scrape_runs_list(request):
+    """GET — list historical scrape runs from GCS (newest first)."""
+    try:
+        runs = gcs.list_scrape_runs()
+        return JsonResponse({'success': True, 'runs': runs})
+    except Exception as e:
+        logger.error(f"Error listing scrape runs: {e}")
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+def scrape_run_detail(request):
+    """GET ?path=<blob_path> — fetch a single scrape-run batch (profiles + messages)."""
+    try:
+        run_path = request.GET.get('path', '')
+        run = gcs.get_scrape_run(run_path)
+        if run is None:
+            return JsonResponse({'success': False, 'error': 'Run not found'}, status=404)
+        return JsonResponse({'success': True, 'run': run})
+    except Exception as e:
+        logger.error(f"Error fetching scrape run detail: {e}")
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+def _start_background_scrape(keywords=None, trigger='manual'):
+    """Kick off run_daily_scrape in a daemon thread and return the thread."""
+    def _target():
+        try:
+            summaries = run_daily_scrape(keywords=keywords, trigger=trigger)
+            ok = sum(1 for s in summaries if s.get('status') == 'success')
+            logger.info(f"Background scrape finished: {ok}/{len(summaries)} keywords succeeded")
+        except Exception as e:
+            logger.error(f"Background scrape failed: {e}", exc_info=True)
+
+    thread = threading.Thread(target=_target, daemon=True)
+    thread.start()
+    return thread
+
+
+@csrf_exempt
+@require_POST
+def run_scrape_now(request):
+    """
+    POST (login required) — manually trigger the daily scrape in the background.
+    Optional JSON body {keyword} to run a single keyword.
+    """
+    try:
+        keyword = None
+        if request.body:
+            try:
+                keyword = (json.loads(request.body).get('keyword') or '').strip() or None
+            except json.JSONDecodeError:
+                keyword = None
+
+        _start_background_scrape(keywords=[keyword] if keyword else None, trigger='manual')
+        return JsonResponse({
+            'success': True,
+            'message': f"Scrape started in background{f' for: {keyword}' if keyword else ' for all active keywords'}. Results will appear in Run History shortly."
+        })
+    except Exception as e:
+        logger.error(f"Error starting manual scrape: {e}")
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@csrf_exempt
+def scheduler_run(request):
+    """
+    Scheduler endpoint (no login — exempted in middleware, token-protected).
+    Called daily by Cloud Scheduler (or any cron) with the shared secret:
+      - header:  X-Scheduler-Secret: <SCHEDULER_SECRET>
+      - or GET param: ?token=<SCHEDULER_SECRET>
+    Starts the scrape in the background and returns immediately.
+    """
+    secret = getattr(settings, 'SCHEDULER_SECRET', '')
+    if not secret:
+        return JsonResponse({'success': False, 'error': 'Scheduler is not configured (SCHEDULER_SECRET missing).'}, status=503)
+
+    provided = request.headers.get('X-Scheduler-Secret') or request.GET.get('token', '')
+    if provided != secret:
+        return JsonResponse({'success': False, 'error': 'Invalid scheduler token.'}, status=403)
+
+    _start_background_scrape(trigger='scheduler')
+    return JsonResponse({'success': True, 'message': 'Daily scrape started in background.'})
+
+
+def scrape_progress(request):
+    """GET — live progress of the current/last scrape run (for the dashboard progress bar)."""
+    progress = gcs.get_scrape_progress()
+    if progress is None:
+        progress = {'state': 'idle'}
+    return JsonResponse(progress)
+
+
+def scrape_stats(request):
+    """GET — aggregated stats for the dashboard tiles and bar charts."""
+    try:
+        entries = gcs.get_scrape_stats()
+
+        today = datetime.now().date()
+        total_profiles = sum(e.get('profiles_analyzed', 0) for e in entries)
+        today_profiles = sum(
+            e.get('profiles_analyzed', 0) for e in entries
+            if e.get('date') == today.isoformat()
+        )
+
+        # Daily series for the last 7 days (bar chart)
+        from datetime import timedelta
+        days = [today - timedelta(days=i) for i in range(6, -1, -1)]
+        daily = []
+        for d in days:
+            ds = d.isoformat()
+            count = sum(e.get('profiles_analyzed', 0) for e in entries if e.get('date') == ds)
+            daily.append({'date': ds, 'label': d.strftime('%a %d'), 'count': count})
+
+        # Per-keyword totals (horizontal bars)
+        per_kw = {}
+        for e in entries:
+            kw = e.get('keyword', '?')
+            per_kw[kw] = per_kw.get(kw, 0) + e.get('profiles_analyzed', 0)
+        per_keyword = [
+            {'keyword': k, 'count': v}
+            for k, v in sorted(per_kw.items(), key=lambda x: -x[1])
+        ]
+
+        active_keywords = len([k for k in gcs.get_scrape_keywords() if k.get('active')])
+
+        return JsonResponse({
+            'success': True,
+            'totals': {
+                'profiles': total_profiles,
+                'today_profiles': today_profiles,
+                'runs': len(entries),
+                'active_keywords': active_keywords,
+            },
+            'daily': daily,
+            'per_keyword': per_keyword,
+        })
+    except Exception as e:
+        logger.error(f"Error computing scrape stats: {e}")
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)

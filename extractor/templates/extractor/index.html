@@ -6,26 +6,26 @@
 {% block header_lead %}Find suppliers by searching for an item or uploading a list of companies.{% endblock %}
 
 {% block content %}
-<div class="w-full min-h-screen bg-slate-900 text-slate-300 p-4 sm:p-6 lg:p-8">
+<div class="w-full min-h-screen text-slate-600 p-4 sm:p-6 lg:p-8">
     <div class="max-w-6xl mx-auto">
         <div class="text-center mb-8">
-            <h1 class="text-3xl font-bold text-white">Supplier Contact Extractor</h1>
-            <p class="text-slate-400 mt-2 text-lg">Find suppliers by searching for an item or uploading a list of companies.</p>
+            <h1 class="text-3xl font-bold text-slate-800">Supplier Contact Extractor</h1>
+            <p class="text-slate-500 mt-2 text-lg">Find suppliers by searching for an item or uploading a list of companies.</p>
         </div>
         
-        <div x-data="{ tab: 'single' }" class="bg-slate-800/50 border border-slate-700 rounded-2xl p-6">
+        <div x-data="{ tab: 'single' }" class="bg-white border border-slate-200 rounded-2xl shadow-lg shadow-slate-200/50 p-6">
             
-            <div class="flex border-b border-slate-700 mb-6">
+            <div class="flex border-b border-slate-200 mb-6">
                 <button
                     @click="tab = 'single'"
-                    :class="{ 'border-purple-500 text-purple-400': tab === 'single', 'border-transparent text-slate-500 hover:text-slate-300': tab !== 'single' }"
+                    :class="{ 'border-purple-500 text-purple-600': tab === 'single', 'border-transparent text-slate-500 hover:text-slate-600': tab !== 'single' }"
                     class="py-3 px-4 font-medium border-b-2 focus:outline-none transition-colors"
                 >
                     Single Item Search
                 </button>
                 <button
                     @click="tab = 'bulk'"
-                    :class="{ 'border-purple-500 text-purple-400': tab === 'bulk', 'border-transparent text-slate-500 hover:text-slate-300': tab !== 'bulk' }"
+                    :class="{ 'border-purple-500 text-purple-600': tab === 'bulk', 'border-transparent text-slate-500 hover:text-slate-600': tab !== 'bulk' }"
                     class="py-3 px-4 font-medium border-b-2 focus:outline-none transition-colors"
                 >
                     Bulk CSV Upload
@@ -36,19 +36,19 @@
                 <div x-show="tab === 'single'">
                     <form method="post" class="space-y-4">
                         {% csrf_token %}
-                        <p class="text-slate-400 mb-4">Enter an item name to find suppliers you have interacted with via email.</p>
+                        <p class="text-slate-500 mb-4">Enter an item name to find suppliers you have interacted with via email.</p>
                         
                         <input type="hidden" name="is_bulk_search" value="False">
                         
                         <div>
-                            <label for="query" class="block text-sm font-medium text-slate-400">Search Query</label>
+                            <label for="query" class="block text-sm font-medium text-slate-500">Search Query</label>
                             <input
                                 type="text"
                                 name="query"
                                 id="query"
                                 required
                                 value="{{ query|default:'' }}"
-                                class="mt-1 block w-full p-2.5 bg-slate-700 border border-slate-600 rounded-lg text-slate-200 focus:ring-purple-500 focus:border-purple-500"
+                                class="mt-1 block w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg text-slate-800 focus:ring-purple-500 focus:border-purple-500"
                                 placeholder="e.g., 'HDMI cables' or 'packaging boxes'"
                             />
                         </div>
@@ -65,19 +65,19 @@
                 <div x-show="tab === 'bulk'">
                     <form method="post" enctype="multipart/form-data" class="space-y-4">
                         {% csrf_token %}
-                        <p class="text-slate-400 mb-4">Upload a CSV file containing a list of company names to search for.</p>
+                        <p class="text-slate-500 mb-4">Upload a CSV file containing a list of company names to search for.</p>
 
                         <input type="hidden" name="is_bulk_search" value="True">
 
                         <div>
-                            <label for="csv_file" class="block text-sm font-medium text-slate-400">CSV File</label>
+                            <label for="csv_file" class="block text-sm font-medium text-slate-500">CSV File</label>
                             <input
                                 type="file"
                                 name="csv_file"
                                 id="csv_file"
                                 required
                                 accept=".csv"
-                                class="mt-1 block w-full text-slate-200 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-100 file:text-purple-700 hover:file:bg-purple-200"
+                                class="mt-1 block w-full text-slate-700 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-100 file:text-purple-700 hover:file:bg-purple-200"
                             />
                         </div>
 
@@ -101,27 +101,27 @@
         {% endif %}
         
         {% if results %}
-            <div class="mt-8 bg-slate-800/50 border border-slate-700 rounded-2xl p-6">
-                <h4 class="text-xl font-semibold text-white mb-4">Unique Suppliers Found for "{{ query }}"</h4>
+            <div class="mt-8 bg-white border border-slate-200 rounded-2xl shadow-lg shadow-slate-200/50 p-6">
+                <h4 class="text-xl font-semibold text-slate-800 mb-4">Unique Suppliers Found for "{{ query }}"</h4>
                 <div class="overflow-x-auto shadow-md rounded-lg">
-                    <table class="min-w-full divide-y divide-slate-700">
-                        <thead class="bg-slate-700">
+                    <table class="min-w-full divide-y divide-slate-200">
+                        <thead class="bg-slate-100">
                             <tr>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">#</th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Company Name</th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Email Address</th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Contact Name</th>
-                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Contact Number</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-slate-600 uppercase tracking-wider">#</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-slate-600 uppercase tracking-wider">Company Name</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-slate-600 uppercase tracking-wider">Email Address</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-slate-600 uppercase tracking-wider">Contact Name</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-slate-600 uppercase tracking-wider">Contact Number</th>
                             </tr>
                         </thead>
-                        <tbody class="bg-slate-800 divide-y divide-slate-700">
+                        <tbody class="bg-white divide-y divide-slate-200">
                             {% for item in results %}
-                                <tr class="hover:bg-slate-700/70 transition duration-150">
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-400">{{ forloop.counter }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">{{ item.company|default:'-' }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-400">{{ item.email }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-400">{{ item.name|default:'-' }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-400">{{ item.number|default:'-' }}</td>
+                                <tr class="hover:bg-slate-50 transition duration-150">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{{ forloop.counter }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-800">{{ item.company|default:'-' }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{{ item.email }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{{ item.name|default:'-' }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{{ item.number|default:'-' }}</td>
                                 </tr>
                             {% endfor %}
                         </tbody>
@@ -129,7 +129,7 @@
                 </div>
             </div>
         {% elif query and not is_bulk_search %}
-            <div class="max-w-6xl mx-auto mt-6 p-4 bg-yellow-900/50 border border-yellow-700 text-yellow-300 text-center rounded-lg">
+            <div class="max-w-6xl mx-auto mt-6 p-4 bg-yellow-100 border border-yellow-300 text-yellow-700 text-center rounded-lg">
                 No suppliers found for "{{ query }}".
             </div>
         {% endif %}

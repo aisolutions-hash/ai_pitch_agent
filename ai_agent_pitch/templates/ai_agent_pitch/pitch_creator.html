@@ -13,11 +13,11 @@
 </div>
 {% endif %}
 <div
-  class="w-full h-screen bg-slate-900 text-slate-300 flex flex-col p-4 sm:p-6 lg:p-8"
+  class="w-full h-screen bg-gradient-to-br from-slate-50 via-purple-50/50 to-indigo-50 text-slate-700 flex flex-col p-4 sm:p-6 lg:p-8"
   x-data="{
     subject: '',
     htmlContent: '',
-    aiPrompt: '',
+    campaignOpen: !!localStorage.getItem('pitch_selected_template'),
     recipientType: 'csv',
     singleEmail: '',
     singleName: '',
@@ -25,22 +25,16 @@
       // Restore saved data from localStorage
       this.subject = localStorage.getItem('pitch_subject') || '';
       this.htmlContent = localStorage.getItem('pitch_html') || '';
-      this.aiPrompt = localStorage.getItem('pitch_ai_prompt') || '';
       this.recipientType = localStorage.getItem('pitch_recipient_type') || 'csv';
       this.singleEmail = localStorage.getItem('pitch_single_email') || '';
       this.singleName = localStorage.getItem('pitch_single_name') || '';
-      
+
       // Update form fields
       this.$nextTick(() => {
         if (this.subject) document.getElementById('subject').value = this.subject;
-        if (this.htmlContent) {
-          document.getElementById('html_content').value = this.htmlContent;
-          updatePreview();
-        }
-        if (this.aiPrompt) document.getElementById('ai_prompt').value = this.aiPrompt;
         if (this.singleEmail) document.getElementById('single_email').value = this.singleEmail;
         if (this.singleName) document.getElementById('single_name').value = this.singleName;
-        
+
         // Show restoration message if data exists
         if (this.subject || this.htmlContent) {
           setTimeout(() => {
@@ -58,6 +52,8 @@
       });
     }
   }"
+  @open-campaign.window="campaignOpen = true"
+  @close-campaign.window="campaignOpen = false"
 >
   <form
     id="pitch-form"
@@ -67,63 +63,100 @@
     class="flex-grow min-h-0 relative"
   >
     <!-- Auto-save indicator -->
-    <div x-show="subject || htmlContent" class="fixed top-20 right-4 bg-slate-800 text-slate-300 px-3 py-1.5 rounded-full shadow-lg text-xs flex items-center gap-2 z-50 border border-slate-700">
-      <svg class="w-3 h-3 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+    <div x-show="subject || htmlContent" class="fixed top-20 right-4 bg-white text-slate-600 px-3 py-1.5 rounded-full shadow-lg text-xs flex items-center gap-2 z-50 border border-slate-200">
+      <svg class="w-3 h-3 text-green-500" fill="currentColor" viewBox="0 0 20 20">
         <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
       </svg>
       <span>Auto-saving...</span>
     </div>
     {% csrf_token %}
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 h-full">
+
+    <!-- Selected template content (set when a tile's Send button or the modal's Use & Send is clicked) -->
+    <input
+      type="hidden"
+      name="html_content"
+      id="html_content"
+      x-model="htmlContent"
+      @input="localStorage.setItem('pitch_html', htmlContent)"
+    />
+
+    <div class="grid grid-cols-1 gap-8 h-full" :class="campaignOpen ? 'lg:grid-cols-2' : 'lg:grid-cols-1'">
+
+      <!-- LEFT: Saved Templates -->
       <div
-        class="bg-slate-800/50 border border-slate-700 rounded-2xl p-6 flex flex-col space-y-6 overflow-y-auto"
+        class="bg-white border border-slate-200 shadow-xl shadow-slate-200/60 rounded-2xl p-6 flex flex-col space-y-4 overflow-hidden"
       >
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label
-              for="load_template"
-              class="text-sm font-medium text-slate-400 mb-2 block"
-              >Load Template</label
-            >
-            <select
-              id="load_template"
-              class="w-full p-2.5 bg-slate-700 border border-slate-600 rounded-lg text-slate-200 focus:ring-purple-500 focus:border-purple-500"
-            >
-              <option value="">-- Select Template --</option>
-              {% for template in templates %}
-              <option value="{{ template.id }}">{{ template.name }}</option>
-              {% endfor %}
-            </select>
-          </div>
-          <div>
-            <label
-              for="save_template_name"
-              class="text-sm font-medium text-slate-400 mb-2 block"
-              >Save Template As</label
-            >
-            <div class="flex">
-              <input
-                type="text"
-                id="save_template_name"
-                placeholder="Template Name"
-                class="flex-grow p-2.5 bg-slate-700 border border-slate-600 rounded-l-lg text-slate-200 focus:ring-purple-500 focus:border-purple-500"
-              />
-              <button
-                type="button"
-                id="save_template_btn"
-                class="bg-green-600 text-white p-2.5 rounded-r-lg hover:bg-green-700 transition"
-              >
-                Save
-              </button>
+        <h3 class="text-base font-bold flex items-center gap-2 flex-shrink-0">
+          <span class="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-purple-100 text-purple-600 text-sm shadow-sm">🗂️</span>
+          <span class="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-indigo-600">Saved Templates</span>
+          <span class="text-xs font-bold text-purple-600 bg-purple-50 border border-purple-100 rounded-full px-2 py-0.5">{{ templates|length }}</span>
+          <span class="flex-grow h-px bg-gradient-to-r from-purple-200 to-transparent"></span>
+        </h3>
+        <p class="text-xs text-slate-500 flex-shrink-0">👁️ Preview &amp; edit a template, or hit 🚀 Send to configure your campaign.</p>
+        <div id="templates_grid" class="grid grid-cols-1 sm:grid-cols-2 gap-4 flex-grow overflow-y-auto light-scroll pr-1 content-start min-h-0" :class="campaignOpen ? 'lg:grid-cols-2' : 'lg:grid-cols-3 xl:grid-cols-4'">
+          {% for template in templates %}
+          <div class="template-tile group relative bg-white border border-slate-200 rounded-xl overflow-hidden hover:border-purple-300 hover:shadow-xl hover:shadow-purple-100 hover:-translate-y-0.5 transition-all duration-200 flex flex-col" data-template-id="{{ template.id }}">
+            <div class="h-1.5 bg-gradient-to-r {% cycle 'from-purple-500 to-indigo-500' 'from-pink-500 to-rose-500' 'from-cyan-500 to-blue-500' 'from-amber-500 to-orange-500' %}"></div>
+            <div class="p-3.5 flex flex-col gap-2.5 flex-grow">
+              <div class="flex items-center gap-2.5 min-w-0">
+                <span class="inline-flex items-center justify-center w-9 h-9 rounded-lg {% cycle 'bg-purple-100 text-purple-600' 'bg-pink-100 text-pink-600' 'bg-cyan-100 text-cyan-600' 'bg-amber-100 text-amber-600' %} text-base flex-shrink-0 group-hover:scale-110 transition-transform shadow-sm">📄</span>
+                <div class="min-w-0">
+                  <p class="font-bold text-slate-800 text-sm truncate" title="{{ template.name }}">{{ template.name }}</p>
+                  <p class="text-[11px] text-slate-400 font-medium">📅 {{ template.created_at|date:"M d, Y" }}</p>
+                </div>
+              </div>
+              <p class="text-xs text-slate-400 leading-relaxed truncate" title="{{ template.html_content|striptags|truncatechars:80 }}">{{ template.html_content|striptags|truncatechars:60 }}</p>
+              <div class="flex gap-1.5 mt-auto pt-1">
+                <button type="button" class="preview-template-btn flex-1 inline-flex items-center justify-center gap-1 px-2 py-1.5 text-xs font-semibold rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white transition" data-template-id="{{ template.id }}">
+                  👁️ Preview
+                </button>
+                <button type="button" class="send-template-btn flex-1 inline-flex items-center justify-center gap-1 px-2 py-1.5 text-xs font-semibold rounded-lg bg-green-50 text-green-600 hover:bg-green-600 hover:text-white transition" data-template-id="{{ template.id }}">
+                  🚀 Send
+                </button>
+              </div>
             </div>
           </div>
+          {% empty %}
+          <p id="no_templates_msg" class="col-span-full text-center text-sm text-slate-400 bg-slate-50 border border-dashed border-slate-300 rounded-xl py-6">No saved templates yet — click "＋ New Template" to create one 💡</p>
+          {% endfor %}
+          <button type="button" id="new_template_tile" class="border-2 border-dashed border-slate-300 rounded-xl p-3 text-slate-400 hover:border-purple-400 hover:text-purple-600 hover:bg-purple-50/50 hover:-translate-y-0.5 hover:shadow-lg transition-all duration-200 flex flex-col items-center justify-center gap-1.5 min-h-[132px]">
+            <span class="text-3xl leading-none">＋</span>
+            <span class="text-xs font-semibold">New Template</span>
+            <span class="text-[10px] text-slate-400">Create from scratch</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- RIGHT: Campaign Details (slides in when a template's Send is clicked) -->
+      <div
+        id="campaign_details"
+        x-show="campaignOpen"
+        x-transition:enter="transition ease-out duration-300"
+        x-transition:enter-start="opacity-0 translate-x-10"
+        x-transition:enter-end="opacity-100 translate-x-0"
+        x-transition:leave="transition ease-in duration-200"
+        x-transition:leave-start="opacity-100 translate-x-0"
+        x-transition:leave-end="opacity-0 translate-x-10"
+        class="bg-white border border-slate-200 shadow-xl shadow-slate-200/60 rounded-2xl p-6 flex flex-col space-y-6 overflow-y-auto light-scroll"
+        style="display: none;"
+      >
+        <div>
+          <h3 class="text-base font-bold flex items-center gap-2">
+            <span class="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-green-100 text-green-600 text-sm shadow-sm">📨</span>
+            <span class="text-transparent bg-clip-text bg-gradient-to-r from-green-600 to-emerald-600">Campaign Details</span>
+            <span class="flex-grow h-px bg-gradient-to-r from-green-200 to-transparent"></span>
+            <button type="button" @click="deselectTemplate()" title="Close panel" class="p-1 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition flex-shrink-0">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+            </button>
+          </h3>
+          <p class="text-xs text-slate-500 mt-1">Template selected ✓ — now configure and send your campaign.</p>
         </div>
 
         <div>
           <label
             for="subject"
-            class="text-sm font-medium text-slate-400 mb-2 block"
-            >Subject Line</label
+            class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2 flex items-center gap-1.5"
+            ><span class="inline-flex items-center justify-center w-5 h-5 rounded-md bg-indigo-100 text-indigo-600 text-[11px]">✉️</span>Subject Line</label
           >
           <div class="flex space-x-2">
             <input
@@ -132,13 +165,14 @@
               id="subject"
               required
               placeholder="e.g., A quick question about your [Product]"
-              class="flex-grow p-2.5 bg-slate-700 border border-slate-600 rounded-l-lg text-slate-200 focus:ring-purple-500 focus:border-purple-500"
+              class="flex-grow p-2.5 bg-slate-50 border border-slate-300 rounded-l-lg text-slate-800 placeholder-slate-400 focus:ring-purple-500 focus:border-purple-500"
               x-model="subject"
               @input="localStorage.setItem('pitch_subject', subject)"
             />
             <button
               type="button"
               id="generate_subject_btn"
+              title="Generate subject with AI"
               class="bg-purple-600 text-white p-2.5 rounded-r-lg hover:bg-purple-700 transition"
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
@@ -149,52 +183,18 @@
         </div>
 
         <div>
-          <label
-            for="html_content"
-            class="text-sm font-medium text-slate-400 mb-2 block"
-            >HTML Content (for rich text/email formatting)</label
-          >
-          <textarea
-            name="html_content"
-            id="html_content"
-            rows="10"
-            class="w-full p-3 bg-slate-700 border border-slate-600 rounded-lg text-slate-200 font-mono text-sm focus:ring-purple-500 focus:border-purple-500"
-            required
-            placeholder="Paste your HTML email template here."
-            x-model="htmlContent"
-            @input="localStorage.setItem('pitch_html', htmlContent)"
-          ></textarea>
-        </div>
+          <h3 class="text-base font-bold mb-3 flex items-center gap-2">
+            <span class="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-indigo-100 text-indigo-600 text-sm shadow-sm">📧</span>
+            <span class="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">Recipients</span>
+            <span class="flex-grow h-px bg-gradient-to-r from-indigo-200 to-transparent"></span>
+          </h3>
 
-        <div class="border-t border-slate-700 pt-4">
-          <h3 class="text-lg font-semibold text-white mb-3">✨ AI Enhance</h3>
-          <p class="text-xs text-slate-400 mb-2">Ask AI to improve your email content (e.g., "Make it more urgent" or "Add emojis")</p>
-          <input
-            type="text"
-            id="ai_prompt"
-            placeholder="e.g., Make the tone more professional and engaging."
-            class="w-full p-2.5 bg-slate-700 border border-slate-600 rounded-lg text-slate-200 mb-3 focus:ring-purple-500 focus:border-purple-500"
-            x-model="aiPrompt"
-            @input="localStorage.setItem('pitch_ai_prompt', aiPrompt)"
-          />
-          <button
-            type="button"
-            id="enhance_with_ai_btn"
-            class="w-full bg-indigo-600 text-white p-2.5 rounded-lg hover:bg-indigo-700 transition"
-          >
-            Enhance
-          </button>
-        </div>
-
-        <div class="border-t border-slate-700 pt-4">
-          <h3 class="text-lg font-semibold text-white mb-3">📧 Recipients</h3>
-          
           <!-- Recipient Type Selector -->
           <div class="flex gap-2 mb-4">
             <button
               type="button"
               @click="recipientType = 'single'; localStorage.setItem('pitch_recipient_type', 'single')"
-              :class="recipientType === 'single' ? 'bg-purple-600 text-white' : 'bg-slate-700 text-slate-300'"
+              :class="recipientType === 'single' ? 'bg-purple-600 text-white shadow-md shadow-purple-200' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
               class="flex-1 py-2 px-4 rounded-lg font-medium transition"
             >
               Single Email
@@ -202,201 +202,369 @@
             <button
               type="button"
               @click="recipientType = 'csv'; localStorage.setItem('pitch_recipient_type', 'csv')"
-              :class="recipientType === 'csv' ? 'bg-purple-600 text-white' : 'bg-slate-700 text-slate-300'"
+              :class="recipientType === 'csv' ? 'bg-purple-600 text-white shadow-md shadow-purple-200' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
               class="flex-1 py-2 px-4 rounded-lg font-medium transition"
             >
               CSV Upload
             </button>
           </div>
-          
+
           <!-- Single Recipient Form -->
           <div x-show="recipientType === 'single'" class="space-y-3">
             <div>
-              <label class="text-sm text-slate-400 block mb-1">Recipient Email *</label>
+              <label class="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-1">Recipient Email *</label>
               <input
                 type="email"
                 name="recipient"
                 id="single_email"
                 placeholder="john@example.com"
-                class="w-full p-2.5 bg-slate-700 border border-slate-600 rounded-lg text-slate-200 focus:ring-purple-500 focus:border-purple-500"
+                class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg text-slate-800 placeholder-slate-400 focus:ring-purple-500 focus:border-purple-500"
                 :required="recipientType === 'single'"
                 x-model="singleEmail"
                 @input="localStorage.setItem('pitch_single_email', singleEmail)"
               />
             </div>
             <div>
-              <label class="text-sm text-slate-400 block mb-1">Recipient Name (Optional)</label>
+              <label class="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-1">Recipient Name (Optional)</label>
               <input
                 type="text"
                 name="recipient_name"
                 id="single_name"
                 placeholder="John Doe"
-                class="w-full p-2.5 bg-slate-700 border border-slate-600 rounded-lg text-slate-200 focus:ring-purple-500 focus:border-purple-500"
+                class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg text-slate-800 placeholder-slate-400 focus:ring-purple-500 focus:border-purple-500"
                 x-model="singleName"
                 @input="localStorage.setItem('pitch_single_name', singleName)"
               />
             </div>
             <p class="text-xs text-slate-500">💡 Tip: Use [Recipient] in your email to personalize with the name</p>
           </div>
-          
+
           <!-- CSV Upload Form -->
           <div x-show="recipientType === 'csv'" class="space-y-2">
-            <p class="text-sm text-slate-400">Upload any CSV — we'll auto-detect <strong>Email</strong>, <strong>Name</strong>, and <strong>Company</strong> columns. Use <code>[Recipient]</code> and <code>[Company]</code> in your email.</p>
+            <p class="text-sm text-slate-500">Upload any CSV — we'll auto-detect <strong class="text-slate-700">Email</strong>, <strong class="text-slate-700">Name</strong>, and <strong class="text-slate-700">Company</strong> columns. Use <code class="bg-purple-50 text-purple-600 px-1 rounded">[Recipient]</code> and <code class="bg-purple-50 text-purple-600 px-1 rounded">[Company]</code> in your email.</p>
             <input
               type="file"
               name="csv_file"
               id="csv_file"
               accept=".csv"
-              class="w-full text-slate-200 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-100 file:text-purple-700 hover:file:bg-purple-200"
+              class="w-full text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-100 file:text-purple-700 hover:file:bg-purple-200"
               :required="recipientType === 'csv'"
             />
           </div>
         </div>
 
-        <div class="mt-6 space-y-3">
+        <div class="mt-auto pt-4 space-y-3">
           <button
             type="submit"
             id="send_pitch_btn"
-            class="w-full bg-green-500 text-white font-bold py-3 rounded-lg hover:bg-green-600 transition"
+            class="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold py-3 rounded-lg hover:from-green-600 hover:to-emerald-700 transition shadow-lg shadow-green-200"
           >
             🚀 Send Campaign
           </button>
-          
+
           <button
             type="button"
             @click="
               subject = '';
               htmlContent = '';
-              aiPrompt = '';
               singleEmail = '';
               singleName = '';
               localStorage.removeItem('pitch_subject');
               localStorage.removeItem('pitch_html');
-              localStorage.removeItem('pitch_ai_prompt');
               localStorage.removeItem('pitch_single_email');
               localStorage.removeItem('pitch_single_name');
               document.getElementById('subject').value = '';
-              document.getElementById('html_content').value = '';
-              document.getElementById('ai_prompt').value = '';
               document.getElementById('single_email').value = '';
               document.getElementById('single_name').value = '';
               document.getElementById('csv_file').value = '';
-              updatePreview();
+              deselectTemplate();
             "
-            class="w-full bg-slate-700 text-slate-300 font-medium py-2 rounded-lg hover:bg-slate-600 transition text-sm"
+            class="w-full bg-slate-100 text-slate-600 font-medium py-2 rounded-lg hover:bg-slate-200 transition text-sm border border-slate-200"
           >
             🗑️ Clear Form & Start Fresh
           </button>
         </div>
       </div>
-
-      <div class="flex flex-col bg-slate-800/50 border border-slate-700 rounded-2xl h-full p-0">
-        <div class="p-4 flex justify-between items-center flex-shrink-0 border-b border-slate-700">
-          <h2 class="text-xl font-semibold text-white">Email Preview</h2>
-          <div class="flex space-x-2">
-            <button type="button" id="zoom_out_btn" class="text-slate-400 hover:text-white transition" title="Zoom Out">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
-            </button>
-            <button type="button" id="zoom_in_btn" class="text-slate-400 hover:text-white transition" title="Zoom In">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v6m3-3H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
-            </button>
-          </div>
-        </div>
-        
-        <iframe
-          id="email_preview"
-          class="flex-grow w-full border-0 bg-white rounded-b-2xl"
-          style="transform-origin: top left; transform: scale(1);"
-        ></iframe>
-      </div>
     </div>
   </form>
+
+  <!-- Template Preview / Edit Modal -->
+  <div id="template_preview_modal" class="fixed inset-0 z-[60] hidden items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
+    <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-6xl h-[85vh] flex flex-col overflow-hidden animate-fade-in-up">
+      <!-- Modal Header -->
+      <div class="p-4 flex justify-between items-center gap-3 border-b border-slate-200 bg-slate-50/60 flex-shrink-0">
+        <div class="flex items-center gap-2 min-w-0 flex-grow">
+          <span class="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-indigo-100 text-indigo-600 text-sm shadow-sm flex-shrink-0">👁️</span>
+          <input
+            type="text"
+            id="modal_template_name"
+            placeholder="Template name..."
+            class="flex-grow min-w-0 font-bold text-slate-800 bg-transparent border-b-2 border-transparent hover:border-slate-300 focus:border-purple-400 focus:outline-none px-1 py-0.5 placeholder-slate-400 placeholder:font-medium"
+          />
+        </div>
+        <button type="button" id="close_preview_modal_btn" class="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition flex-shrink-0" title="Close">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+        </button>
+      </div>
+
+      <!-- Modal Body: HTML editor + Live preview -->
+      <div class="flex-grow grid grid-cols-1 md:grid-cols-2 min-h-0">
+        <div class="flex flex-col md:border-r border-b md:border-b-0 border-slate-200 min-h-0">
+          <div class="px-3 py-2 text-xs font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200 bg-slate-50/60 flex items-center gap-1.5 flex-shrink-0">
+            <span class="inline-flex items-center justify-center w-5 h-5 rounded-md bg-pink-100 text-pink-600 text-[11px]">🧩</span>HTML Code
+          </div>
+          <textarea
+            id="modal_html_content"
+            class="flex-grow w-full p-3 bg-white text-slate-800 placeholder-slate-400 font-mono text-sm focus:outline-none light-scroll resize-none"
+            placeholder="Paste or write your HTML email here..."
+          ></textarea>
+        </div>
+        <div class="flex flex-col min-h-0">
+          <div class="px-3 py-2 text-xs font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200 bg-slate-50/60 flex items-center gap-1.5 flex-shrink-0">
+            <span class="inline-flex items-center justify-center w-5 h-5 rounded-md bg-indigo-100 text-indigo-600 text-[11px]">👁️</span>Live Preview
+          </div>
+          <iframe id="template_preview_frame" class="flex-grow w-full border-0 bg-white"></iframe>
+        </div>
+      </div>
+
+      <!-- Modal AI Enhance -->
+      <div class="p-3 border-t border-slate-200 bg-slate-50/60 flex-shrink-0">
+        <div class="flex items-center gap-2">
+          <span class="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-purple-100 text-purple-600 text-sm shadow-sm flex-shrink-0" title="AI Enhance">✨</span>
+          <input
+            type="text"
+            id="modal_ai_prompt"
+            placeholder="Ask AI to improve this template... e.g., Make it more urgent or Add emojis"
+            class="flex-grow p-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-800 placeholder-slate-400 focus:ring-purple-500 focus:border-purple-500"
+          />
+          <button
+            type="button"
+            id="modal_enhance_btn"
+            class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-indigo-700 transition flex-shrink-0"
+          >
+            Enhance
+          </button>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="p-3 border-t border-slate-200 flex items-center justify-end gap-2 flex-shrink-0">
+        <button
+          type="button"
+          id="modal_save_btn"
+          class="bg-white border border-slate-300 text-slate-700 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-slate-100 transition"
+        >
+          💾 Save Template
+        </button>
+        <button
+          type="button"
+          id="modal_use_btn"
+          class="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-5 py-2 rounded-lg text-sm font-bold hover:from-green-600 hover:to-emerald-700 transition shadow-md shadow-green-200"
+        >
+          🚀 Use &amp; Send
+        </button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
-    // Function to update the iframe preview
-    function updatePreview() {
-        const content = htmlContentEl.value;
-        const iframe = document.getElementById('email_preview');
-        const iframeDoc = iframe.contentWindow.document;
-        
-        // Write the HTML content to the iframe document
-        iframeDoc.open();
-        // Wrap content in a body with a white background for better visibility
-        iframeDoc.write(`
+    // --- Elements ---
+    const htmlContentEl = document.getElementById('html_content');
+    const subjectEl = document.getElementById('subject');
+    const generateSubjectBtn = document.getElementById('generate_subject_btn');
+    const templatesGrid = document.getElementById('templates_grid');
+    const newTemplateTile = document.getElementById('new_template_tile');
+    const previewModal = document.getElementById('template_preview_modal');
+    const previewFrame = document.getElementById('template_preview_frame');
+    const modalNameEl = document.getElementById('modal_template_name');
+    const modalHtmlEl = document.getElementById('modal_html_content');
+    const modalAiPromptEl = document.getElementById('modal_ai_prompt');
+    const modalEnhanceBtn = document.getElementById('modal_enhance_btn');
+    const modalSaveBtn = document.getElementById('modal_save_btn');
+    const modalUseBtn = document.getElementById('modal_use_btn');
+    const closePreviewModalBtn = document.getElementById('close_preview_modal_btn');
+    const loadTemplateBaseUrl = `{% url 'ai_agent_pitch:load_template' 999 %}`;
+
+    let currentTemplateId = null;   // Template currently open in the modal
+    let selectedTemplateId = null;  // Template selected for the campaign
+
+    // --- Helpers ---
+
+    function renderPreviewFrame(content) {
+        const frameDoc = previewFrame.contentWindow.document;
+        frameDoc.open();
+        frameDoc.write(`
             <!DOCTYPE html>
             <html lang="en">
             <head>
                 <meta charset="UTF-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>Email Preview</title>
-                </head>
+                <title>Template Preview</title>
+            </head>
             <body style="margin: 0; padding: 20px; background-color: #ffffff;">
                 ${content}
             </body>
             </html>
         `);
-        iframeDoc.close();
+        frameDoc.close();
     }
 
-    // Get elements
-    const htmlContentEl = document.getElementById('html_content');
-    const subjectEl = document.getElementById('subject');
-    const loadTemplateEl = document.getElementById('load_template');
-    const saveTemplateNameEl = document.getElementById('save_template_name');
-    const saveTemplateBtn = document.getElementById('save_template_btn');
-    const generateSubjectBtn = document.getElementById('generate_subject_btn');
-    const enhanceBtn = document.getElementById('enhance_with_ai_btn');
-    const aiPromptEl = document.getElementById('ai_prompt');
-    const zoomInBtn = document.getElementById('zoom_in_btn');
-    const zoomOutBtn = document.getElementById('zoom_out_btn');
-    const iframe = document.getElementById('email_preview');
+    function addTemplateTile(id, name) {
+        if (!id || !name) return;
+        // Skip if a tile for this template already exists
+        if (templatesGrid.querySelector(`.template-tile[data-template-id="${id}"]`)) return;
+        const emptyMsg = document.getElementById('no_templates_msg');
+        if (emptyMsg) emptyMsg.remove();
+
+        const tile = document.createElement('div');
+        tile.className = 'template-tile group relative bg-white border border-slate-200 rounded-xl overflow-hidden hover:border-purple-300 hover:shadow-xl hover:shadow-purple-100 hover:-translate-y-0.5 transition-all duration-200 flex flex-col';
+        tile.dataset.templateId = id;
+        tile.innerHTML = `
+            <div class="h-1.5 bg-gradient-to-r from-purple-500 to-indigo-500"></div>
+            <div class="p-3.5 flex flex-col gap-2.5 flex-grow">
+                <div class="flex items-center gap-2.5 min-w-0">
+                    <span class="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-purple-100 text-purple-600 text-base flex-shrink-0 shadow-sm">📄</span>
+                    <div class="min-w-0">
+                        <p class="font-bold text-slate-800 text-sm truncate"></p>
+                        <p class="text-[11px] text-slate-400 font-medium">📅 Just now</p>
+                    </div>
+                </div>
+                <div class="flex gap-1.5 mt-auto pt-1">
+                    <button type="button" class="preview-template-btn flex-1 inline-flex items-center justify-center gap-1 px-2 py-1.5 text-xs font-semibold rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white transition">👁️ Preview</button>
+                    <button type="button" class="send-template-btn flex-1 inline-flex items-center justify-center gap-1 px-2 py-1.5 text-xs font-semibold rounded-lg bg-green-50 text-green-600 hover:bg-green-600 hover:text-white transition">🚀 Send</button>
+                </div>
+            </div>`;
+        const nameEl = tile.querySelector('p');
+        nameEl.textContent = name;
+        nameEl.title = name;
+        tile.querySelector('.preview-template-btn').dataset.templateId = id;
+        tile.querySelector('.send-template-btn').dataset.templateId = id;
+        templatesGrid.insertBefore(tile, newTemplateTile);
+    }
+
+    function updateOrAddTile(id, name) {
+        const existing = templatesGrid.querySelector(`.template-tile[data-template-id="${id}"]`);
+        if (existing) {
+            const nameEl = existing.querySelector('p');
+            nameEl.textContent = name;
+            nameEl.title = name;
+        } else {
+            addTemplateTile(id, name);
+        }
+    }
+
+    async function fetchTemplateContent(templateId) {
+        const response = await fetch(loadTemplateBaseUrl.replace('999', templateId));
+        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+        const data = await response.json();
+        if (data.status !== 'success') throw new Error(data.message || 'Failed to load template.');
+        return data;
+    }
+
+    function openTemplateModal({ id = null, name = '', content = '' }) {
+        currentTemplateId = id;
+        modalNameEl.value = name;
+        modalHtmlEl.value = content;
+        renderPreviewFrame(content);
+        previewModal.classList.remove('hidden');
+        previewModal.classList.add('flex');
+    }
+
+    function closePreviewModal() {
+        previewModal.classList.add('hidden');
+        previewModal.classList.remove('flex');
+    }
+
+    function highlightSelectedTile() {
+        templatesGrid.querySelectorAll('.template-tile').forEach(tile => {
+            const isSelected = selectedTemplateId && tile.dataset.templateId === String(selectedTemplateId);
+            tile.classList.toggle('ring-2', isSelected);
+            tile.classList.toggle('ring-green-400', isSelected);
+            tile.classList.toggle('border-green-300', isSelected);
+            const sendBtn = tile.querySelector('.send-template-btn');
+            if (sendBtn) {
+                sendBtn.innerHTML = isSelected ? '✓ Selected' : '🚀 Send';
+                sendBtn.classList.toggle('bg-green-600', isSelected);
+                sendBtn.classList.toggle('text-white', isSelected);
+                sendBtn.classList.toggle('shadow-md', isSelected);
+                sendBtn.classList.toggle('bg-green-50', !isSelected);
+                sendBtn.classList.toggle('text-green-600', !isSelected);
+            }
+        });
+    }
+
+    function selectForCampaign(content, templateId, name) {
+        htmlContentEl.value = content;
+        htmlContentEl.dispatchEvent(new Event('input'));
+        selectedTemplateId = templateId ? String(templateId) : null;
+        localStorage.setItem('pitch_selected_template', selectedTemplateId || '');
+        highlightSelectedTile();
+        window.dispatchEvent(new CustomEvent('open-campaign'));
+        showToast(`'${name}' selected — add recipients and hit Send Campaign 🚀`, 'success');
+        // Wait for the panel slide-in transition before scrolling/focusing
+        setTimeout(() => {
+            document.getElementById('campaign_details').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            subjectEl.focus({ preventScroll: true });
+        }, 150);
+    }
+
+    function deselectTemplate() {
+        selectedTemplateId = null;
+        localStorage.removeItem('pitch_selected_template');
+        htmlContentEl.value = '';
+        highlightSelectedTile();
+        window.dispatchEvent(new CustomEvent('close-campaign'));
+    }
 
     // --- Event Listeners ---
 
-    // 1. Live Preview Update
-    htmlContentEl.addEventListener('input', updatePreview);
+    // 1. Template tiles: Preview / Send (event delegation so new tiles also work)
+    templatesGrid.addEventListener('click', async (e) => {
+        const previewBtn = e.target.closest('.preview-template-btn');
+        const sendBtn = e.target.closest('.send-template-btn');
+        if (!previewBtn && !sendBtn) return;
 
-    // Initial load of the preview
-    document.addEventListener('DOMContentLoaded', () => {
-        // Small delay to let Alpine.js initialize first
-        setTimeout(() => {
-            updatePreview();
-        }, 100);
-    });
-
-    // 2. Load Template
-    loadTemplateEl.addEventListener('change', async function() {
-        const templateId = this.value;
-        if (!templateId) return;
+        const btn = previewBtn || sendBtn;
+        const templateId = btn.dataset.templateId;
+        const tileName = btn.closest('.template-tile').querySelector('p').textContent;
 
         try {
-            const response = await fetch(`{% url 'ai_agent_pitch:load_template' 999 %}`.replace('999', templateId));
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-            }
-            const data = await response.json();
-            if (data.status === 'success') {
-                htmlContentEl.value = data.html_content;
-                updatePreview();
-                showToast(`Template '${data.name}' loaded successfully.`, 'success');
+            const data = await fetchTemplateContent(templateId);
+            if (previewBtn) {
+                openTemplateModal({ id: templateId, name: tileName, content: data.html_content });
             } else {
-                showToast(data.message, 'error');
+                selectForCampaign(data.html_content, templateId, tileName);
             }
         } catch (error) {
-            showToast(`An error occurred while loading template: ${error.message}`, 'error');
+            showToast(`Could not load template: ${error.message}`, 'error');
         }
     });
 
-    // 3. Save Template
-    saveTemplateBtn.addEventListener('click', async function() {
-        const templateName = saveTemplateNameEl.value.trim();
-        const content = htmlContentEl.value.trim();
+    // 2. New Template tile opens a blank modal
+    newTemplateTile.addEventListener('click', () => openTemplateModal({}));
 
-        if (!templateName || !content) {
-            showToast('Please enter a template name and ensure content is not empty.', 'error');
+    // 3. Live preview inside the modal
+    modalHtmlEl.addEventListener('input', () => renderPreviewFrame(modalHtmlEl.value));
+
+    // 4. Save Template (from modal)
+    modalSaveBtn.addEventListener('click', async () => {
+        const name = modalNameEl.value.trim();
+        const content = modalHtmlEl.value.trim();
+
+        if (!name) {
+            showToast('Please enter a template name.', 'error');
+            modalNameEl.focus();
             return;
         }
+        if (!content) {
+            showToast('Template content is empty.', 'error');
+            return;
+        }
+
+        const originalLabel = modalSaveBtn.innerHTML;
+        modalSaveBtn.textContent = 'Saving...';
+        modalSaveBtn.disabled = true;
 
         try {
             const response = await fetch("{% url 'ai_agent_pitch:save_template' %}", {
@@ -405,33 +573,99 @@
                     'Content-Type': 'application/json',
                     'X-CSRFToken': getCookie('csrftoken')
                 },
-                body: JSON.stringify({ name: templateName, html_content: content })
+                body: JSON.stringify({ name: name, html_content: content })
             });
 
             const data = await response.json();
             if (data.status === 'success') {
-                showToast('Template saved successfully!', 'success');
-                // Optionally add the new template to the load dropdown
-                const newOption = new Option(data.name, data.id);
-                loadTemplateEl.add(newOption);
-                loadTemplateEl.value = data.id; // Select the newly saved template
+                currentTemplateId = data.template_id;
+                updateOrAddTile(data.template_id, data.template_name);
+                showToast(data.message || 'Template saved successfully!', 'success');
             } else {
                 showToast(data.message, 'error');
             }
         } catch (error) {
             showToast('An error occurred while saving the template.', 'error');
+        } finally {
+            modalSaveBtn.innerHTML = originalLabel;
+            modalSaveBtn.disabled = false;
         }
     });
 
-    // 4. Generate Subject (AI)
-    generateSubjectBtn.addEventListener('click', async function() {
-        const content = htmlContentEl.value.trim();
+    // 5. AI Enhance (from modal)
+    modalEnhanceBtn.addEventListener('click', async () => {
+        const prompt = modalAiPromptEl.value.trim();
+        const content = modalHtmlEl.value.trim();
+
+        if (!prompt) {
+            showToast('Please enter a prompt for the AI.', 'error');
+            return;
+        }
         if (!content) {
-            showToast('HTML content is empty. Load a template first.', 'error');
+            showToast('HTML content is empty. Write or load a template first.', 'error');
             return;
         }
 
-        generateSubjectBtn.textContent = 'Generating...';
+        modalEnhanceBtn.textContent = 'Enhancing...';
+        modalEnhanceBtn.disabled = true;
+
+        try {
+            const response = await fetch("{% url 'ai_agent_pitch:enhance_with_ai' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({ prompt: prompt, html_content: content })
+            });
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            const data = await response.json();
+            if (data.status === 'success') {
+                modalHtmlEl.value = data.html_content;
+                renderPreviewFrame(data.html_content);
+                showToast('Template enhanced successfully!', 'success');
+            } else {
+                showToast(data.message, 'error');
+            }
+        } catch (error) {
+            showToast(`An error occurred during enhancement: ${error.message}`, 'error');
+        } finally {
+            modalEnhanceBtn.textContent = 'Enhance';
+            modalEnhanceBtn.disabled = false;
+        }
+    });
+
+    // 6. Use & Send (from modal)
+    modalUseBtn.addEventListener('click', () => {
+        const content = modalHtmlEl.value.trim();
+        if (!content) {
+            showToast('Template content is empty.', 'error');
+            return;
+        }
+        selectForCampaign(content, currentTemplateId, modalNameEl.value.trim() || 'Selected template');
+        closePreviewModal();
+    });
+
+    // 7. Modal close handlers
+    closePreviewModalBtn.addEventListener('click', closePreviewModal);
+    previewModal.addEventListener('click', (e) => {
+        if (e.target === previewModal) closePreviewModal();
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !previewModal.classList.contains('hidden')) closePreviewModal();
+    });
+
+    // 8. Generate Subject (AI) — uses the selected template content
+    generateSubjectBtn.addEventListener('click', async function() {
+        const content = htmlContentEl.value.trim();
+        if (!content) {
+            showToast('Select a template first — click 🚀 Send on a tile.', 'error');
+            return;
+        }
+
+        generateSubjectBtn.textContent = '...';
         generateSubjectBtn.disabled = true;
 
         try {
@@ -446,6 +680,7 @@
             const data = await response.json();
             if (data.status === 'success') {
                 subjectEl.value = data.subjects[0];
+                subjectEl.dispatchEvent(new Event('input'));
                 showToast(`3 suggestions generated. Using: "${data.subjects[0]}"`, 'success');
             } else {
                 showToast(data.message, 'error');
@@ -458,73 +693,30 @@
         }
     });
 
-    // 5. Enhance Content (AI)
-    enhanceBtn.addEventListener('click', async function() {
-      const prompt = aiPromptEl.value.trim();
-      const content = htmlContentEl.value.trim();
-      
-      if (!prompt) {
-        showToast('Please enter a prompt for the AI.', 'error');
-        return;
-      }
-      if (!content) {
-        showToast('HTML content is empty. Load a template first.', 'error');
-        return;
-      }
-
-      enhanceBtn.textContent = 'Enhancing...';
-      enhanceBtn.disabled = true;
-
-      try {
-        const response = await fetch("{% url 'ai_agent_pitch:enhance_with_ai' %}", {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken')
-          },
-          body: JSON.stringify({ prompt: prompt, html_content: content })
-        });
-        if (!response.ok) {
-          throw new Error(`HTTP error! Status: ${response.status}`);
+    // 9. Validate selection, then show "Processing..." on Send Campaign during submit
+    document.getElementById('pitch-form').addEventListener('submit', function(e) {
+        if (!htmlContentEl.value.trim()) {
+            e.preventDefault();
+            showToast('Please select a template first — click 🚀 Send on a tile.', 'error');
+            return;
         }
-        const data = await response.json();
-        if (data.status === 'success') {
-          htmlContentEl.value = data.html_content;
-          updatePreview();
-          showToast('Email content enhanced successfully!', 'success');
-        } else {
-          showToast(data.message, 'error');
-        }
-      } catch (error) {
-        showToast(`An error occurred during enhancement: ${error.message}`, 'error');
-      } finally {
-        enhanceBtn.textContent = 'Enhance';
-        enhanceBtn.disabled = false;
-      }
-    });
-
-    // 6. Zoom Controls for Iframe
-    let currentScale = 1;
-    const scaleStep = 0.1;
-
-    zoomOutBtn.addEventListener('click', () => {
-        currentScale = Math.max(0.5, currentScale - scaleStep); // Minimum zoom 0.5
-        iframe.style.transform = `scale(${currentScale})`;
-    });
-
-    zoomInBtn.addEventListener('click', () => {
-        currentScale = Math.min(1.5, currentScale + scaleStep); // Maximum zoom 1.5
-        iframe.style.transform = `scale(${currentScale})`;
-    });
-
-    // 7. Show "Processing..." on Send Campaign button during form submit
-    document.getElementById('pitch-form').addEventListener('submit', function() {
         const btn = document.getElementById('send_pitch_btn');
         btn.innerHTML = '<svg class="w-5 h-5 animate-spin inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg> Processing...';
         btn.disabled = true;
     });
 
-    // 8. Show Django messages as toast notifications on page load
+    // 10. Restore the previously selected template highlight
+    document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(() => {
+            const savedId = localStorage.getItem('pitch_selected_template');
+            if (savedId) {
+                selectedTemplateId = savedId;
+                highlightSelectedTile();
+            }
+        }, 100);
+    });
+
+    // 11. Show Django messages as toast notifications on page load
     document.addEventListener('DOMContentLoaded', function() {
         const messagesContainer = document.getElementById('django-messages');
         if (messagesContainer) {
@@ -537,7 +729,7 @@
                 else if (level === 30) type = 'warning'; // WARNING
                 else if (level === 25) type = 'success'; // SUCCESS
                 else if (level === 20) type = 'info';    // INFO
-                
+
                 if (type === 'success' && text.includes('Success')) {
                     showToast('✅ Mail Sent Successfully!', 'success');
                 } else {

@@ -8,13 +8,13 @@
         <div class="glass rounded-xl p-4 hover-lift">
             <div class="flex items-center gap-3">
                 <div class="w-9 h-9 rounded-lg bg-purple-500/20 flex items-center justify-center flex-shrink-0">
-                    <svg class="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.856-1.487M15 10h.01M13 10h.01M11 10h.01M5 10h.01M3 20h5v-2a3 3 0 00-5.856-1.487M15 5a3 3 0 11-6 0 3 3 0 016 0z"/>
                     </svg>
                 </div>
                 <div class="min-w-0">
                     <p class="text-xs text-slate-400 font-medium truncate">Total Contacts</p>
-                    <p class="text-2xl font-bold text-white mt-0.5 tabular-nums" id="count-total">0</p>
+                    <p class="text-2xl font-bold text-slate-800 mt-0.5 tabular-nums" id="count-total">0</p>
                 </div>
             </div>
         </div>
@@ -22,13 +22,13 @@
         <div class="glass rounded-xl p-4 hover-lift">
             <div class="flex items-center gap-3">
                 <div class="w-9 h-9 rounded-lg bg-blue-500/20 flex items-center justify-center flex-shrink-0">
-                    <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-2-2 2 2 0 00-2 2v7h-4v-7a6 6 0 016-6zM2 9h4v12H2zM4 6a2 2 0 100-4 2 2 0 000 4z"/>
                     </svg>
                 </div>
                 <div class="min-w-0">
                     <p class="text-xs text-slate-400 font-medium truncate">LinkedIn</p>
-                    <p class="text-2xl font-bold text-white mt-0.5 tabular-nums" id="count-linkedin">0</p>
+                    <p class="text-2xl font-bold text-slate-800 mt-0.5 tabular-nums" id="count-linkedin">0</p>
                 </div>
             </div>
         </div>
@@ -42,7 +42,7 @@
                 </div>
                 <div class="min-w-0">
                     <p class="text-xs text-slate-400 font-medium truncate">Suppliers</p>
-                    <p class="text-2xl font-bold text-white mt-0.5 tabular-nums" id="count-suppliers">0</p>
+                    <p class="text-2xl font-bold text-slate-800 mt-0.5 tabular-nums" id="count-suppliers">0</p>
                 </div>
             </div>
         </div>
@@ -56,7 +56,7 @@
                 </div>
                 <div class="min-w-0">
                     <p class="text-xs text-slate-400 font-medium truncate">Buyers</p>
-                    <p class="text-2xl font-bold text-white mt-0.5 tabular-nums" id="count-buyers">0</p>
+                    <p class="text-2xl font-bold text-slate-800 mt-0.5 tabular-nums" id="count-buyers">0</p>
                 </div>
             </div>
         </div>
@@ -66,23 +66,31 @@
     <div class="glass rounded-xl p-3 mb-6 flex items-center justify-between">
         <div class="flex items-center gap-3">
             <div class="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center">
-                <svg class="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                 </svg>
             </div>
             <div>
-                <span class="text-sm text-slate-300 font-medium">CSV Files</span>
+                <span class="text-sm text-slate-600 font-medium">CSV Files</span>
                 <span class="text-xs text-slate-500 ml-2"><span id="csv-summary-total">0</span> uploaded</span>
             </div>
         </div>
     </div>
 
     <!-- Category Tabs -->
-    <div class="flex gap-1 mb-6 bg-slate-800/20 rounded-xl p-1 glass" id="tabBar">
+    <div class="flex gap-1 mb-6 bg-slate-100 rounded-xl p-1 glass overflow-x-auto" id="tabBar">
+        <button data-cat="autoscraper"
+                onclick="switchTab('autoscraper'); loadAutoScraper();"
+                class="tab-btn flex-1 min-w-max py-2.5 px-4 rounded-lg text-sm font-semibold transition-all duration-200 active bg-white shadow-sm text-slate-800">
+            <span class="inline-flex items-center gap-1.5">
+                🤖 AI Auto Scraper
+                <span class="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span>
+            </span>
+        </button>
         {% for cat in categories %}
         <button data-cat="{{ cat.name }}"
                 onclick="switchTab('{{ cat.name }}')"
-                class="tab-btn flex-1 py-2.5 px-4 rounded-lg text-sm font-medium text-slate-400 hover:text-white transition-all duration-200 {% if forloop.first %}active bg-slate-800/60 text-white{% endif %}">
+                class="tab-btn flex-1 min-w-max py-2.5 px-4 rounded-lg text-sm font-medium text-slate-500 hover:text-slate-800 transition-all duration-200">
             {{ cat.label }}
         </button>
         {% endfor %}
@@ -90,14 +98,14 @@
 
     <!-- Active Category Section -->
     {% for cat in categories %}
-    <div id="section-{{ cat.name }}" class="tab-content {% if not forloop.first %}hidden{% endif %}">
+    <div id="section-{{ cat.name }}" class="tab-content hidden">
         <div class="flex items-center justify-between mb-5">
             <div class="flex items-center gap-3">
-                <h2 class="text-xl font-bold text-white">{{ cat.label }}</h2>
-                <span id="badge-{{ cat.name }}" class="text-xs bg-white/10 text-slate-300 px-2.5 py-0.5 rounded-full">0</span>
+                <h2 class="text-xl font-bold text-slate-800">{{ cat.label }}</h2>
+                <span id="badge-{{ cat.name }}" class="text-xs bg-slate-100 text-slate-600 px-2.5 py-0.5 rounded-full">0</span>
             </div>
             <div class="flex gap-2">
-                <button onclick="openUploadModal('{{ cat.name }}')" class="btn-press px-3.5 py-2 border border-white/10 text-slate-300 rounded-lg hover:bg-white/5 transition-colors text-xs font-medium flex items-center gap-1.5">
+                <button onclick="openUploadModal('{{ cat.name }}')" class="btn-press px-3.5 py-2 border border-slate-300 text-slate-600 rounded-lg hover:bg-slate-100 transition-colors text-xs font-medium flex items-center gap-1.5">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
                     </svg>
@@ -117,22 +125,22 @@
 
         <!-- CSV Files (collapsible) -->
         <div class="glass rounded-xl overflow-hidden">
-            <button onclick="toggleCsv('{{ cat.name }}')" class="w-full flex items-center justify-between p-3.5 hover:bg-white/5 transition-colors">
+            <button onclick="toggleCsv('{{ cat.name }}')" class="w-full flex items-center justify-between p-3.5 hover:bg-slate-50 transition-colors">
                 <div class="flex items-center gap-2">
                     <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                     </svg>
-                    <span class="text-sm font-medium text-slate-300">CSV Files</span>
-                    <span id="csv-badge-{{ cat.name }}" class="text-xs bg-white/10 text-slate-400 px-2 py-0.5 rounded-full">0</span>
+                    <span class="text-sm font-medium text-slate-600">CSV Files</span>
+                    <span id="csv-badge-{{ cat.name }}" class="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">0</span>
                 </div>
                 <svg id="csv-chevron-{{ cat.name }}" class="w-4 h-4 text-slate-500 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                 </svg>
             </button>
-            <div id="csv-body-{{ cat.name }}" class="hidden border-t border-white/5">
+            <div id="csv-body-{{ cat.name }}" class="hidden border-t border-slate-200">
                 <div class="p-3">
                     <div class="flex gap-2 mb-3">
-                        <input type="text" id="csv-search-{{ cat.name }}" placeholder="Filter files..." class="flex-1 px-3 py-1.5 bg-slate-800/60 border border-white/10 text-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent">
+                        <input type="text" id="csv-search-{{ cat.name }}" placeholder="Filter files..." class="flex-1 px-3 py-1.5 bg-slate-50 border border-slate-300 text-slate-800 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent">
                     </div>
                     <div id="csv-list-{{ cat.name }}">
                         <div class="text-center text-slate-500 text-xs py-6">No CSV files uploaded</div>
@@ -143,50 +151,254 @@
     </div>
     {% endfor %}
 
+    <!-- Auto Scraper Section (default landing view) -->
+    <div id="section-autoscraper" class="tab-content">
+        <!-- Hero banner -->
+        <div class="relative overflow-hidden rounded-2xl border border-purple-200 bg-gradient-to-br from-purple-100/80 via-white/60 to-indigo-100/80 p-5 sm:p-6 mb-6">
+            <div class="absolute -top-16 -right-10 w-56 h-56 bg-purple-300/30 rounded-full blur-3xl pointer-events-none"></div>
+            <div class="absolute -bottom-20 -left-10 w-56 h-56 bg-indigo-300/30 rounded-full blur-3xl pointer-events-none"></div>
+            <div class="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div class="flex items-start gap-3.5 min-w-0">
+                    <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-500 to-blue-600 flex items-center justify-center shadow-lg shadow-purple-200 flex-shrink-0">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                        </svg>
+                    </div>
+                    <div class="min-w-0">
+                        <h2 class="text-xl sm:text-2xl font-bold text-slate-800 flex flex-wrap items-center gap-2">
+                            AI Auto Scraper
+                            <span class="text-[10px] font-semibold uppercase tracking-wider bg-green-100 text-green-700 px-2 py-0.5 rounded-full border border-green-200 inline-flex items-center gap-1">
+                                <span class="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span>Daily
+                            </span>
+                        </h2>
+                        <p class="text-sm text-slate-400 mt-1 max-w-xl">Scrapes LinkedIn every day for your keywords, analyzes profiles with Gemini AI, and stores results in GCS — with history, stats, and ready-to-copy outreach messages.</p>
+                    </div>
+                </div>
+                <button id="runNowBtn" onclick="runScrapeNow()" class="btn-press px-4 py-2.5 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl hover:from-green-600 hover:to-emerald-700 transition-all text-sm font-semibold flex items-center justify-center gap-2 shadow-lg shadow-green-200 flex-shrink-0">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    Run Now
+                </button>
+            </div>
+        </div>
+
+        <!-- Live Progress Bar -->
+        <div id="scrapeProgressCard" class="hidden glass rounded-xl p-4 mb-5">
+            <div class="flex items-center justify-between mb-2 gap-3">
+                <div class="flex items-center gap-2 min-w-0">
+                    <svg id="scrapeProgressSpinner" class="w-4 h-4 text-purple-600 animate-spin flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                    </svg>
+                    <p id="scrapeProgressText" class="text-sm text-slate-700 font-medium truncate">Preparing scrape...</p>
+                </div>
+                <span id="scrapeProgressPct" class="text-xs text-slate-400 font-semibold tabular-nums flex-shrink-0">0%</span>
+            </div>
+            <div class="w-full h-2.5 bg-slate-200 rounded-full overflow-hidden">
+                <div id="scrapeProgressBar" class="h-full rounded-full bg-gradient-to-r from-purple-500 to-blue-500 transition-all duration-500" style="width: 0%"></div>
+            </div>
+            <p id="scrapeProgressSub" class="text-[11px] text-slate-500 mt-1.5"></p>
+        </div>
+
+        <!-- Stats Tiles -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+            <div class="glass rounded-xl p-4 hover-lift">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-500/30 to-blue-600/10 ring-1 ring-blue-500/30 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.856-1.487M15 10h.01M13 10h.01M11 10h.01M5 10h.01M3 20h5v-2a3 3 0 00-5.856-1.487M15 5a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                    </div>
+                    <div class="min-w-0">
+                        <p class="text-xs text-slate-400 font-medium truncate">Profiles Extracted</p>
+                        <p class="text-2xl font-bold text-slate-800 mt-0.5 tabular-nums" id="stat-total-profiles">0</p>
+                    </div>
+                </div>
+            </div>
+            <div class="glass rounded-xl p-4 hover-lift">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-green-500/30 to-green-600/10 ring-1 ring-green-500/30 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                        </svg>
+                    </div>
+                    <div class="min-w-0">
+                        <p class="text-xs text-slate-400 font-medium truncate">Extracted Today</p>
+                        <p class="text-2xl font-bold text-slate-800 mt-0.5 tabular-nums" id="stat-today-profiles">0</p>
+                    </div>
+                </div>
+            </div>
+            <div class="glass rounded-xl p-4 hover-lift">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-purple-500/30 to-purple-600/10 ring-1 ring-purple-500/30 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                    <div class="min-w-0">
+                        <p class="text-xs text-slate-400 font-medium truncate">Total Runs</p>
+                        <p class="text-2xl font-bold text-slate-800 mt-0.5 tabular-nums" id="stat-total-runs">0</p>
+                    </div>
+                </div>
+            </div>
+            <div class="glass rounded-xl p-4 hover-lift">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-amber-500/30 to-amber-600/10 ring-1 ring-amber-500/30 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"/>
+                        </svg>
+                    </div>
+                    <div class="min-w-0">
+                        <p class="text-xs text-slate-400 font-medium truncate">Active Keywords</p>
+                        <p class="text-2xl font-bold text-slate-800 mt-0.5 tabular-nums" id="stat-active-keywords">0</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bar Charts -->
+        <div class="glass rounded-xl p-4 mb-5">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div>
+                    <div class="flex items-center gap-2 mb-3">
+                        <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                        </svg>
+                        <h3 class="text-sm font-semibold text-slate-800">Profiles Extracted — Last 7 Days</h3>
+                    </div>
+                    <div id="dailyBars" class="flex items-end gap-2 h-32">
+                        <div class="text-slate-500 text-xs py-6">Loading...</div>
+                    </div>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2 mb-3">
+                        <svg class="w-4 h-4 text-pink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"/>
+                        </svg>
+                        <h3 class="text-sm font-semibold text-slate-800">Profiles per Keyword</h3>
+                    </div>
+                    <div id="keywordBars" class="flex flex-col gap-2.5">
+                        <div class="text-slate-500 text-xs py-6">Loading...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-5">
+            <!-- Keywords Manager -->
+            <div class="glass rounded-xl p-4 lg:col-span-1">
+                <div class="flex items-center gap-2 mb-3">
+                    <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500/30 to-purple-600/10 ring-1 ring-purple-500/30 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-semibold text-slate-800">Scrape Keywords</h3>
+                        <p class="text-[11px] text-slate-500">Scraped automatically every day</p>
+                    </div>
+                </div>
+                <div class="flex gap-2 mb-3">
+                    <input type="text" id="newKeywordInput" placeholder="e.g., ai automation"
+                           onkeydown="if(event.key==='Enter') addScrapeKeyword();"
+                           class="flex-1 px-3 py-1.5 bg-slate-50 border border-slate-300 text-slate-800 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent">
+                    <button onclick="addScrapeKeyword()" class="btn-press px-3 py-1.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-xs font-medium">Add</button>
+                </div>
+                <div id="keywordsList" class="flex flex-wrap gap-2">
+                    <div class="text-slate-500 text-xs py-2">Loading keywords...</div>
+                </div>
+            </div>
+
+            <!-- Run History -->
+            <div class="glass rounded-xl p-4 lg:col-span-2">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center gap-2">
+                        <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500/30 to-blue-600/10 ring-1 ring-blue-500/30 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-semibold text-slate-800">Run History</h3>
+                            <p class="text-[11px] text-slate-500">Stored in GCS — click View to see profiles &amp; messages</p>
+                        </div>
+                    </div>
+                    <button onclick="loadScrapeRuns()" class="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors" title="Refresh">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                        </svg>
+                    </button>
+                </div>
+                <div id="runsList" class="max-h-80 overflow-y-auto">
+                    <div class="text-center text-slate-500 text-xs py-6">Loading run history...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scrape Run Detail Modal -->
+    <div id="runModal" class="hidden fixed inset-0 bg-slate-900/40 flex items-center justify-center z-50 p-4">
+        <div class="bg-white border border-slate-200 rounded-2xl shadow-2xl max-w-5xl w-full max-h-[85vh] flex flex-col p-6">
+            <div class="flex items-center justify-between mb-4 flex-shrink-0">
+                <div class="min-w-0">
+                    <h3 class="text-xl font-bold text-slate-800 truncate" id="runModalTitle">Run Details</h3>
+                    <p class="text-xs text-slate-400 mt-0.5" id="runModalSubtitle"></p>
+                </div>
+                <button onclick="closeRunModal()" class="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors flex-shrink-0">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div id="runModalBody" class="overflow-y-auto pr-1"></div>
+        </div>
+    </div>
+
     <!-- Upload CSV Modal -->
-    <div id="uploadModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-        <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-2xl w-full p-6">
+    <div id="uploadModal" class="hidden fixed inset-0 bg-slate-900/40 flex items-center justify-center z-50 p-4">
+        <div class="bg-white border border-slate-200 rounded-2xl shadow-2xl max-w-2xl w-full p-6">
             <div class="flex items-center justify-between mb-6">
-                <h3 class="text-xl font-bold text-white">Upload CSV</h3>
-                <button onclick="closeUploadModal()" class="text-slate-400 hover:text-white">✕</button>
+                <h3 class="text-xl font-bold text-slate-800">Upload CSV</h3>
+                <button onclick="closeUploadModal()" class="text-slate-500 hover:text-slate-800">✕</button>
             </div>
 
             <!-- Category display -->
             <div class="mb-4 flex items-center gap-2">
                 <span class="text-sm text-slate-400">Category:</span>
-                <span id="uploadCategoryDisplay" class="text-sm font-medium text-white capitalize bg-slate-700 px-3 py-1 rounded-full"></span>
+                <span id="uploadCategoryDisplay" class="text-sm font-medium text-slate-700 capitalize bg-slate-100 px-3 py-1 rounded-full"></span>
             </div>
 
             <!-- Inline messages -->
             <div id="uploadMessage" class="hidden mb-4 p-3 rounded-lg text-sm"></div>
 
             <!-- Drop Zone -->
-            <div id="dropZone" class="border-2 border-dashed border-slate-600 rounded-xl p-8 text-center mb-6 hover:border-purple-600 transition-colors cursor-pointer bg-slate-900/50">
+            <div id="dropZone" class="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center mb-6 hover:border-purple-500 transition-colors cursor-pointer bg-slate-50">
                 <input type="file" id="csvFile" accept=".csv" class="hidden" onchange="handleCSVSelect(event)">
                 <div onclick="document.getElementById('csvFile').click()">
                     <div class="text-4xl mb-3">📁</div>
-                    <p class="text-slate-300 font-medium">Drop CSV file here or click to select</p>
+                    <p class="text-slate-600 font-medium">Drop CSV file here or click to select</p>
                     <p class="text-slate-500 text-sm mt-1">Supports .csv files with columns: name, company, email, phone, linkedin_url, website</p>
                 </div>
             </div>
 
             <!-- Selected file info -->
-            <div id="fileInfo" class="hidden mb-4 flex items-center gap-3 bg-slate-700/50 rounded-lg p-3">
+            <div id="fileInfo" class="hidden mb-4 flex items-center gap-3 bg-slate-50 rounded-lg p-3">
                 <svg class="w-6 h-6 text-green-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                 </svg>
                 <div class="flex-1 min-w-0">
-                    <p id="selectedFileName" class="text-sm font-medium text-slate-200 truncate"></p>
+                    <p id="selectedFileName" class="text-sm font-medium text-slate-700 truncate"></p>
                     <p id="selectedFileSize" class="text-xs text-slate-400"></p>
                 </div>
-                <button onclick="clearFileSelection()" class="text-slate-400 hover:text-white text-xs">Remove</button>
+                <button onclick="clearFileSelection()" class="text-slate-500 hover:text-slate-800 text-xs">Remove</button>
             </div>
 
             <!-- Preview Table -->
             <div id="previewContainer" class="hidden mb-6">
                 <p class="text-slate-400 text-sm mb-3">Preview (first 5 rows)</p>
                 <div class="overflow-x-auto">
-                    <table id="previewTable" class="w-full text-xs text-slate-300 border-collapse">
+                    <table id="previewTable" class="w-full text-xs text-slate-600 border-collapse">
                     </table>
                 </div>
                 <p id="previewNote" class="text-xs text-slate-500 mt-2"></p>
@@ -194,7 +406,7 @@
 
             <!-- Buttons -->
             <div class="flex gap-3 justify-end">
-                <button onclick="closeUploadModal()" class="px-4 py-2 border border-slate-600 text-slate-300 rounded-lg hover:border-slate-500 hover:bg-slate-700 transition-colors">Cancel</button>
+                <button onclick="closeUploadModal()" class="px-4 py-2 border border-slate-300 text-slate-600 rounded-lg hover:border-slate-400 hover:bg-slate-100 transition-colors">Cancel</button>
                 <button id="confirmUploadBtn" onclick="confirmUploadCSV()" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors hidden">
                     <span id="uploadBtnText">Confirm Upload</span>
                     <svg id="uploadSpinner" class="hidden animate-spin h-4 w-4 ml-2 inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -207,11 +419,11 @@
     </div>
 
     <!-- Add Contact Modal -->
-    <div id="addModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-        <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
+    <div id="addModal" class="hidden fixed inset-0 bg-slate-900/40 flex items-center justify-center z-50 p-4">
+        <div class="bg-white border border-slate-200 rounded-2xl shadow-2xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
             <div class="flex items-center justify-between mb-6">
-                <h3 class="text-xl font-bold text-white">Add Contact</h3>
-                <button onclick="closeAddModal()" class="text-slate-400 hover:text-white">✕</button>
+                <h3 class="text-xl font-bold text-slate-800">Add Contact</h3>
+                <button onclick="closeAddModal()" class="text-slate-500 hover:text-slate-800">✕</button>
             </div>
 
             <div id="addMessage" class="hidden mb-4 p-3 rounded-lg text-sm"></div>
@@ -219,43 +431,43 @@
             <form id="addContactForm" class="space-y-4">
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-medium text-slate-300 mb-1">Name *</label>
-                        <input type="text" id="contactName" required class="w-full px-3 py-2 bg-slate-700 border border-slate-600 text-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent" placeholder="John Doe">
+                        <label class="block text-sm font-medium text-slate-600 mb-1">Name *</label>
+                        <input type="text" id="contactName" required class="w-full px-3 py-2 bg-slate-50 border border-slate-300 text-slate-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent" placeholder="John Doe">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-slate-300 mb-1">Company</label>
-                        <input type="text" id="contactCompany" class="w-full px-3 py-2 bg-slate-700 border border-slate-600 text-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent" placeholder="Acme Inc">
+                        <label class="block text-sm font-medium text-slate-600 mb-1">Company</label>
+                        <input type="text" id="contactCompany" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 text-slate-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent" placeholder="Acme Inc">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-slate-300 mb-1">Email</label>
-                        <input type="email" id="contactEmail" class="w-full px-3 py-2 bg-slate-700 border border-slate-600 text-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent" placeholder="john@example.com">
+                        <label class="block text-sm font-medium text-slate-600 mb-1">Email</label>
+                        <input type="email" id="contactEmail" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 text-slate-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent" placeholder="john@example.com">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-slate-300 mb-1">Phone</label>
-                        <input type="tel" id="contactPhone" class="w-full px-3 py-2 bg-slate-700 border border-slate-600 text-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent" placeholder="+1-555-000-0000">
+                        <label class="block text-sm font-medium text-slate-600 mb-1">Phone</label>
+                        <input type="tel" id="contactPhone" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 text-slate-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent" placeholder="+1-555-000-0000">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-slate-300 mb-1">LinkedIn URL</label>
-                        <input type="url" id="contactLinkedIn" class="w-full px-3 py-2 bg-slate-700 border border-slate-600 text-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent" placeholder="https://linkedin.com/in/...">
+                        <label class="block text-sm font-medium text-slate-600 mb-1">LinkedIn URL</label>
+                        <input type="url" id="contactLinkedIn" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 text-slate-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent" placeholder="https://linkedin.com/in/...">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-slate-300 mb-1">Website</label>
-                        <input type="url" id="contactWebsite" class="w-full px-3 py-2 bg-slate-700 border border-slate-600 text-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent" placeholder="https://example.com">
+                        <label class="block text-sm font-medium text-slate-600 mb-1">Website</label>
+                        <input type="url" id="contactWebsite" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 text-slate-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent" placeholder="https://example.com">
                     </div>
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium text-slate-300 mb-1">Tags (comma-separated)</label>
-                    <input type="text" id="contactTags" class="w-full px-3 py-2 bg-slate-700 border border-slate-600 text-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent" placeholder="decision-maker, interested">
+                    <label class="block text-sm font-medium text-slate-600 mb-1">Tags (comma-separated)</label>
+                    <input type="text" id="contactTags" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 text-slate-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent" placeholder="decision-maker, interested">
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium text-slate-300 mb-1">Notes</label>
-                    <textarea id="contactNotes" rows="4" class="w-full px-3 py-2 bg-slate-700 border border-slate-600 text-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent" placeholder="Add any additional notes..."></textarea>
+                    <label class="block text-sm font-medium text-slate-600 mb-1">Notes</label>
+                    <textarea id="contactNotes" rows="4" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 text-slate-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent" placeholder="Add any additional notes..."></textarea>
                 </div>
 
                 <div class="flex gap-3 justify-end pt-4">
-                    <button type="button" onclick="closeAddModal()" class="px-4 py-2 border border-slate-600 text-slate-300 rounded-lg hover:border-slate-500 hover:bg-slate-700 transition-colors">Cancel</button>
+                    <button type="button" onclick="closeAddModal()" class="px-4 py-2 border border-slate-300 text-slate-600 rounded-lg hover:border-slate-400 hover:bg-slate-100 transition-colors">Cancel</button>
                     <button type="submit" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">Add Contact</button>
                 </div>
             </form>
@@ -263,34 +475,34 @@
     </div>
 
     <!-- Contact Detail Modal -->
-    <div id="contactModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-        <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-2xl w-full p-6">
+    <div id="contactModal" class="hidden fixed inset-0 bg-slate-900/40 flex items-center justify-center z-50 p-4">
+        <div class="bg-white border border-slate-200 rounded-2xl shadow-2xl max-w-2xl w-full p-6">
             <div class="flex items-center justify-between mb-6">
                 <h3 id="modalContactName" class="text-xl font-bold text-white">Contact Details</h3>
-                <button onclick="closeContactModal()" class="text-slate-400 hover:text-white">✕</button>
+                <button onclick="closeContactModal()" class="text-slate-500 hover:text-slate-800">✕</button>
             </div>
 
             <div id="modalContactContent" class="space-y-4 mb-6">
             </div>
 
             <div class="flex gap-3 justify-end">
-                <button onclick="closeContactModal()" class="px-4 py-2 border border-slate-600 text-slate-300 rounded-lg hover:border-slate-500 hover:bg-slate-700 transition-colors">Close</button>
+                <button onclick="closeContactModal()" class="px-4 py-2 border border-slate-300 text-slate-600 rounded-lg hover:border-slate-400 hover:bg-slate-100 transition-colors">Close</button>
                 <button id="deleteContactBtn" onclick="deleteContact()" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">Delete</button>
             </div>
         </div>
     </div>
 
     <!-- Confirm Delete CSV Modal -->
-    <div id="confirmCsvDeleteModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-        <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-md w-full p-6">
+    <div id="confirmCsvDeleteModal" class="hidden fixed inset-0 bg-slate-900/40 flex items-center justify-center z-50 p-4">
+        <div class="bg-white border border-slate-200 rounded-2xl shadow-2xl max-w-md w-full p-6">
             <div class="flex items-center justify-between mb-4">
-                <h3 class="text-lg font-bold text-white">Delete CSV File</h3>
-                <button onclick="closeCsvDeleteModal()" class="text-slate-400 hover:text-white">✕</button>
+                <h3 class="text-lg font-bold text-slate-800">Delete CSV File</h3>
+                <button onclick="closeCsvDeleteModal()" class="text-slate-500 hover:text-slate-800">✕</button>
             </div>
-            <p class="text-slate-300 text-sm mb-2">Are you sure you want to delete <span id="csvDeleteFileName" class="font-medium text-white"></span>?</p>
+            <p class="text-slate-600 text-sm mb-2">Are you sure you want to delete <span id="csvDeleteFileName" class="font-medium text-slate-800"></span>?</p>
             <p class="text-slate-500 text-xs mb-6">This action cannot be undone.</p>
             <div class="flex gap-3 justify-end">
-                <button onclick="closeCsvDeleteModal()" class="px-4 py-2 border border-slate-600 text-slate-300 rounded-lg hover:border-slate-500 hover:bg-slate-700 transition-colors">Cancel</button>
+                <button onclick="closeCsvDeleteModal()" class="px-4 py-2 border border-slate-300 text-slate-600 rounded-lg hover:border-slate-400 hover:bg-slate-100 transition-colors">Cancel</button>
                 <button id="confirmCsvDeleteBtn" onclick="executeCsvDelete()" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">Delete</button>
             </div>
         </div>
@@ -306,17 +518,17 @@
         { name: 'events', label: 'Events' }
     ];
 
-    let currentCategory = categories[0].name;
+    let currentCategory = 'autoscraper';
     let currentContactData = null;
     let pendingDeleteCsv = null;
 
     /* ---------- Tab Switching ---------- */
     function switchTab(catName) {
         document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.classList.remove('active', 'bg-slate-800/60', 'text-white');
+            btn.classList.remove('active', 'bg-white', 'shadow-sm', 'text-slate-800');
         });
         const btn = document.querySelector(`.tab-btn[data-cat="${catName}"]`);
-        if (btn) btn.classList.add('active', 'bg-slate-800/60', 'text-white');
+        if (btn) btn.classList.add('active', 'bg-white', 'shadow-sm', 'text-slate-800');
 
         document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
         const section = document.getElementById(`section-${catName}`);
@@ -384,18 +596,18 @@
                 <div class="contact-card glass rounded-xl p-4 hover-lift cursor-pointer group"
                      onclick="openContactModal(${JSON.stringify(contactData).replace(/"/g, '&quot;')}, '${category}', '${uid}')">
                     <div class="flex items-start justify-between mb-3">
-                        <div class="font-semibold text-white text-sm">${escapeHtml(contactData.name || 'N/A')}</div>
-                        <span class="text-xs px-2 py-0.5 rounded-full bg-white/10 text-slate-400">${category}</span>
+                        <div class="font-semibold text-slate-800 text-sm">${escapeHtml(contactData.name || 'N/A')}</div>
+                        <span class="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">${category}</span>
                     </div>
                     <div class="text-xs text-slate-400 space-y-1.5">
-                        ${contactData.company ? `<div class="font-medium text-slate-300">${escapeHtml(contactData.company)}</div>` : ''}
-                        ${contactData.email ? `<div><a href="mailto:${escapeHtml(contactData.email)}" class="text-purple-400 hover:text-purple-300 break-all">${escapeHtml(contactData.email)}</a></div>` : ''}
+                        ${contactData.company ? `<div class="font-medium text-slate-600">${escapeHtml(contactData.company)}</div>` : ''}
+                        ${contactData.email ? `<div><a href="mailto:${escapeHtml(contactData.email)}" class="text-purple-600 hover:text-purple-700 break-all">${escapeHtml(contactData.email)}</a></div>` : ''}
                         ${contactData.phone ? `<div class="text-slate-400">${escapeHtml(contactData.phone)}</div>` : ''}
-                        ${contactData.linkedin_url ? `<div><a href="${escapeHtml(contactData.linkedin_url)}" target="_blank" class="text-blue-400 hover:text-blue-300 inline-flex items-center gap-1">LinkedIn ↗</a></div>` : ''}
+                        ${contactData.linkedin_url ? `<div><a href="${escapeHtml(contactData.linkedin_url)}" target="_blank" class="text-blue-600 hover:text-blue-700 inline-flex items-center gap-1">LinkedIn ↗</a></div>` : ''}
                     </div>
                     ${contactData.tags && contactData.tags.length > 0 ? `
                         <div class="flex flex-wrap gap-1 mt-3">
-                            ${contactData.tags.map(tag => `<span class="text-xs bg-white/10 text-slate-400 px-2 py-0.5 rounded">${escapeHtml(tag)}</span>`).join('')}
+                            ${contactData.tags.map(tag => `<span class="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded">${escapeHtml(tag)}</span>`).join('')}
                         </div>
                     ` : ''}
                 </div>
@@ -407,7 +619,7 @@
         const gridElement = document.getElementById(`grid-${category}`);
         if (!gridElement) return;
         gridElement.innerHTML = `
-            <div class="col-span-full bg-red-900/20 border border-red-700/50 rounded-lg p-4 text-red-400 text-sm">
+            <div class="col-span-full bg-red-50 border border-red-200 rounded-lg p-4 text-red-600 text-sm">
                 <p class="font-semibold">Error loading contacts</p>
                 <p class="text-xs mt-1">${escapeHtml(errorMessage)}</p>
             </div>
@@ -463,7 +675,7 @@
         } catch (error) {
             console.error(`Error loading CSV files for ${category}:`, error);
             const container = document.getElementById(`csv-list-${category}`);
-            if (container) container.innerHTML = `<div class="text-center text-red-400 text-xs py-4">Failed to load CSV files</div>`;
+            if (container) container.innerHTML = `<div class="text-center text-red-600 text-xs py-4">Failed to load CSV files</div>`;
         }
     }
 
@@ -479,7 +691,7 @@
         container.innerHTML = `
             <table class="w-full text-xs">
                 <thead>
-                    <tr class="text-slate-500 border-b border-white/10">
+                    <tr class="text-slate-500 border-b border-slate-200">
                         <th class="text-left py-2 px-2 font-medium">Filename</th>
                         <th class="text-left py-2 px-2 font-medium">Size</th>
                         <th class="text-left py-2 px-2 font-medium">Updated</th>
@@ -488,8 +700,8 @@
                 </thead>
                 <tbody id="csv-tbody-${category}">
                     ${files.map(f => `
-                        <tr class="csv-file-row border-b border-white/5 hover:bg-white/5 transition-colors" data-name="${escapeHtml(f.name).toLowerCase()}">
-                            <td class="py-2 px-2 text-slate-300 max-w-[200px] truncate" title="${escapeHtml(f.name)}">
+                        <tr class="csv-file-row border-b border-slate-200 hover:bg-slate-50 transition-colors" data-name="${escapeHtml(f.name).toLowerCase()}">
+                            <td class="py-2 px-2 text-slate-600 max-w-[200px] truncate" title="${escapeHtml(f.name)}">
                                 <span class="inline-flex items-center gap-1.5">
                                     <svg class="w-3.5 h-3.5 text-green-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
@@ -502,13 +714,13 @@
                             <td class="py-2 px-2 text-right">
                                 <div class="flex gap-1 justify-end">
                                     <a href="/api/csv/download/${category}/${encodeURIComponent(f.name)}/" target="_blank"
-                                       class="p-1.5 text-slate-400 hover:text-white hover:bg-white/10 rounded transition-colors" title="Download">
+                                       class="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded transition-colors" title="Download">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                                         </svg>
                                     </a>
                                     <button onclick="openCsvDeleteModal('${category}', '${escapeHtml(f.name)}')"
-                                            class="p-1.5 text-slate-400 hover:text-red-400 hover:bg-red-900/30 rounded transition-colors" title="Delete">
+                                            class="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors" title="Delete">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
                                         </svg>
@@ -565,11 +777,11 @@
 
     function showUploadMessage(type, text) {
         const msg = document.getElementById('uploadMessage');
-        msg.classList.remove('hidden', 'bg-green-900/30', 'text-green-400', 'bg-red-900/30', 'text-red-400', 'bg-yellow-900/30', 'text-yellow-400', 'bg-blue-900/30', 'text-blue-400');
-        if (type === 'success') msg.classList.add('bg-green-900/30', 'text-green-400');
-        else if (type === 'error') msg.classList.add('bg-red-900/30', 'text-red-400');
-        else if (type === 'warning') msg.classList.add('bg-yellow-900/30', 'text-yellow-400');
-        else msg.classList.add('bg-blue-900/30', 'text-blue-400');
+        msg.classList.remove('hidden', 'bg-green-50', 'text-green-700', 'bg-red-50', 'text-red-600', 'bg-yellow-50', 'text-yellow-700', 'bg-blue-50', 'text-blue-700');
+        if (type === 'success') msg.classList.add('bg-green-50', 'text-green-700');
+        else if (type === 'error') msg.classList.add('bg-red-50', 'text-red-600');
+        else if (type === 'warning') msg.classList.add('bg-yellow-50', 'text-yellow-700');
+        else msg.classList.add('bg-blue-50', 'text-blue-700');
         msg.textContent = text;
     }
 
@@ -597,17 +809,17 @@
             const headers = rows[0].split(',').map(h => h.trim());
             const dataRows = rows.slice(1, 6);
 
-            let tableHTML = '<thead><tr class="border-b border-slate-600">';
+            let tableHTML = '<thead><tr class="border-b border-slate-200">';
             headers.forEach(h => {
-                tableHTML += `<th class="p-2 text-left text-slate-300 font-medium text-xs">${escapeHtml(h)}</th>`;
+                tableHTML += `<th class="p-2 text-left text-slate-600 font-medium text-xs">${escapeHtml(h)}</th>`;
             });
             tableHTML += '</tr></thead><tbody>';
 
             dataRows.forEach(row => {
                 const cells = row.split(',').map(c => c.trim());
-                tableHTML += '<tr class="border-b border-slate-700 hover:bg-slate-700/50">';
+                tableHTML += '<tr class="border-b border-slate-200 hover:bg-slate-50">';
                 cells.forEach(cell => {
-                    tableHTML += `<td class="p-2 text-slate-300 text-xs">${escapeHtml(cell)}</td>`;
+                    tableHTML += `<td class="p-2 text-slate-600 text-xs">${escapeHtml(cell)}</td>`;
                 });
                 tableHTML += '</tr>';
             });
@@ -692,9 +904,9 @@
 
     function showAddMessage(type, text) {
         const msg = document.getElementById('addMessage');
-        msg.classList.remove('hidden', 'bg-green-900/30', 'text-green-400', 'bg-red-900/30', 'text-red-400');
-        if (type === 'success') msg.classList.add('bg-green-900/30', 'text-green-400');
-        else msg.classList.add('bg-red-900/30', 'text-red-400');
+        msg.classList.remove('hidden', 'bg-green-50', 'text-green-700', 'bg-red-50', 'text-red-600');
+        if (type === 'success') msg.classList.add('bg-green-50', 'text-green-700');
+        else msg.classList.add('bg-red-50', 'text-red-600');
         msg.textContent = text;
     }
 
@@ -746,28 +958,28 @@
             <div class="grid grid-cols-2 gap-4 text-sm">
                 <div>
                     <p class="text-slate-500 text-xs mb-1">Name</p>
-                    <p class="text-slate-200 font-medium">${escapeHtml(contact.name || 'N/A')}</p>
+                    <p class="text-slate-700 font-medium">${escapeHtml(contact.name || 'N/A')}</p>
                 </div>
                 <div>
                     <p class="text-slate-500 text-xs mb-1">Company</p>
-                    <p class="text-slate-200 font-medium">${escapeHtml(contact.company || 'N/A')}</p>
+                    <p class="text-slate-700 font-medium">${escapeHtml(contact.company || 'N/A')}</p>
                 </div>
                 <div>
                     <p class="text-slate-500 text-xs mb-1">Email</p>
-                    <p class="text-purple-400"><a href="mailto:${escapeHtml(contact.email || '')}">${escapeHtml(contact.email || 'N/A')}</a></p>
+                    <p class="text-purple-600"><a href="mailto:${escapeHtml(contact.email || '')}">${escapeHtml(contact.email || 'N/A')}</a></p>
                 </div>
                 <div>
                     <p class="text-slate-500 text-xs mb-1">Phone</p>
-                    <p class="text-slate-200">${escapeHtml(contact.phone || 'N/A')}</p>
+                    <p class="text-slate-700">${escapeHtml(contact.phone || 'N/A')}</p>
                 </div>
             </div>
         `;
 
         if (contact.linkedin_url) {
             contentHTML += `
-                <div class="pt-2 border-t border-white/10">
+                <div class="pt-2 border-t border-slate-200">
                     <p class="text-slate-500 text-xs mb-2">LinkedIn</p>
-                    <a href="${escapeHtml(contact.linkedin_url)}" target="_blank" class="text-blue-400 hover:text-blue-300 break-all">
+                    <a href="${escapeHtml(contact.linkedin_url)}" target="_blank" class="text-blue-600 hover:text-blue-700 break-all">
                         ${escapeHtml(contact.linkedin_url)}
                     </a>
                 </div>
@@ -776,10 +988,10 @@
 
         if (contact.tags && contact.tags.length > 0) {
             contentHTML += `
-                <div class="pt-2 border-t border-white/10">
+                <div class="pt-2 border-t border-slate-200">
                     <p class="text-slate-500 text-xs mb-2">Tags</p>
                     <div class="flex flex-wrap gap-2">
-                        ${contact.tags.map(tag => `<span class="bg-white/10 text-slate-300 text-xs px-2 py-1 rounded">${escapeHtml(tag)}</span>`).join('')}
+                        ${contact.tags.map(tag => `<span class="bg-slate-100 text-slate-600 text-xs px-2 py-1 rounded">${escapeHtml(tag)}</span>`).join('')}
                     </div>
                 </div>
             `;
@@ -787,9 +999,9 @@
 
         if (contact.notes) {
             contentHTML += `
-                <div class="pt-2 border-t border-white/10">
+                <div class="pt-2 border-t border-slate-200">
                     <p class="text-slate-500 text-xs mb-2">Notes</p>
-                    <p class="text-slate-300 text-sm">${escapeHtml(contact.notes)}</p>
+                    <p class="text-slate-600 text-sm">${escapeHtml(contact.notes)}</p>
                 </div>
             `;
         }
@@ -863,6 +1075,384 @@
         }
     }
 
+    /* ---------- Auto Scraper ---------- */
+    let autoScraperLoaded = false;
+    let currentKeywords = [];
+    let currentRuns = [];
+    let currentRunProfiles = [];
+    let progressTimer = null;
+    let wasScrapeRunning = false;
+
+    function loadAutoScraper() {
+        if (autoScraperLoaded) return;
+        autoScraperLoaded = true;
+        loadScrapeKeywords();
+        loadScrapeRuns();
+        loadScrapeStats();
+        pollScrapeProgress();
+    }
+
+    /* ----- Live progress bar ----- */
+    function renderScrapeProgress(p) {
+        const card = document.getElementById('scrapeProgressCard');
+        const bar = document.getElementById('scrapeProgressBar');
+        const txt = document.getElementById('scrapeProgressText');
+        const sub = document.getElementById('scrapeProgressSub');
+        const pctEl = document.getElementById('scrapeProgressPct');
+        const spinner = document.getElementById('scrapeProgressSpinner');
+
+        if (!p || !p.state || p.state === 'idle') {
+            card.classList.add('hidden');
+            return false;
+        }
+        card.classList.remove('hidden');
+
+        if (p.state === 'running') {
+            const total = p.total_keywords || 1;
+            const idx = p.current_keyword_index || 0;
+            const found = p.current_keyword_profiles_found || 0;
+            const analyzed = p.current_keyword_profiles_analyzed || 0;
+            const frac = found > 0 ? analyzed / found : 0;
+            const pct = Math.min(100, Math.round(((idx + frac) / total) * 100));
+
+            bar.style.width = pct + '%';
+            bar.className = 'h-full rounded-full bg-gradient-to-r from-purple-500 to-blue-500 transition-all duration-500';
+            pctEl.textContent = pct + '%';
+            spinner.classList.remove('hidden');
+            txt.innerHTML = `Scraping <span class="text-purple-600 font-semibold">${escapeHtml(p.current_keyword || '')}</span> — keyword ${idx + 1} of ${total}`;
+            sub.textContent = `${analyzed}/${found || '?'} profiles analyzed for this keyword · ${p.total_profiles_analyzed || 0} total this run · started ${p.started_at ? formatDate(p.started_at) : ''}`;
+            return true;
+        }
+
+        // completed / failed — show as a static result card
+        const summaries = p.summaries || [];
+        const totalAnalyzed = summaries.reduce((a, s) => a + (s.profiles_analyzed || 0), 0);
+        const okCount = summaries.filter(s => s.status === 'success').length;
+        const completed = p.state === 'completed';
+
+        bar.style.width = '100%';
+        bar.className = 'h-full rounded-full bg-gradient-to-r transition-all duration-500 ' + (completed ? 'from-green-500 to-emerald-500' : 'from-red-500 to-rose-500');
+        pctEl.textContent = completed ? 'Done' : 'Failed';
+        spinner.classList.add('hidden');
+        txt.textContent = completed
+            ? `Last run completed — ${totalAnalyzed} profiles extracted across ${okCount}/${summaries.length} keywords`
+            : `Last run failed${p.error ? ': ' + p.error : ''}`;
+        sub.textContent = p.finished_at ? `Finished ${formatDate(p.finished_at)} (${p.trigger || 'manual'})` : '';
+        return false;
+    }
+
+    async function pollScrapeProgress() {
+        try {
+            const response = await fetch('/scraper/progress/');
+            const p = await response.json();
+            const running = renderScrapeProgress(p);
+
+            if (running) {
+                wasScrapeRunning = true;
+                if (!progressTimer) progressTimer = setInterval(pollScrapeProgress, 5000);
+            } else {
+                if (progressTimer) { clearInterval(progressTimer); progressTimer = null; }
+                if (wasScrapeRunning) {
+                    wasScrapeRunning = false;
+                    loadScrapeRuns();
+                    loadScrapeStats();
+                    showToast('Scrape finished — results updated', 'success');
+                }
+            }
+        } catch (e) { /* silent — progress is best-effort */ }
+    }
+
+    /* ----- Stats tiles + bar charts ----- */
+    async function loadScrapeStats() {
+        try {
+            const response = await fetch('/scraper/stats/');
+            const data = await response.json();
+            if (!data.success) throw new Error(data.error || 'Failed to load stats');
+            renderScrapeStats(data);
+        } catch (error) {
+            document.getElementById('dailyBars').innerHTML = `<div class="text-red-600 text-xs py-6">Failed to load stats</div>`;
+            document.getElementById('keywordBars').innerHTML = `<div class="text-red-600 text-xs py-6">Failed to load stats</div>`;
+        }
+    }
+
+    function renderScrapeStats(data) {
+        animateCount(document.getElementById('stat-total-profiles'), data.totals.profiles || 0);
+        animateCount(document.getElementById('stat-today-profiles'), data.totals.today_profiles || 0);
+        animateCount(document.getElementById('stat-total-runs'), data.totals.runs || 0);
+        animateCount(document.getElementById('stat-active-keywords'), data.totals.active_keywords || 0);
+
+        // Daily vertical bars (last 7 days)
+        const daily = data.daily || [];
+        const maxDay = Math.max(...daily.map(d => d.count), 1);
+        document.getElementById('dailyBars').innerHTML = daily.map(d => {
+            const h = Math.round((d.count / maxDay) * 100);
+            return `
+                <div class="flex-1 flex flex-col items-center justify-end gap-1 h-full min-w-0" title="${d.count} profiles on ${d.date}">
+                    <span class="text-[10px] text-slate-400 font-semibold tabular-nums">${d.count || ''}</span>
+                    <div class="w-full rounded-t-md bg-gradient-to-t from-purple-600 to-blue-500 transition-all duration-500" style="height: ${d.count ? Math.max(h, 4) : 0}%"></div>
+                    <span class="text-[10px] text-slate-500 truncate w-full text-center">${escapeHtml(d.label)}</span>
+                </div>`;
+        }).join('');
+
+        // Per-keyword horizontal bars
+        const perKw = data.per_keyword || [];
+        const kwMax = Math.max(...perKw.map(k => k.count), 1);
+        document.getElementById('keywordBars').innerHTML = perKw.length ? perKw.map(k => `
+            <div class="flex items-center gap-2" title="${k.count} profiles for &quot;${escapeHtml(k.keyword)}&quot;">
+                <span class="text-[11px] text-slate-400 w-32 truncate flex-shrink-0">${escapeHtml(k.keyword)}</span>
+                <div class="flex-1 h-2 bg-slate-200 rounded-full overflow-hidden">
+                    <div class="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full transition-all duration-500" style="width: ${Math.round((k.count / kwMax) * 100)}%"></div>
+                </div>
+                <span class="text-[11px] text-slate-600 w-8 text-right font-semibold tabular-nums flex-shrink-0">${k.count}</span>
+            </div>`).join('')
+            : '<p class="text-slate-500 text-xs py-2">No data yet — run the scraper to see keyword breakdown.</p>';
+    }
+
+    async function loadScrapeKeywords() {
+        const container = document.getElementById('keywordsList');
+        try {
+            const response = await fetch('/scraper/keywords/');
+            const data = await response.json();
+            if (!data.success) throw new Error(data.error || 'Failed to load keywords');
+            currentKeywords = data.keywords || [];
+            renderKeywords();
+        } catch (error) {
+            container.innerHTML = `<div class="text-red-600 text-xs py-2">Failed to load keywords</div>`;
+        }
+    }
+
+    function renderKeywords() {
+        const container = document.getElementById('keywordsList');
+        if (!currentKeywords.length) {
+            container.innerHTML = `<div class="text-slate-500 text-xs py-2">No keywords yet — add one above.</div>`;
+            return;
+        }
+        container.innerHTML = currentKeywords.map((k, i) => `
+            <span class="inline-flex items-center gap-1.5 pl-1 pr-2 py-1 rounded-full text-xs font-medium border transition-colors ${k.active ? 'bg-purple-100 border-purple-200 text-purple-700' : 'bg-slate-100 border-slate-200 text-slate-600'}">
+                <button data-kw-idx="${i}" class="kw-toggle w-4 h-4 rounded-full flex items-center justify-center ${k.active ? 'bg-purple-500' : 'bg-slate-400'}" title="${k.active ? 'Active — click to pause' : 'Paused — click to activate'}">
+                    ${k.active ? '<svg class="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>' : ''}
+                </button>
+                <span>${escapeHtml(k.keyword)}</span>
+                <button data-kw-del="${i}" class="kw-delete text-slate-500 hover:text-red-600 transition-colors ml-0.5" title="Delete keyword">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </span>
+        `).join('');
+    }
+
+    async function keywordPost(url, keyword) {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+            body: JSON.stringify({ keyword })
+        });
+        return response.json();
+    }
+
+    async function addScrapeKeyword() {
+        const input = document.getElementById('newKeywordInput');
+        const keyword = (input.value || '').trim();
+        if (!keyword) { showToast('Enter a keyword first', 'error'); return; }
+        try {
+            const data = await keywordPost('/scraper/keywords/add/', keyword);
+            if (!data.success) throw new Error(data.error || 'Failed to add keyword');
+            currentKeywords = data.keywords || [];
+            renderKeywords();
+            input.value = '';
+            showToast(`Keyword "${keyword}" added — it will be scraped daily`, 'success');
+        } catch (error) {
+            showToast(error.message, 'error');
+        }
+    }
+
+    async function runScrapeNow() {
+        const btn = document.getElementById('runNowBtn');
+        btn.disabled = true;
+        btn.classList.add('opacity-60');
+        try {
+            const response = await fetch('/scraper/run-now/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+                body: '{}'
+            });
+            const data = await response.json();
+            if (!data.success) throw new Error(data.error || 'Failed to start scrape');
+            showToast(data.message, 'success');
+            // Show the progress bar immediately and poll until the run finishes
+            document.getElementById('scrapeProgressCard').classList.remove('hidden');
+            document.getElementById('scrapeProgressText').textContent = 'Starting scrape...';
+            document.getElementById('scrapeProgressSub').textContent = '';
+            wasScrapeRunning = true;
+            setTimeout(pollScrapeProgress, 2000);
+            if (!progressTimer) progressTimer = setInterval(pollScrapeProgress, 5000);
+        } catch (error) {
+            showToast(error.message, 'error');
+        } finally {
+            btn.disabled = false;
+            btn.classList.remove('opacity-60');
+        }
+    }
+
+    async function loadScrapeRuns() {
+        const container = document.getElementById('runsList');
+        try {
+            const response = await fetch('/scraper/runs/');
+            const data = await response.json();
+            if (!data.success) throw new Error(data.error || 'Failed to load runs');
+            currentRuns = data.runs || [];
+            renderScrapeRuns();
+        } catch (error) {
+            container.innerHTML = `<div class="text-center text-red-600 text-xs py-6">Failed to load run history</div>`;
+        }
+    }
+
+    function renderScrapeRuns() {
+        const container = document.getElementById('runsList');
+        if (!currentRuns.length) {
+            container.innerHTML = `<div class="text-center text-slate-500 text-xs py-6">No runs yet — the daily scheduler will populate this, or click "Run Now".</div>`;
+            return;
+        }
+        container.innerHTML = `
+            <table class="w-full text-xs">
+                <thead class="sticky top-0 bg-white/95">
+                    <tr class="text-slate-500 border-b border-slate-200">
+                        <th class="text-left py-2 px-2 font-medium">Date</th>
+                        <th class="text-left py-2 px-2 font-medium">Keyword</th>
+                        <th class="text-left py-2 px-2 font-medium">Size</th>
+                        <th class="text-left py-2 px-2 font-medium">Stored</th>
+                        <th class="text-right py-2 px-2 font-medium">View</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${currentRuns.map((r, i) => `
+                        <tr class="border-b border-slate-200 hover:bg-slate-50 transition-colors">
+                            <td class="py-2 px-2 text-slate-600 whitespace-nowrap">${escapeHtml(r.date || '—')}</td>
+                            <td class="py-2 px-2">
+                                <span class="inline-flex items-center gap-1.5 bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-medium">
+                                    ${escapeHtml((r.keyword_slug || '').replace(/-/g, ' '))}
+                                </span>
+                            </td>
+                            <td class="py-2 px-2 text-slate-400">${escapeHtml(r.size_display || '—')}</td>
+                            <td class="py-2 px-2 text-slate-400">${r.updated ? formatDate(r.updated) : '—'}</td>
+                            <td class="py-2 px-2 text-right">
+                                <button data-run-idx="${i}" class="run-view px-2.5 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-600 hover:text-white transition font-medium">View</button>
+                            </td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
+    }
+
+    async function openRunModal(run) {
+        document.getElementById('runModalTitle').textContent = `${(run.keyword_slug || '').replace(/-/g, ' ')} — ${run.date || ''}`;
+        document.getElementById('runModalSubtitle').textContent = 'Loading profiles...';
+        document.getElementById('runModalBody').innerHTML = `
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">${createSkeletonCard()}${createSkeletonCard()}</div>`;
+        document.getElementById('runModal').classList.remove('hidden');
+
+        try {
+            const response = await fetch(`/scraper/runs/detail/?path=${encodeURIComponent(run.path)}`);
+            const data = await response.json();
+            if (!data.success) throw new Error(data.error || 'Failed to load run');
+            const runData = data.run || {};
+            currentRunProfiles = runData.profiles || [];
+
+            document.getElementById('runModalTitle').textContent = `"${runData.keyword || ''}" — ${runData.run_at ? formatDate(runData.run_at) : ''}`;
+            document.getElementById('runModalSubtitle').textContent =
+                `${currentRunProfiles.length} profiles analyzed · stored at ${run.path}`;
+
+            renderRunProfiles();
+        } catch (error) {
+            document.getElementById('runModalSubtitle').textContent = '';
+            document.getElementById('runModalBody').innerHTML =
+                `<div class="text-center text-red-600 text-sm py-10">${escapeHtml(error.message)}</div>`;
+        }
+    }
+
+    function renderRunProfiles() {
+        const body = document.getElementById('runModalBody');
+        if (!currentRunProfiles.length) {
+            body.innerHTML = `<div class="text-center text-slate-500 text-sm py-10">No profiles in this run.</div>`;
+            return;
+        }
+        body.innerHTML = `<div class="grid grid-cols-1 md:grid-cols-2 gap-3">${currentRunProfiles.map((p, i) => `
+            <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col gap-2">
+                <div class="flex items-start justify-between gap-2">
+                    <div class="min-w-0">
+                        <p class="font-semibold text-slate-800 text-sm truncate">${escapeHtml(p.name || 'Unknown')}</p>
+                        <p class="text-xs text-slate-500 truncate">${escapeHtml([p.headline, p.company].filter(Boolean).join(' · ') || '—')}</p>
+                        ${p.location ? `<p class="text-[11px] text-slate-500 mt-0.5">📍 ${escapeHtml(p.location)}</p>` : ''}
+                    </div>
+                    <div class="flex flex-col gap-1 items-end flex-shrink-0">
+                        <span class="text-[10px] px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 font-semibold" title="${escapeHtml(p.ai_need_reason || '')}">AI ${p.ai_need_score || 0}/10</span>
+                        <span class="text-[10px] px-2 py-0.5 rounded-full bg-pink-100 text-pink-700 font-semibold" title="${escapeHtml(p.branding_need_reason || '')}">Brand ${p.branding_need_score || 0}/10</span>
+                    </div>
+                </div>
+                ${p.intent ? `<p class="text-xs text-slate-500"><span class="text-slate-600 font-medium">Intent:</span> ${escapeHtml(p.intent)}</p>` : ''}
+                ${(p.pain_points && p.pain_points.length) ? `
+                    <div class="flex flex-wrap gap-1">
+                        ${p.pain_points.map(pp => `<span class="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">${escapeHtml(pp)}</span>`).join('')}
+                    </div>` : ''}
+                ${p.linkedin_pitch ? `
+                    <div class="bg-white border border-slate-200 rounded-lg p-3 mt-1">
+                        <div class="flex items-center justify-between mb-1.5">
+                            <p class="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">💬 LinkedIn Message</p>
+                            <button data-copy-idx="${i}" class="copy-pitch-btn px-2 py-0.5 bg-purple-100 text-purple-700 rounded hover:bg-purple-600 hover:text-white transition text-[11px] font-semibold">📋 Copy</button>
+                        </div>
+                        <p class="text-xs text-slate-600 whitespace-pre-wrap leading-relaxed">${escapeHtml(p.linkedin_pitch)}</p>
+                    </div>` : ''}
+                ${p.linkedin_url ? `<a href="${escapeHtml(p.linkedin_url)}" target="_blank" class="text-[11px] text-blue-600 hover:text-blue-700 mt-auto">View LinkedIn Profile ↗</a>` : ''}
+            </div>
+        `).join('')}</div>`;
+    }
+
+    function closeRunModal() {
+        document.getElementById('runModal').classList.add('hidden');
+        currentRunProfiles = [];
+    }
+
+    // Event delegation for keyword chips, run rows, and copy buttons
+    document.getElementById('keywordsList')?.addEventListener('click', async (e) => {
+        const toggleBtn = e.target.closest('.kw-toggle');
+        const deleteBtn = e.target.closest('.kw-delete');
+        if (!toggleBtn && !deleteBtn) return;
+        const idx = parseInt((toggleBtn || deleteBtn).dataset.kwIdx ?? (toggleBtn || deleteBtn).dataset.kwDel, 10);
+        const kw = currentKeywords[idx];
+        if (!kw) return;
+
+        if (deleteBtn) {
+            if (!confirm(`Delete keyword "${kw.keyword}"?`)) return;
+        }
+        try {
+            const url = deleteBtn ? '/scraper/keywords/delete/' : '/scraper/keywords/toggle/';
+            const data = await keywordPost(url, kw.keyword);
+            if (!data.success) throw new Error(data.error || 'Request failed');
+            currentKeywords = data.keywords || [];
+            renderKeywords();
+        } catch (error) {
+            showToast(error.message, 'error');
+        }
+    });
+
+    document.getElementById('runsList')?.addEventListener('click', (e) => {
+        const viewBtn = e.target.closest('.run-view');
+        if (!viewBtn) return;
+        const run = currentRuns[parseInt(viewBtn.dataset.runIdx, 10)];
+        if (run) openRunModal(run);
+    });
+
+    document.getElementById('runModalBody')?.addEventListener('click', (e) => {
+        const copyBtn = e.target.closest('.copy-pitch-btn');
+        if (!copyBtn) return;
+        const p = currentRunProfiles[parseInt(copyBtn.dataset.copyIdx, 10)];
+        if (p && p.linkedin_pitch) copyToClipboard(p.linkedin_pitch, `Message for ${p.name || 'contact'} copied!`);
+    });
+
+    document.getElementById('runModal')?.addEventListener('click', (e) => {
+        if (e.target.id === 'runModal') closeRunModal();
+    });
+
     /* ---------- Global Search & Filter ---------- */
     function setupGlobalSearch() {
         const searchInput = document.getElementById('globalSearch');
@@ -900,13 +1490,11 @@
         if (e.target.id === 'confirmCsvDeleteModal') closeCsvDeleteModal();
     });
 
-    /* ---------- Initialize ---------- */
+    /* ---------- Initialize (Auto Scraper is the default landing tab) ---------- */
     document.addEventListener('DOMContentLoaded', () => {
         loadCounts();
         loadCsvCounts();
-        const firstCat = categories[0].name;
-        loadCategory(firstCat);
-        loadCsvFiles(firstCat);
+        loadAutoScraper();
         setupGlobalSearch();
     });
 </script>

@@ -25,6 +25,9 @@ build/
 # Scraper
 scraped_contacts/
 
+# Local cron logs
+logs/
+
 # OS
 .DS_Store
 Thumbs.db

@@ -168,3 +168,8 @@ if GCS_KEY_PATH:
 
 # Bucket folder structure for contacts
 GCS_CONTACTS_FOLDER = 'contacts/'
+
+# --- Scheduled Scraper Configuration ---
+# Shared secret used by Cloud Scheduler (or any cron) to trigger the daily
+# scrape via /scraper/scheduler/run/ (header X-Scheduler-Secret or ?token=).
+SCHEDULER_SECRET = os.getenv('SCHEDULER_SECRET', '')

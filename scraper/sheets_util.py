@@ -79,6 +79,17 @@ def _get_or_create_sheet(spreadsheet_id):
             spreadsheet = client.open_by_key(spreadsheet_id)
             worksheet = spreadsheet.sheet1
             logger.info(f"Opened existing spreadsheet: {spreadsheet_id}")
+
+            # Self-heal: ensure the header row exists. Older sheets may have
+            # data in row 1 instead of HEADERS, which breaks get_all_records()
+            # ("header row contains duplicates") and therefore /scraper/list/.
+            try:
+                first_row = worksheet.row_values(1)
+                if first_row[:2] != HEADERS[:2]:
+                    worksheet.insert_row(HEADERS, 1)
+                    logger.info("Inserted missing header row into existing spreadsheet")
+            except Exception as header_error:
+                logger.warning(f"Could not verify/insert header row: {header_error}")
         else:
             # Create new spreadsheet
             spreadsheet = client.create('LinkedIn Profiles')
@@ -157,7 +168,16 @@ def append_profile(spreadsheet_id, profile_data):
             profile_data.get('updated_at', '')
         ]
         
-        worksheet.append_row(row_data)
+        # Write to an explicit A:S range instead of worksheet.append_row().
+        # The Sheets API table detection used by append_row() breaks when the
+        # sheet contains stray data in far-right columns, causing each new row
+        # to be appended shifted further to the right (columns grow endlessly).
+        col_a = worksheet.col_values(1)  # trailing empties are trimmed
+        next_row = len(col_a) + 1
+        worksheet.batch_update([{
+            'range': f'A{next_row}:S{next_row}',
+            'values': [row_data],
+        }])
         logger.info(f"Appended profile: {profile_data.get('name')}")
         return True
     except Exception as e:
@@ -267,7 +287,15 @@ def get_all_profiles(spreadsheet_id):
         if not spreadsheet or not worksheet:
             return None
         
-        all_rows = worksheet.get_all_records()
+        # Read positionally instead of get_all_records(): the sheet may have
+        # extra/junk columns beyond HEADERS, which makes gspread's header-based
+        # parsing fail with "header row contains duplicates".
+        all_values = worksheet.get_all_values()
+        all_rows = []
+        for row in all_values[1:]:  # skip the header row
+            padded = (row + [''] * len(HEADERS))[:len(HEADERS)]
+            if any(cell.strip() for cell in padded):
+                all_rows.append(dict(zip(HEADERS, padded)))
         logger.info(f"Retrieved {len(all_rows)} profiles")
         return all_rows
     except Exception as e:

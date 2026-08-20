@@ -6,54 +6,54 @@
 
 <div class="max-w-6xl mx-auto mt-8 p-4 space-y-8" x-data>
 
-    <div class="bg-slate-800 rounded-xl p-6 border-l-4 border-purple-500 shadow-lg">
+    <div class="bg-white rounded-xl p-6 border-l-4 border-purple-500 shadow-lg shadow-slate-200/50">
         <div class="flex justify-between items-start">
             <div>
-                <h1 class="text-2xl font-bold text-white">{{ pitch.company_name }}</h1>
-                <p class="text-purple-400 text-sm mt-1">AI Audit Results</p>
+                <h1 class="text-2xl font-bold text-slate-800">{{ pitch.company_name }}</h1>
+                <p class="text-purple-600 text-sm mt-1">AI Audit Results</p>
             </div>
-            <a href="{% url 'pitch_generator:create_pitch' %}" class="text-sm text-slate-400 hover:text-white underline">New Search</a>
+            <a href="{% url 'pitch_generator:create_pitch' %}" class="text-sm text-slate-500 hover:text-slate-800 underline">New Search</a>
         </div>
-        <div class="mt-4 bg-slate-900/50 p-4 rounded-lg">
-            <h3 class="text-sm font-bold text-slate-300 uppercase tracking-wide">Identified Pain Point</h3>
-            <p class="text-white mt-1 italic">"{{ pitch.pain_points }}"</p>
+        <div class="mt-4 bg-slate-50 p-4 rounded-lg">
+            <h3 class="text-sm font-bold text-slate-600 uppercase tracking-wide">Identified Pain Point</h3>
+            <p class="text-slate-800 mt-1 italic">"{{ pitch.pain_points }}"</p>
         </div>
     </div>
 
     <div class="grid md:grid-cols-2 gap-8">
         
         <div class="space-y-8">
-            <div class="bg-slate-800 rounded-xl p-6 shadow-lg relative group">
-                <h2 class="text-xl font-bold text-white mb-4 flex items-center">
+            <div class="bg-white rounded-xl p-6 shadow-lg shadow-slate-200/50 relative group">
+                <h2 class="text-xl font-bold text-slate-800 mb-4 flex items-center">
                     📧 Professional Email
                 </h2>
-                <div class="bg-slate-900 p-4 rounded-lg text-slate-300 text-sm whitespace-pre-line font-mono border border-slate-700">
-                    <strong class="text-purple-400">Subject:</strong> {{ pitch.email_subject }}
-                    <hr class="border-slate-700 my-3">
+                <div class="bg-slate-50 p-4 rounded-lg text-slate-700 text-sm whitespace-pre-line font-mono border border-slate-200">
+                    <strong class="text-purple-600">Subject:</strong> {{ pitch.email_subject }}
+                    <hr class="border-slate-200 my-3">
                     {{ pitch.email_body_text }}
                 </div>
                 <button @click="copyToClipboard(`{{ pitch.email_body_text|escapejs }}`)" 
-                        class="mt-3 w-full py-2 bg-slate-700 hover:bg-slate-600 text-white rounded text-sm transition">
+                        class="mt-3 w-full py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded text-sm transition">
                     Copy Email Content
                 </button>
             </div>
 
-            <div class="bg-slate-800 rounded-xl p-6 shadow-lg">
-                <h2 class="text-xl font-bold text-white mb-4 flex items-center">
+            <div class="bg-white rounded-xl p-6 shadow-lg shadow-slate-200/50">
+                <h2 class="text-xl font-bold text-slate-800 mb-4 flex items-center">
                     📞 Cold Call Script
                 </h2>
-                <div class="bg-slate-900 p-4 rounded-lg text-slate-300 text-sm whitespace-pre-line border border-slate-700">
+                <div class="bg-slate-50 p-4 rounded-lg text-slate-700 text-sm whitespace-pre-line border border-slate-200">
                     {{ pitch.call_script }}
                 </div>
             </div>
         </div>
 
         <div class="space-y-8">
-            <div class="bg-green-900/20 border border-green-900 rounded-xl p-6 shadow-lg">
-                <h2 class="text-xl font-bold text-green-400 mb-4 flex items-center">
+            <div class="bg-green-50 border border-green-200 rounded-xl p-6 shadow-lg shadow-slate-200/50">
+                <h2 class="text-xl font-bold text-green-600 mb-4 flex items-center">
                     💬 WhatsApp Message
                 </h2>
-                <div class="bg-slate-900 p-4 rounded-lg text-slate-300 text-sm border border-slate-700">
+                <div class="bg-slate-50 p-4 rounded-lg text-slate-700 text-sm border border-slate-200">
                     {{ pitch.whatsapp_message }}
                 </div>
                 <a href="https://wa.me/?text={{ pitch.whatsapp_message|urlencode }}" target="_blank"
@@ -62,14 +62,14 @@
                 </a>
             </div>
 
-            <div class="bg-slate-800 rounded-xl p-6 shadow-lg">
-                <h2 class="text-xl font-bold text-white mb-4">🎨 Attractive Template</h2>
+            <div class="bg-white rounded-xl p-6 shadow-lg shadow-slate-200/50">
+                <h2 class="text-xl font-bold text-slate-800 mb-4">🎨 Attractive Template</h2>
                 <div class="bg-white rounded h-64 overflow-y-auto border-4 border-slate-300">
                     <iframe srcdoc="{{ pitch.email_body_html|escape }}" class="w-full h-full" frameborder="0"></iframe>
                 </div>
                 <div class="mt-3 flex gap-2">
                     <button @click="copyToClipboard(`{{ pitch.email_body_html|escapejs }}`)" 
-                            class="flex-1 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded text-sm transition">
+                            class="flex-1 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded text-sm transition">
                         Copy HTML Code
                     </button>
                     <button @click="
@@ -84,26 +84,26 @@
         </div>
     </div>
 
-    <div class="bg-slate-900 rounded-xl p-1 shadow-lg border border-slate-700 mt-8">
+    <div class="bg-white rounded-xl p-1 shadow-lg shadow-slate-200/50 border border-slate-200 mt-8">
         
-        <div class="bg-slate-800 p-4 rounded-t-xl flex justify-between items-center border-b border-slate-700">
+        <div class="bg-slate-50 p-4 rounded-t-xl flex justify-between items-center border-b border-slate-200">
             <div class="flex items-center gap-3">
                 <span class="text-2xl">🎬</span>
                 <div>
-                    <h2 class="text-xl font-bold text-white">Visual Studio</h2>
-                    <p class="text-xs text-purple-400 uppercase tracking-widest font-semibold">{{ pitch.visual_style_guide }}</p>
+                    <h2 class="text-xl font-bold text-slate-800">Visual Studio</h2>
+                    <p class="text-xs text-purple-600 uppercase tracking-widest font-semibold">{{ pitch.visual_style_guide }}</p>
                 </div>
             </div>
         </div>
 
         <div class="grid md:grid-cols-2 gap-0">
             
-            <div class="p-6 border-r border-slate-800 hover:bg-slate-800/50 transition duration-300">
-                <h3 class="flex items-center gap-2 text-pink-400 font-bold mb-4">
+            <div class="p-6 border-r border-slate-200 hover:bg-slate-50 transition duration-300">
+                <h3 class="flex items-center gap-2 text-pink-600 font-bold mb-4">
                     <span>📸</span> AI Image Prompt
                 </h3>
-                <div class="bg-black p-4 rounded-lg border border-slate-700 relative group h-40">
-                    <textarea readonly class="w-full h-full bg-transparent text-slate-300 text-sm resize-none focus:outline-none font-mono leading-relaxed">{{ pitch.image_prompt }}</textarea>
+                <div class="bg-slate-50 p-4 rounded-lg border border-slate-200 relative group h-40">
+                    <textarea readonly class="w-full h-full bg-transparent text-slate-700 text-sm resize-none focus:outline-none font-mono leading-relaxed">{{ pitch.image_prompt }}</textarea>
                     <button @click="copyToClipboard(`{{ pitch.image_prompt|escapejs }}`)" 
                             class="absolute top-2 right-2 bg-pink-600 hover:bg-pink-500 text-white text-xs px-3 py-1 rounded shadow-lg transition transform hover:scale-105">
                         Copy for Midjourney
@@ -111,12 +111,12 @@
                 </div>
             </div>
 
-            <div class="p-6 hover:bg-slate-800/50 transition duration-300">
-                <h3 class="flex items-center gap-2 text-blue-400 font-bold mb-4">
+            <div class="p-6 hover:bg-slate-50 transition duration-300">
+                <h3 class="flex items-center gap-2 text-blue-600 font-bold mb-4">
                     <span>🎥</span> AI Video Prompt
                 </h3>
-                <div class="bg-black p-4 rounded-lg border border-slate-700 relative group h-40">
-                    <textarea readonly class="w-full h-full bg-transparent text-slate-300 text-sm resize-none focus:outline-none font-mono leading-relaxed">{{ pitch.video_prompt }}</textarea>
+                <div class="bg-slate-50 p-4 rounded-lg border border-slate-200 relative group h-40">
+                    <textarea readonly class="w-full h-full bg-transparent text-slate-700 text-sm resize-none focus:outline-none font-mono leading-relaxed">{{ pitch.video_prompt }}</textarea>
                     <button @click="copyToClipboard(`{{ pitch.video_prompt|escapejs }}`)" 
                             class="absolute top-2 right-2 bg-blue-600 hover:bg-blue-500 text-white text-xs px-3 py-1 rounded shadow-lg transition transform hover:scale-105">
                         Copy for Runway

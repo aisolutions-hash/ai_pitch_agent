@@ -1,19 +1,19 @@
 /* Custom CSS for Sales Agent Project */
 
-/* Custom scrollbar — light theme */
+/* Custom scrollbar */
 ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
 }
 ::-webkit-scrollbar-track {
-    background: #f1f5f9;
+    background: #1e293b;
 }
 ::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
+    background: #475569;
     border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-    background: #94a3b8;
+    background: #64748b;
 }
 
 /* Light scrollbar for light-themed panels */
@@ -68,16 +68,15 @@
     animation: fadeInUp 0.2s ease-out;
 }
 
-/* Glassmorphism — light theme */
+/* Glassmorphism */
 .glass {
-    background: rgba(255, 255, 255, 0.72);
+    background: rgba(30, 41, 59, 0.4);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(226, 232, 240, 0.9);
-    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+    border: 1px solid rgba(148, 163, 184, 0.08);
 }
 .glass-hover:hover {
-    background: rgba(255, 255, 255, 0.9);
+    background: rgba(30, 41, 59, 0.55);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
 }
@@ -88,7 +87,7 @@
 }
 .hover-lift:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(15, 23, 42, 0.1);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
 }
 .hover-lift:active {
     transform: translateY(0);
@@ -122,7 +121,7 @@
     width: 60%;
 }
 .tab-btn.active {
-    color: #1e293b;
+    color: #fff;
 }
 
 /* Stat tile icon rings */
