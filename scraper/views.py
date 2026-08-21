@@ -712,6 +712,86 @@ def scrape_keyword_delete(request):
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 
+def scrape_locations_list(request):
+    """GET — list configured scrape locations (from GCS config)."""
+    try:
+        locations = gcs.get_scrape_locations()
+        return JsonResponse({'success': True, 'locations': locations})
+    except Exception as e:
+        logger.error(f"Error listing scrape locations: {e}")
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@csrf_exempt
+@require_POST
+def scrape_location_add(request):
+    """POST JSON {location} — add a new scrape location."""
+    try:
+        body = json.loads(request.body)
+        location = (body.get('location') or '').strip()
+        if not location:
+            return JsonResponse({'success': False, 'error': 'Location cannot be empty'}, status=400)
+
+        locations = gcs.get_scrape_locations()
+        if any(l['location'].lower() == location.lower() for l in locations):
+            return JsonResponse({'success': False, 'error': 'Location already exists'}, status=400)
+
+        locations.append({
+            'location': location,
+            'active': True,
+            'created_at': datetime.now().isoformat(),
+        })
+        if not gcs.save_scrape_locations(locations):
+            return JsonResponse({'success': False, 'error': 'Failed to save locations to GCS'}, status=500)
+        return JsonResponse({'success': True, 'locations': locations})
+    except Exception as e:
+        logger.error(f"Error adding scrape location: {e}")
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@csrf_exempt
+@require_POST
+def scrape_location_toggle(request):
+    """POST JSON {location} — toggle a location's active flag."""
+    try:
+        body = json.loads(request.body)
+        location = (body.get('location') or '').strip()
+        locations = gcs.get_scrape_locations()
+        found = False
+        for l in locations:
+            if l['location'].lower() == location.lower():
+                l['active'] = not l.get('active', True)
+                found = True
+                break
+        if not found:
+            return JsonResponse({'success': False, 'error': 'Location not found'}, status=404)
+        if not gcs.save_scrape_locations(locations):
+            return JsonResponse({'success': False, 'error': 'Failed to save locations to GCS'}, status=500)
+        return JsonResponse({'success': True, 'locations': locations})
+    except Exception as e:
+        logger.error(f"Error toggling scrape location: {e}")
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@csrf_exempt
+@require_POST
+def scrape_location_delete(request):
+    """POST JSON {location} — delete a scrape location."""
+    try:
+        body = json.loads(request.body)
+        location = (body.get('location') or '').strip()
+        locations = gcs.get_scrape_locations()
+        new_locations = [l for l in locations if l['location'].lower() != location.lower()]
+        if len(new_locations) == len(locations):
+            return JsonResponse({'success': False, 'error': 'Location not found'}, status=404)
+        if not gcs.save_scrape_locations(new_locations):
+            return JsonResponse({'success': False, 'error': 'Failed to save locations to GCS'}, status=500)
+        return JsonResponse({'success': True, 'locations': new_locations})
+    except Exception as e:
+        logger.error(f"Error deleting scrape location: {e}")
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
 def scrape_runs_list(request):
     """GET — list historical scrape runs from GCS (newest first)."""
     try:
@@ -735,13 +815,13 @@ def scrape_run_detail(request):
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 
-def _start_background_scrape(keywords=None, trigger='manual'):
+def _start_background_scrape(keywords=None, locations=None, trigger='manual'):
     """Kick off run_daily_scrape in a daemon thread and return the thread."""
     def _target():
         try:
-            summaries = run_daily_scrape(keywords=keywords, trigger=trigger)
+            summaries = run_daily_scrape(keywords=keywords, locations=locations, trigger=trigger)
             ok = sum(1 for s in summaries if s.get('status') == 'success')
-            logger.info(f"Background scrape finished: {ok}/{len(summaries)} keywords succeeded")
+            logger.info(f"Background scrape finished: {ok}/{len(summaries)} jobs succeeded")
         except Exception as e:
             logger.error(f"Background scrape failed: {e}", exc_info=True)
 
@@ -755,20 +835,30 @@ def _start_background_scrape(keywords=None, trigger='manual'):
 def run_scrape_now(request):
     """
     POST (login required) — manually trigger the daily scrape in the background.
-    Optional JSON body {keyword} to run a single keyword.
+    Optional JSON body {keyword} to run a single keyword, or {location} to
+    restrict locations.
     """
     try:
         keyword = None
+        location = None
         if request.body:
             try:
-                keyword = (json.loads(request.body).get('keyword') or '').strip() or None
+                body = json.loads(request.body)
+                keyword = (body.get('keyword') or '').strip() or None
+                location = (body.get('location') or '').strip() or None
             except json.JSONDecodeError:
                 keyword = None
+                location = None
 
-        _start_background_scrape(keywords=[keyword] if keyword else None, trigger='manual')
+        _start_background_scrape(
+            keywords=[keyword] if keyword else None,
+            locations=[location] if location else None,
+            trigger='manual',
+        )
         return JsonResponse({
             'success': True,
-            'message': f"Scrape started in background{f' for: {keyword}' if keyword else ' for all active keywords'}. Results will appear in Run History shortly."
+            'message': f"Scrape started in background{f' for: {keyword}' if keyword else ' for all active keywords'}"
+                       f"{f' in {location}' if location else ' (all active locations)'}. Results will appear in Run History shortly."
         })
     except Exception as e:
         logger.error(f"Error starting manual scrape: {e}")
@@ -835,7 +925,18 @@ def scrape_stats(request):
             for k, v in sorted(per_kw.items(), key=lambda x: -x[1])
         ]
 
+        # Per-location totals
+        per_loc = {}
+        for e in entries:
+            loc = e.get('location') or 'No location'
+            per_loc[loc] = per_loc.get(loc, 0) + e.get('profiles_analyzed', 0)
+        per_location = [
+            {'location': k, 'count': v}
+            for k, v in sorted(per_loc.items(), key=lambda x: -x[1])
+        ]
+
         active_keywords = len([k for k in gcs.get_scrape_keywords() if k.get('active')])
+        active_locations = len([l for l in gcs.get_scrape_locations() if l.get('active')])
 
         return JsonResponse({
             'success': True,
@@ -844,9 +945,11 @@ def scrape_stats(request):
                 'today_profiles': today_profiles,
                 'runs': len(entries),
                 'active_keywords': active_keywords,
+                'active_locations': active_locations,
             },
             'daily': daily,
             'per_keyword': per_keyword,
+            'per_location': per_location,
         })
     except Exception as e:
         logger.error(f"Error computing scrape stats: {e}")

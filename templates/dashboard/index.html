@@ -87,6 +87,16 @@
                 <span class="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span>
             </span>
         </button>
+        <button data-cat="autocampaign"
+                onclick="switchTab('autocampaign'); loadAutoCampaign();"
+                class="tab-btn flex-1 min-w-max py-2.5 px-4 rounded-lg text-sm font-medium text-slate-500 hover:text-slate-800 transition-all duration-200">
+            <span class="inline-flex items-center gap-1.5">📨 AI Auto Campaign</span>
+        </button>
+        <button data-cat="campaigns"
+                onclick="switchTab('campaigns')"
+                class="tab-btn flex-1 min-w-max py-2.5 px-4 rounded-lg text-sm font-medium text-slate-500 hover:text-slate-800 transition-all duration-200">
+            <span class="inline-flex items-center gap-1.5">📊 Campaigns</span>
+        </button>
         {% for cat in categories %}
         <button data-cat="{{ cat.name }}"
                 onclick="switchTab('{{ cat.name }}')"
@@ -150,6 +160,67 @@
         </div>
     </div>
     {% endfor %}
+
+    <!-- Campaigns Section (suppliers + buyers + events combined) -->
+    <div id="section-campaigns" class="tab-content hidden">
+        <div class="flex items-center justify-between mb-5 flex-wrap gap-3">
+            <div class="flex items-center gap-3">
+                <h2 class="text-xl font-bold text-slate-800">Campaigns &amp; Contacts</h2>
+                <span id="badge-campaigns" class="text-xs bg-slate-100 text-slate-600 px-2.5 py-0.5 rounded-full">0</span>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="openUploadModal(combinedFilter === 'all' ? 'suppliers' : combinedFilter)" class="btn-press px-3.5 py-2 border border-slate-300 text-slate-600 rounded-lg hover:bg-slate-100 transition-colors text-xs font-medium flex items-center gap-1.5">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                    </svg>
+                    Upload CSV
+                </button>
+                <button onclick="openAddModal(combinedFilter === 'all' ? 'suppliers' : combinedFilter)" class="btn-press px-3.5 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-xs font-medium flex items-center gap-1.5">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    </svg>
+                    Add Contact
+                </button>
+            </div>
+        </div>
+
+        <!-- Filter chips -->
+        <div class="flex gap-2 mb-4 flex-wrap">
+            <button onclick="setCampaignFilter('all')" id="cf-all" class="campaign-filter-btn px-3 py-1.5 rounded-full text-xs font-semibold bg-purple-600 text-white shadow-sm transition-colors">All</button>
+            {% for ccat in combined_categories %}
+            <button onclick="setCampaignFilter('{{ ccat.name }}')" id="cf-{{ ccat.name }}" class="campaign-filter-btn px-3 py-1.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors">📁 {{ ccat.label }}</button>
+            {% endfor %}
+        </div>
+
+        <!-- Combined Contacts Grid -->
+        <div id="grid-campaigns" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-5"></div>
+
+        <!-- Combined CSV Files (collapsible) -->
+        <div class="glass rounded-xl overflow-hidden">
+            <button onclick="toggleCsv('campaigns')" class="w-full flex items-center justify-between p-3.5 hover:bg-slate-50 transition-colors">
+                <div class="flex items-center gap-2">
+                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    <span class="text-sm font-medium text-slate-600">CSV Files (All Campaigns)</span>
+                    <span id="csv-badge-campaigns" class="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">0</span>
+                </div>
+                <svg id="csv-chevron-campaigns" class="w-4 h-4 text-slate-500 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                </svg>
+            </button>
+            <div id="csv-body-campaigns" class="hidden border-t border-slate-200">
+                <div class="p-3">
+                    <div class="flex gap-2 mb-3">
+                        <input type="text" id="csv-search-campaigns" placeholder="Filter files..." class="flex-1 px-3 py-1.5 bg-slate-50 border border-slate-300 text-slate-800 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent">
+                    </div>
+                    <div id="csv-list-campaigns">
+                        <div class="text-center text-slate-500 text-xs py-6">No CSV files uploaded</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Auto Scraper Section (default landing view) -->
     <div id="section-autoscraper" class="tab-content">
@@ -281,32 +352,67 @@
                     <div id="keywordBars" class="flex flex-col gap-2.5">
                         <div class="text-slate-500 text-xs py-6">Loading...</div>
                     </div>
+                    <div class="flex items-center gap-2 mt-5 mb-3">
+                        <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                        <h3 class="text-sm font-semibold text-slate-800">Profiles per Location</h3>
+                    </div>
+                    <div id="locationBars" class="flex flex-col gap-2.5">
+                        <div class="text-slate-500 text-xs py-6">Loading...</div>
+                    </div>
                 </div>
             </div>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-5">
             <!-- Keywords Manager -->
-            <div class="glass rounded-xl p-4 lg:col-span-1">
-                <div class="flex items-center gap-2 mb-3">
-                    <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500/30 to-purple-600/10 ring-1 ring-purple-500/30 flex items-center justify-center flex-shrink-0">
-                        <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"/>
-                        </svg>
+            <div class="glass rounded-xl p-4 lg:col-span-1 flex flex-col gap-4">
+                <div>
+                    <div class="flex items-center gap-2 mb-3">
+                        <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500/30 to-purple-600/10 ring-1 ring-purple-500/30 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-semibold text-slate-800">Scrape Keywords</h3>
+                            <p class="text-[11px] text-slate-500">Scraped automatically every day</p>
+                        </div>
                     </div>
-                    <div>
-                        <h3 class="text-sm font-semibold text-slate-800">Scrape Keywords</h3>
-                        <p class="text-[11px] text-slate-500">Scraped automatically every day</p>
+                    <div class="flex gap-2 mb-3">
+                        <input type="text" id="newKeywordInput" placeholder="e.g., ai automation"
+                               onkeydown="if(event.key==='Enter') addScrapeKeyword();"
+                               class="flex-1 px-3 py-1.5 bg-slate-50 border border-slate-300 text-slate-800 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent">
+                        <button onclick="addScrapeKeyword()" class="btn-press px-3 py-1.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-xs font-medium">Add</button>
+                    </div>
+                    <div id="keywordsList" class="flex flex-wrap gap-2">
+                        <div class="text-slate-500 text-xs py-2">Loading keywords...</div>
                     </div>
                 </div>
-                <div class="flex gap-2 mb-3">
-                    <input type="text" id="newKeywordInput" placeholder="e.g., ai automation"
-                           onkeydown="if(event.key==='Enter') addScrapeKeyword();"
-                           class="flex-1 px-3 py-1.5 bg-slate-50 border border-slate-300 text-slate-800 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent">
-                    <button onclick="addScrapeKeyword()" class="btn-press px-3 py-1.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-xs font-medium">Add</button>
-                </div>
-                <div id="keywordsList" class="flex flex-wrap gap-2">
-                    <div class="text-slate-500 text-xs py-2">Loading keywords...</div>
+
+                <!-- Locations Manager -->
+                <div class="border-t border-slate-200 pt-4">
+                    <div class="flex items-center gap-2 mb-3">
+                        <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500/30 to-blue-600/10 ring-1 ring-blue-500/30 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-semibold text-slate-800">Locations</h3>
+                            <p class="text-[11px] text-slate-500">Filter each keyword by location</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-2 mb-3">
+                        <input type="text" id="newLocationInput" placeholder="e.g., Canada"
+                               onkeydown="if(event.key==='Enter') addScrapeLocation();"
+                               class="flex-1 px-3 py-1.5 bg-slate-50 border border-slate-300 text-slate-800 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent">
+                        <button onclick="addScrapeLocation()" class="btn-press px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs font-medium">Add</button>
+                    </div>
+                    <div id="locationsList" class="flex flex-wrap gap-2">
+                        <div class="text-slate-500 text-xs py-2">Loading locations...</div>
+                    </div>
                 </div>
             </div>
 
@@ -337,6 +443,184 @@
         </div>
     </div>
 
+    <!-- Auto Campaign Engine Section -->
+    <div id="section-autocampaign" class="tab-content hidden">
+        <!-- Hero banner -->
+        <div class="relative overflow-hidden rounded-2xl border border-green-200 bg-gradient-to-br from-green-100/80 via-white/60 to-emerald-100/80 p-5 sm:p-6 mb-6">
+            <div class="absolute -top-16 -right-10 w-56 h-56 bg-green-300/30 rounded-full blur-3xl pointer-events-none"></div>
+            <div class="absolute -bottom-20 -left-10 w-56 h-56 bg-emerald-300/30 rounded-full blur-3xl pointer-events-none"></div>
+            <div class="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div class="flex items-start gap-3.5 min-w-0">
+                    <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-green-200 flex-shrink-0">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                        </svg>
+                    </div>
+                    <div class="min-w-0">
+                        <h2 class="text-xl sm:text-2xl font-bold text-slate-800 flex flex-wrap items-center gap-2">
+                            AI Auto Campaign Engine
+                            <span class="text-[10px] font-semibold uppercase tracking-wider bg-green-100 text-green-700 px-2 py-0.5 rounded-full border border-green-200 inline-flex items-center gap-1">
+                                <span class="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span>Gemma
+                            </span>
+                        </h2>
+                        <p class="text-sm text-slate-400 mt-1 max-w-xl">Select contacts and a template — the engine personalizes and emails each contact automatically with the Gemma model, then records the campaign.</p>
+                    </div>
+                </div>
+                <button id="runCampaignBtn" onclick="runAutoCampaign()" class="btn-press px-4 py-2.5 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl hover:from-green-600 hover:to-emerald-700 transition-all text-sm font-semibold flex items-center justify-center gap-2 shadow-lg shadow-green-200 flex-shrink-0">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                    </svg>
+                    Run Campaign
+                </button>
+            </div>
+        </div>
+
+        <!-- Live Progress -->
+        <div id="campaignProgressCard" class="hidden glass rounded-xl p-4 mb-5">
+            <div class="flex items-center justify-between mb-2 gap-3">
+                <div class="flex items-center gap-2 min-w-0">
+                    <svg id="campaignProgressSpinner" class="w-4 h-4 text-green-600 animate-spin flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                    </svg>
+                    <p id="campaignProgressText" class="text-sm text-slate-700 font-medium truncate">Preparing campaign...</p>
+                </div>
+                <span id="campaignProgressPct" class="text-xs text-slate-400 font-semibold tabular-nums flex-shrink-0">0%</span>
+            </div>
+            <div class="w-full h-2.5 bg-slate-200 rounded-full overflow-hidden">
+                <div id="campaignProgressBar" class="h-full rounded-full bg-gradient-to-r from-green-500 to-emerald-500 transition-all duration-500" style="width: 0%"></div>
+            </div>
+            <p id="campaignProgressSub" class="text-[11px] text-slate-500 mt-1.5"></p>
+        </div>
+
+        <!-- Stats Tiles -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+            <div class="glass rounded-xl p-4 hover-lift">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-green-500/30 to-green-600/10 ring-1 ring-green-500/30 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                    <div class="min-w-0">
+                        <p class="text-xs text-slate-400 font-medium truncate">Emails Sent (last run)</p>
+                        <p class="text-2xl font-bold text-slate-800 mt-0.5 tabular-nums" id="campaign-stat-sent">0</p>
+                    </div>
+                </div>
+            </div>
+            <div class="glass rounded-xl p-4 hover-lift">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-red-500/30 to-red-600/10 ring-1 ring-red-500/30 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                        </svg>
+                    </div>
+                    <div class="min-w-0">
+                        <p class="text-xs text-slate-400 font-medium truncate">Failed</p>
+                        <p class="text-2xl font-bold text-slate-800 mt-0.5 tabular-nums" id="campaign-stat-failed">0</p>
+                    </div>
+                </div>
+            </div>
+            <div class="glass rounded-xl p-4 hover-lift">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-500/30 to-blue-600/10 ring-1 ring-blue-500/30 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.856-1.487M15 10h.01M13 10h.01M11 10h.01M5 10h.01M3 20h5v-2a3 3 0 00-5.856-1.487M15 5a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                    </div>
+                    <div class="min-w-0">
+                        <p class="text-xs text-slate-400 font-medium truncate">Contacts Available</p>
+                        <p class="text-2xl font-bold text-slate-800 mt-0.5 tabular-nums" id="campaign-stat-contacts">0</p>
+                    </div>
+                </div>
+            </div>
+            <div class="glass rounded-xl p-4 hover-lift">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-amber-500/30 to-amber-600/10 ring-1 ring-amber-500/30 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                    <div class="min-w-0">
+                        <p class="text-xs text-slate-400 font-medium truncate">Daily Limit</p>
+                        <p class="text-2xl font-bold text-slate-800 mt-0.5 tabular-nums" id="campaign-stat-limit">0</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-5">
+            <!-- Campaign Config -->
+            <div class="glass rounded-xl p-4 lg:col-span-1">
+                <div class="flex items-center gap-2 mb-4">
+                    <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-green-500/30 to-green-600/10 ring-1 ring-green-500/30 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-semibold text-slate-800">Campaign Setup</h3>
+                        <p class="text-[11px] text-slate-500">Personalized automatically with Gemma</p>
+                    </div>
+                </div>
+                <div class="space-y-3.5">
+                    <div>
+                        <label class="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-1">Contacts Category</label>
+                        <select id="campaignCategory" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 text-slate-800 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-transparent"></select>
+                    </div>
+                    <div>
+                        <label class="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-1">Email Template</label>
+                        <select id="campaignTemplate" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 text-slate-800 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-transparent"></select>
+                    </div>
+                    <div>
+                        <label class="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-1">Base Subject Line</label>
+                        <input type="text" id="campaignSubject" placeholder="e.g., Quick intro about [Company]"
+                               class="w-full px-3 py-2 bg-slate-50 border border-slate-300 text-slate-800 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-1">Daily Limit (max emails)</label>
+                        <input type="number" id="campaignLimit" min="1" max="500" value="25"
+                               class="w-full px-3 py-2 bg-slate-50 border border-slate-300 text-slate-800 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-transparent">
+                    </div>
+                    <div class="flex items-center justify-between gap-2">
+                        <label class="text-xs text-slate-600 font-medium" for="campaignPersonalizeSubject">Personalize subject</label>
+                        <input type="checkbox" id="campaignPersonalizeSubject" checked class="accent-green-600 w-4 h-4">
+                    </div>
+                    <div class="flex items-center justify-between gap-2">
+                        <label class="text-xs text-slate-600 font-medium" for="campaignPersonalizeBody">Personalize body</label>
+                        <input type="checkbox" id="campaignPersonalizeBody" checked class="accent-green-600 w-4 h-4">
+                    </div>
+                    <button onclick="saveCampaignConfig()" class="w-full btn-press px-3 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900 transition-colors text-xs font-semibold">💾 Save Config</button>
+                </div>
+            </div>
+
+            <!-- Campaign Run History -->
+            <div class="glass rounded-xl p-4 lg:col-span-2">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center gap-2">
+                        <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-green-500/30 to-green-600/10 ring-1 ring-green-500/30 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-semibold text-slate-800">Campaign Run History</h3>
+                            <p class="text-[11px] text-slate-500">Stored in GCS — click View to see recipients</p>
+                        </div>
+                    </div>
+                    <button onclick="loadCampaignRuns()" class="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors" title="Refresh">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                        </svg>
+                    </button>
+                </div>
+                <div id="campaignRunsList" class="max-h-96 overflow-y-auto">
+                    <div class="text-center text-slate-500 text-xs py-6">Loading run history...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Scrape Run Detail Modal -->
     <div id="runModal" class="hidden fixed inset-0 bg-slate-900/40 flex items-center justify-center z-50 p-4">
         <div class="bg-white border border-slate-200 rounded-2xl shadow-2xl max-w-5xl w-full max-h-[85vh] flex flex-col p-6">
@@ -352,6 +636,24 @@
                 </button>
             </div>
             <div id="runModalBody" class="overflow-y-auto pr-1"></div>
+        </div>
+    </div>
+
+    <!-- Campaign Run Detail Modal -->
+    <div id="campaignRunModal" class="hidden fixed inset-0 bg-slate-900/40 flex items-center justify-center z-50 p-4">
+        <div class="bg-white border border-slate-200 rounded-2xl shadow-2xl max-w-5xl w-full max-h-[85vh] flex flex-col p-6">
+            <div class="flex items-center justify-between mb-4 flex-shrink-0">
+                <div class="min-w-0">
+                    <h3 class="text-xl font-bold text-slate-800 truncate" id="campaignRunModalTitle">Campaign Run Details</h3>
+                    <p class="text-xs text-slate-400 mt-0.5" id="campaignRunModalSubtitle"></p>
+                </div>
+                <button onclick="closeCampaignRunModal()" class="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors flex-shrink-0">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div id="campaignRunModalBody" class="overflow-y-auto pr-1"></div>
         </div>
     </div>
 
@@ -521,6 +823,9 @@
     let currentCategory = 'autoscraper';
     let currentContactData = null;
     let pendingDeleteCsv = null;
+    let combinedFilter = 'all';
+    let campaignsLoaded = false;
+    let campaignsContacts = [];
 
     /* ---------- Tab Switching ---------- */
     function switchTab(catName) {
@@ -535,11 +840,180 @@
         if (section) section.classList.remove('hidden');
 
         currentCategory = catName;
+
+        if (catName === 'campaigns') {
+            if (!campaignsLoaded) loadCampaigns();
+            loadCombinedCsv();
+            return;
+        }
+
         const grid = document.getElementById(`grid-${catName}`);
         if (grid && grid.children.length === 0) {
             loadCategory(catName);
         }
         loadCsvFiles(catName);
+    }
+
+    /* ---------- Campaigns (combined suppliers/buyers/events) ---------- */
+    function setCampaignFilter(cat) {
+        combinedFilter = cat;
+        document.querySelectorAll('.campaign-filter-btn').forEach(btn => {
+            const isActive = btn.id === `cf-${cat}`;
+            btn.className = 'campaign-filter-btn px-3 py-1.5 rounded-full text-xs transition-colors ' +
+                (isActive
+                    ? 'bg-purple-600 text-white shadow-sm font-semibold'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200 font-medium');
+        });
+        renderCampaigns();
+    }
+
+    async function loadCampaigns() {
+        campaignsLoaded = true;
+        const gridElement = document.getElementById('grid-campaigns');
+        if (gridElement) {
+            let skeletonHTML = '';
+            for (let i = 0; i < 6; i++) skeletonHTML += createSkeletonCard();
+            gridElement.innerHTML = skeletonHTML;
+        }
+        try {
+            const results = await Promise.all(['suppliers', 'buyers', 'events'].map(async cat => {
+                const resp = await fetch(`/api/contacts/list/?category=${cat}`);
+                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                const data = await resp.json();
+                return (data || []).map(c => ({ ...c, category: cat }));
+            }));
+            campaignsContacts = results.flat();
+            renderCampaigns();
+        } catch (error) {
+            console.error('Error loading campaigns contacts:', error);
+            if (gridElement) {
+                gridElement.innerHTML = `<div class="col-span-full flex flex-col items-center justify-center py-16 text-slate-500">
+                    <p class="text-sm font-medium">Failed to load campaign contacts</p>
+                </div>`;
+            }
+        }
+    }
+
+    function renderCampaigns() {
+        const gridElement = document.getElementById('grid-campaigns');
+        if (!gridElement) return;
+
+        const filtered = combinedFilter === 'all'
+            ? campaignsContacts
+            : campaignsContacts.filter(c => c.category === combinedFilter);
+
+        if (!filtered.length) {
+            gridElement.innerHTML = `
+                <div class="col-span-full flex flex-col items-center justify-center py-16 text-slate-500">
+                    <svg class="w-12 h-12 mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.856-1.487M15 10h.01M13 10h.01M11 10h.01M5 10h.01M3 20h5v-2a3 3 0 00-5.856-1.487M15 5a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    </svg>
+                    <p class="text-sm font-medium">No contacts in this campaign yet</p>
+                    <p class="text-xs mt-1 opacity-60">Click "Add Contact" to get started</p>
+                </div>
+            `;
+            return;
+        }
+
+        gridElement.innerHTML = filtered.map(contact => {
+            const contactData = contact.data || contact;
+            const uid = contact.uid || Math.random().toString(36).substr(2, 9);
+            const catLabel = { suppliers: 'Suppliers', buyers: 'Buyers', events: 'Events' }[contact.category] || contact.category;
+            return `
+                <div class="contact-card glass rounded-xl p-4 hover-lift cursor-pointer group"
+                     onclick="openContactModal(${JSON.stringify(contactData).replace(/"/g, '&quot;')}, '${contact.category}', '${uid}')">
+                    <div class="flex items-start justify-between mb-3">
+                        <div class="font-semibold text-slate-800 text-sm">${escapeHtml(contactData.name || 'N/A')}</div>
+                        <span class="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">${catLabel}</span>
+                    </div>
+                    <div class="text-xs text-slate-500 space-y-1.5">
+                        ${contactData.company ? `<div class="font-medium text-slate-600">${escapeHtml(contactData.company)}</div>` : ''}
+                        ${contactData.email ? `<div><a href="mailto:${escapeHtml(contactData.email)}" class="text-purple-600 hover:text-purple-700 break-all">${escapeHtml(contactData.email)}</a></div>` : ''}
+                        ${contactData.phone ? `<div class="text-slate-500">${escapeHtml(contactData.phone)}</div>` : ''}
+                        ${contactData.linkedin_url ? `<div><a href="${escapeHtml(contactData.linkedin_url)}" target="_blank" class="text-blue-600 hover:text-blue-700 inline-flex items-center gap-1">LinkedIn ↗</a></div>` : ''}
+                    </div>
+                    ${contactData.tags && contactData.tags.length > 0 ? `
+                        <div class="flex flex-wrap gap-1 mt-3">
+                            ${contactData.tags.map(tag => `<span class="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded">${escapeHtml(tag)}</span>`).join('')}
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        }).join('');
+    }
+
+    async function loadCombinedCsv() {
+        const container = document.getElementById('csv-list-campaigns');
+        if (!container) return;
+        try {
+            const results = await Promise.all(['suppliers', 'buyers', 'events'].map(async cat => {
+                const resp = await fetch(`/api/csv/list/?category=${cat}`);
+                if (!resp.ok) return [];
+                const data = await resp.json();
+                return (data || []).map(f => ({ ...f, category: cat }));
+            }));
+            const files = results.flat();
+            const catLabels = { suppliers: 'Suppliers', buyers: 'Buyers', events: 'Events' };
+            const badge = document.getElementById('csv-badge-campaigns');
+            if (badge) badge.textContent = files.length;
+
+            if (!files.length) {
+                container.innerHTML = `<div class="text-center text-slate-500 text-xs py-6">No CSV files uploaded</div>`;
+                return;
+            }
+            container.innerHTML = `
+                <table class="w-full text-xs">
+                    <thead>
+                        <tr class="text-slate-500 border-b border-slate-200">
+                            <th class="text-left py-2 px-2 font-medium">Filename</th>
+                            <th class="text-left py-2 px-2 font-medium">Campaign</th>
+                            <th class="text-left py-2 px-2 font-medium">Size</th>
+                            <th class="text-left py-2 px-2 font-medium">Updated</th>
+                            <th class="text-right py-2 px-2 font-medium">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="csv-tbody-campaigns">
+                        ${files.map(f => `
+                            <tr class="csv-file-row border-b border-slate-200 hover:bg-slate-50 transition-colors" data-name="${escapeHtml(f.name).toLowerCase()}">
+                                <td class="py-2 px-2 text-slate-600 max-w-[200px] truncate" title="${escapeHtml(f.name)}">
+                                    <span class="inline-flex items-center gap-1.5">
+                                        <svg class="w-3.5 h-3.5 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                        </svg>
+                                        ${escapeHtml(f.name)}
+                                    </span>
+                                </td>
+                                <td class="py-2 px-2">
+                                    <span class="inline-flex items-center gap-1 bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">${catLabels[f.category] || f.category}</span>
+                                </td>
+                                <td class="py-2 px-2 text-slate-500">${escapeHtml(f.size_display || 'Unknown')}</td>
+                                <td class="py-2 px-2 text-slate-500">${f.updated ? formatDate(f.updated) : 'Unknown'}</td>
+                                <td class="py-2 px-2 text-right">
+                                    <div class="flex gap-1 justify-end">
+                                        <a href="/api/csv/download/${f.category}/${encodeURIComponent(f.name)}/" target="_blank"
+                                           class="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded transition-colors" title="Download">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                            </svg>
+                                        </a>
+                                        <button onclick="openCsvDeleteModal('${f.category}', '${escapeHtml(f.name)}')"
+                                                class="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors" title="Delete">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+            setupCsvSearch('campaigns');
+        } catch (error) {
+            console.error('Error loading combined CSV files:', error);
+            container.innerHTML = `<div class="text-center text-red-600 text-xs py-4">Failed to load CSV files</div>`;
+        }
     }
 
     function toggleCsv(catName) {
@@ -641,6 +1115,11 @@
                     const badge = document.getElementById(`badge-${cat.name}`);
                     if (badge) badge.textContent = counts[cat.name] || 0;
                 });
+
+                const campaignsBadge = document.getElementById('badge-campaigns');
+                if (campaignsBadge) {
+                    campaignsBadge.textContent = (counts.suppliers || 0) + (counts.buyers || 0) + (counts.events || 0);
+                }
             }
         } catch (error) {
             console.error('Error loading counts:', error);
@@ -660,6 +1139,10 @@
                     const badge = document.getElementById(`csv-badge-${cat.name}`);
                     if (badge) badge.textContent = counts[cat.name] || 0;
                 });
+                const campaignsCsvBadge = document.getElementById('csv-badge-campaigns');
+                if (campaignsCsvBadge) {
+                    campaignsCsvBadge.textContent = (counts.suppliers || 0) + (counts.buyers || 0) + (counts.events || 0);
+                }
             }
         } catch (error) {
             console.error('Error loading CSV counts:', error);
@@ -1078,6 +1561,7 @@
     /* ---------- Auto Scraper ---------- */
     let autoScraperLoaded = false;
     let currentKeywords = [];
+    let currentLocations = [];
     let currentRuns = [];
     let currentRunProfiles = [];
     let progressTimer = null;
@@ -1087,6 +1571,7 @@
         if (autoScraperLoaded) return;
         autoScraperLoaded = true;
         loadScrapeKeywords();
+        loadScrapeLocations();
         loadScrapeRuns();
         loadScrapeStats();
         pollScrapeProgress();
@@ -1119,7 +1604,8 @@
             bar.className = 'h-full rounded-full bg-gradient-to-r from-purple-500 to-blue-500 transition-all duration-500';
             pctEl.textContent = pct + '%';
             spinner.classList.remove('hidden');
-            txt.innerHTML = `Scraping <span class="text-purple-600 font-semibold">${escapeHtml(p.current_keyword || '')}</span> — keyword ${idx + 1} of ${total}`;
+            const locLabel = p.current_location ? ` <span class="text-blue-600 font-semibold">📍 ${escapeHtml(p.current_location)}</span>` : '';
+            txt.innerHTML = `Scraping <span class="text-purple-600 font-semibold">${escapeHtml(p.current_keyword || '')}</span>${locLabel} — keyword ${idx + 1} of ${total}`;
             sub.textContent = `${analyzed}/${found || '?'} profiles analyzed for this keyword · ${p.total_profiles_analyzed || 0} total this run · started ${p.started_at ? formatDate(p.started_at) : ''}`;
             return true;
         }
@@ -1135,7 +1621,7 @@
         pctEl.textContent = completed ? 'Done' : 'Failed';
         spinner.classList.add('hidden');
         txt.textContent = completed
-            ? `Last run completed — ${totalAnalyzed} profiles extracted across ${okCount}/${summaries.length} keywords`
+            ? `Last run completed — ${totalAnalyzed} profiles extracted across ${okCount}/${summaries.length} keyword×location jobs`
             : `Last run failed${p.error ? ': ' + p.error : ''}`;
         sub.textContent = p.finished_at ? `Finished ${formatDate(p.finished_at)} (${p.trigger || 'manual'})` : '';
         return false;
@@ -1206,6 +1692,22 @@
                 <span class="text-[11px] text-slate-600 w-8 text-right font-semibold tabular-nums flex-shrink-0">${k.count}</span>
             </div>`).join('')
             : '<p class="text-slate-500 text-xs py-2">No data yet — run the scraper to see keyword breakdown.</p>';
+
+        // Per-location horizontal bars
+        const perLoc = data.per_location || [];
+        const locMax = Math.max(...perLoc.map(l => l.count), 1);
+        const locBarsEl = document.getElementById('locationBars');
+        if (locBarsEl) {
+            locBarsEl.innerHTML = perLoc.length ? perLoc.map(l => `
+                <div class="flex items-center gap-2" title="${l.count} profiles in &quot;${escapeHtml(l.location)}&quot;">
+                    <span class="text-[11px] text-slate-400 w-32 truncate flex-shrink-0">📍 ${escapeHtml(l.location)}</span>
+                    <div class="flex-1 h-2 bg-slate-200 rounded-full overflow-hidden">
+                        <div class="h-full bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full transition-all duration-500" style="width: ${Math.round((l.count / locMax) * 100)}%"></div>
+                    </div>
+                    <span class="text-[11px] text-slate-600 w-8 text-right font-semibold tabular-nums flex-shrink-0">${l.count}</span>
+                </div>`).join('')
+                : '<p class="text-slate-500 text-xs py-2">No data yet — add locations to filter results.</p>';
+        }
     }
 
     async function loadScrapeKeywords() {
@@ -1263,6 +1765,319 @@
         } catch (error) {
             showToast(error.message, 'error');
         }
+    }
+
+    async function loadScrapeLocations() {
+        const container = document.getElementById('locationsList');
+        try {
+            const response = await fetch('/scraper/locations/');
+            const data = await response.json();
+            if (!data.success) throw new Error(data.error || 'Failed to load locations');
+            currentLocations = data.locations || [];
+            renderLocations();
+        } catch (error) {
+            container.innerHTML = `<div class="text-red-600 text-xs py-2">Failed to load locations</div>`;
+        }
+    }
+
+    function renderLocations() {
+        const container = document.getElementById('locationsList');
+        if (!container) return;
+        if (!currentLocations.length) {
+            container.innerHTML = `<div class="text-slate-500 text-xs py-2">No locations yet — add one above (e.g. USA, UK).</div>`;
+            return;
+        }
+        container.innerHTML = currentLocations.map((l, i) => `
+            <span class="inline-flex items-center gap-1.5 pl-1 pr-2 py-1 rounded-full text-xs font-medium border transition-colors ${l.active ? 'bg-blue-100 border-blue-200 text-blue-700' : 'bg-slate-100 border-slate-200 text-slate-600'}">
+                <button data-loc-idx="${i}" class="loc-toggle w-4 h-4 rounded-full flex items-center justify-center ${l.active ? 'bg-blue-500' : 'bg-slate-400'}" title="${l.active ? 'Active — click to pause' : 'Paused — click to activate'}">
+                    ${l.active ? '<svg class="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>' : ''}
+                </button>
+                <span>📍 ${escapeHtml(l.location)}</span>
+                <button data-loc-del="${i}" class="loc-delete text-slate-500 hover:text-red-600 transition-colors ml-0.5" title="Delete location">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </span>
+        `).join('');
+    }
+
+    async function locationPost(url, location) {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+            body: JSON.stringify({ location })
+        });
+        return response.json();
+    }
+
+    async function addScrapeLocation() {
+        const input = document.getElementById('newLocationInput');
+        const location = (input.value || '').trim();
+        if (!location) { showToast('Enter a location first', 'error'); return; }
+        try {
+            const data = await locationPost('/scraper/locations/add/', location);
+            if (!data.success) throw new Error(data.error || 'Failed to add location');
+            currentLocations = data.locations || [];
+            renderLocations();
+            input.value = '';
+            showToast(`Location "${location}" added — used as a filter for daily scrapes`, 'success');
+        } catch (error) {
+            showToast(error.message, 'error');
+        }
+    }
+
+    /* ---------- AI Auto Campaign Engine ---------- */
+    let campaignLoaded = false;
+    let campaignConfig = {};
+    let campaignRuns = [];
+    let campaignPollTimer = null;
+
+    async function loadAutoCampaign() {
+        if (campaignLoaded) return;
+        campaignLoaded = true;
+        try {
+            const response = await fetch('/pitch/campaign-engine/config/');
+            const data = await response.json();
+            if (!data.success) throw new Error(data.error || 'Failed to load campaign config');
+            campaignConfig = data.config || {};
+
+            const catSel = document.getElementById('campaignCategory');
+            const cats = data.categories || {};
+            catSel.innerHTML = Object.entries(cats).map(([key, info]) =>
+                `<option value="${key}" ${campaignConfig.category === key ? 'selected' : ''}>${escapeHtml(info.label)} (${info.count})</option>`
+            ).join('');
+            document.getElementById('campaign-stat-contacts').textContent =
+                (cats[campaignConfig.category] && cats[campaignConfig.category].count) || 0;
+
+            const tplSel = document.getElementById('campaignTemplate');
+            const templates = data.templates || [];
+            tplSel.innerHTML = templates.map(t =>
+                `<option value="${t.id}" ${String(campaignConfig.template_id) === String(t.id) ? 'selected' : ''}>${escapeHtml(t.name)}</option>`
+            ).join('');
+
+            document.getElementById('campaignSubject').value = campaignConfig.subject || '';
+            document.getElementById('campaignLimit').value = campaignConfig.daily_limit || 25;
+            document.getElementById('campaignPersonalizeSubject').checked = campaignConfig.personalize_subject !== false;
+            document.getElementById('campaignPersonalizeBody').checked = campaignConfig.personalize_body !== false;
+            document.getElementById('campaign-stat-limit').textContent = campaignConfig.daily_limit || 25;
+        } catch (error) {
+            showToast(error.message, 'error');
+        }
+        loadCampaignRuns();
+        pollCampaignProgress();
+    }
+
+    function getCampaignConfigFromForm() {
+        const catSel = document.getElementById('campaignCategory');
+        const tplSel = document.getElementById('campaignTemplate');
+        return {
+            category: catSel.value,
+            template_id: tplSel.value ? parseInt(tplSel.value, 10) : null,
+            subject: document.getElementById('campaignSubject').value.trim(),
+            daily_limit: parseInt(document.getElementById('campaignLimit').value, 10) || 25,
+            personalize_subject: document.getElementById('campaignPersonalizeSubject').checked,
+            personalize_body: document.getElementById('campaignPersonalizeBody').checked,
+        };
+    }
+
+    async function saveCampaignConfig() {
+        const config = getCampaignConfigFromForm();
+        try {
+            const response = await fetch('/pitch/campaign-engine/config/save/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+                body: JSON.stringify(config)
+            });
+            const data = await response.json();
+            if (!data.success) throw new Error(data.error || 'Failed to save config');
+            campaignConfig = data.config;
+            document.getElementById('campaign-stat-limit').textContent = campaignConfig.daily_limit || 25;
+            showToast('Campaign config saved', 'success');
+        } catch (error) {
+            showToast(error.message, 'error');
+        }
+    }
+
+    async function runAutoCampaign() {
+        const btn = document.getElementById('runCampaignBtn');
+        btn.disabled = true;
+        btn.classList.add('opacity-60');
+        try {
+            const config = getCampaignConfigFromForm();
+            const response = await fetch('/pitch/campaign-engine/run/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+                body: JSON.stringify(config)
+            });
+            const data = await response.json();
+            if (!data.success) throw new Error(data.error || 'Failed to start campaign');
+            showToast(data.message, 'success');
+            pollCampaignProgress(true);
+        } catch (error) {
+            showToast(error.message, 'error');
+        } finally {
+            btn.disabled = false;
+            btn.classList.remove('opacity-60');
+        }
+    }
+
+    async function pollCampaignProgress(showCard = false) {
+        if (campaignPollTimer) clearTimeout(campaignPollTimer);
+        try {
+            const response = await fetch('/pitch/campaign-engine/progress/');
+            const p = await response.json();
+            updateCampaignProgress(p, showCard);
+        } catch (error) {
+            console.error('Failed to fetch campaign progress:', error);
+        }
+        if (!document.getElementById('section-autocampaign').classList.contains('hidden')) {
+            campaignPollTimer = setTimeout(() => pollCampaignProgress(false), 3000);
+        }
+    }
+
+    function updateCampaignProgress(p, forceShow = false) {
+        const card = document.getElementById('campaignProgressCard');
+        if (!card) return;
+        const bar = document.getElementById('campaignProgressBar');
+        const pctEl = document.getElementById('campaignProgressPct');
+        const txt = document.getElementById('campaignProgressText');
+        const sub = document.getElementById('campaignProgressSub');
+        const spinner = document.getElementById('campaignProgressSpinner');
+
+        if (!p || p.state === 'idle') {
+            card.classList.add('hidden');
+            return;
+        }
+
+        document.getElementById('campaign-stat-sent').textContent = p.sent || 0;
+        document.getElementById('campaign-stat-failed').textContent = p.failed || 0;
+
+        if (p.state === 'running') {
+            card.classList.remove('hidden');
+            spinner.classList.remove('hidden');
+            const total = p.total_contacts || 1;
+            const pct = Math.min(Math.round(((p.processed || 0) / total) * 100), 100);
+            bar.style.width = pct + '%';
+            pctEl.textContent = pct + '%';
+            txt.innerHTML = p.current_name
+                ? `Emailing <span class="text-green-600 font-semibold">${escapeHtml(p.current_name)}</span> — ${p.processed || 0} of ${total}`
+                : 'Preparing campaign...';
+            sub.textContent = `${p.sent || 0} sent · ${p.failed || 0} failed · template: ${escapeHtml(p.template_name || '—')} · started ${p.started_at ? formatDate(p.started_at) : ''}`;
+        } else if (p.state === 'completed') {
+            card.classList.remove('hidden');
+            spinner.classList.add('hidden');
+            bar.style.width = '100%';
+            bar.className = 'h-full rounded-full bg-gradient-to-r from-green-500 to-emerald-500 transition-all duration-500';
+            pctEl.textContent = 'Done';
+            txt.textContent = `Campaign completed — ${p.sent || 0} sent, ${p.failed || 0} failed`;
+            sub.textContent = `template: ${p.template_name || '—'} · finished ${p.finished_at ? formatDate(p.finished_at) : ''}`;
+            loadCampaignRuns();
+        } else if (p.state === 'failed') {
+            card.classList.remove('hidden');
+            spinner.classList.add('hidden');
+            bar.style.width = '100%';
+            bar.className = 'h-full rounded-full bg-gradient-to-r from-red-500 to-rose-500 transition-all duration-500';
+            pctEl.textContent = 'Failed';
+            txt.textContent = p.error || 'Campaign run failed';
+            sub.textContent = '';
+        }
+    }
+
+    async function loadCampaignRuns() {
+        const container = document.getElementById('campaignRunsList');
+        try {
+            const response = await fetch('/pitch/campaign-engine/runs/');
+            const data = await response.json();
+            if (!data.success) throw new Error(data.error || 'Failed to load campaign runs');
+            campaignRuns = data.runs || [];
+            if (!campaignRuns.length) {
+                container.innerHTML = `<div class="text-center text-slate-500 text-xs py-6">No campaign runs yet — configure and hit Run Campaign.</div>`;
+                return;
+            }
+            container.innerHTML = campaignRuns.map(r => `
+                <div class="flex items-center gap-3 border-b border-slate-200 py-2.5">
+                    <span class="w-8 h-8 rounded-lg bg-green-100 text-green-600 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                        </svg>
+                    </span>
+                    <div class="min-w-0 flex-grow">
+                        <p class="text-xs font-semibold text-slate-700 truncate">${escapeHtml(r.name.replace('.json', ''))}</p>
+                        <p class="text-[11px] text-slate-400">${r.size_display || ''} · ${r.updated ? formatDate(r.updated) : ''}</p>
+                    </div>
+                    <button onclick="openCampaignRunModal('${escapeHtml(r.path)}')" class="px-3 py-1.5 text-xs font-medium bg-slate-100 text-slate-600 hover:bg-green-600 hover:text-white rounded-lg transition-colors flex-shrink-0">View</button>
+                </div>
+            `).join('');
+        } catch (error) {
+            container.innerHTML = `<div class="text-center text-red-600 text-xs py-4">Failed to load campaign runs</div>`;
+        }
+    }
+
+    async function openCampaignRunModal(path) {
+        try {
+            const response = await fetch(`/pitch/campaign-engine/runs/detail/?path=${encodeURIComponent(path)}`);
+            const data = await response.json();
+            if (!data.success) throw new Error(data.error || 'Failed to load run');
+            const run = data.run;
+            document.getElementById('campaignRunModalTitle').textContent = `Campaign: ${run.template_name || '—'}`;
+            document.getElementById('campaignRunModalSubtitle').textContent =
+                `${run.sent || 0} sent · ${run.failed || 0} failed · ${run.total_contacts || 0} total · started ${run.started_at ? formatDate(run.started_at) : ''}`;
+            const recipients = run.recipients || [];
+            document.getElementById('campaignRunModalBody').innerHTML = `
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+                    <div class="bg-slate-50 rounded-lg p-3 text-center">
+                        <p class="text-2xl font-bold text-slate-800">${run.sent || 0}</p>
+                        <p class="text-[11px] text-slate-500 font-medium">Sent</p>
+                    </div>
+                    <div class="bg-slate-50 rounded-lg p-3 text-center">
+                        <p class="text-2xl font-bold text-red-600">${run.failed || 0}</p>
+                        <p class="text-[11px] text-slate-500 font-medium">Failed</p>
+                    </div>
+                    <div class="bg-slate-50 rounded-lg p-3 text-center">
+                        <p class="text-2xl font-bold text-blue-600">${run.total_contacts || 0}</p>
+                        <p class="text-[11px] text-slate-500 font-medium">Total</p>
+                    </div>
+                    <div class="bg-slate-50 rounded-lg p-3 text-center">
+                        <p class="text-xs font-semibold text-slate-700 break-all">${escapeHtml(run.subject || '—')}</p>
+                        <p class="text-[11px] text-slate-500 font-medium mt-1">Subject</p>
+                    </div>
+                </div>
+                <div class="border border-slate-200 rounded-xl overflow-hidden">
+                    <table class="w-full text-xs">
+                        <thead class="bg-slate-50 border-b border-slate-200">
+                            <tr class="text-slate-500 text-left">
+                                <th class="py-2 px-3 font-medium">Name</th>
+                                <th class="py-2 px-3 font-medium">Email</th>
+                                <th class="py-2 px-3 font-medium">Status</th>
+                                <th class="py-2 px-3 font-medium">Error</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${recipients.length ? recipients.map(r => `
+                                <tr class="border-b border-slate-100">
+                                    <td class="py-2 px-3 font-medium text-slate-700">${escapeHtml(r.name)}</td>
+                                    <td class="py-2 px-3 text-slate-500 break-all">${escapeHtml(r.email || '—')}</td>
+                                    <td class="py-2 px-3">
+                                        ${r.status === 'sent'
+                                            ? '<span class="bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">Sent</span>'
+                                            : r.status === 'skipped'
+                                                ? '<span class="bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">Skipped</span>'
+                                                : '<span class="bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-medium">Failed</span>'}
+                                    </td>
+                                    <td class="py-2 px-3 text-red-500">${escapeHtml(r.error || '')}</td>
+                                </tr>
+                            `).join('') : '<tr><td colspan="4" class="py-4 text-center text-slate-500">No recipients recorded</td></tr>'}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            document.getElementById('campaignRunModal').classList.remove('hidden');
+        } catch (error) {
+            showToast(error.message, 'error');
+        }
+    }
+
+    function closeCampaignRunModal() {
+        document.getElementById('campaignRunModal').classList.add('hidden');
     }
 
     async function runScrapeNow() {
@@ -1358,7 +2173,7 @@
             const runData = data.run || {};
             currentRunProfiles = runData.profiles || [];
 
-            document.getElementById('runModalTitle').textContent = `"${runData.keyword || ''}" — ${runData.run_at ? formatDate(runData.run_at) : ''}`;
+            document.getElementById('runModalTitle').textContent = `"${runData.keyword || ''}"${runData.location ? ` — ${runData.location}` : ''} — ${runData.run_at ? formatDate(runData.run_at) : ''}`;
             document.getElementById('runModalSubtitle').textContent =
                 `${currentRunProfiles.length} profiles analyzed · stored at ${run.path}`;
 
@@ -1412,7 +2227,7 @@
         currentRunProfiles = [];
     }
 
-    // Event delegation for keyword chips, run rows, and copy buttons
+    // Event delegation for keyword chips, location chips, run rows, and copy buttons
     document.getElementById('keywordsList')?.addEventListener('click', async (e) => {
         const toggleBtn = e.target.closest('.kw-toggle');
         const deleteBtn = e.target.closest('.kw-delete');
@@ -1430,6 +2245,28 @@
             if (!data.success) throw new Error(data.error || 'Request failed');
             currentKeywords = data.keywords || [];
             renderKeywords();
+        } catch (error) {
+            showToast(error.message, 'error');
+        }
+    });
+
+    document.getElementById('locationsList')?.addEventListener('click', async (e) => {
+        const toggleBtn = e.target.closest('.loc-toggle');
+        const deleteBtn = e.target.closest('.loc-delete');
+        if (!toggleBtn && !deleteBtn) return;
+        const idx = parseInt((toggleBtn || deleteBtn).dataset.locIdx ?? (toggleBtn || deleteBtn).dataset.locDel, 10);
+        const loc = currentLocations[idx];
+        if (!loc) return;
+
+        if (deleteBtn) {
+            if (!confirm(`Delete location "${loc.location}"?`)) return;
+        }
+        try {
+            const url = deleteBtn ? '/scraper/locations/delete/' : '/scraper/locations/toggle/';
+            const data = await locationPost(url, loc.location);
+            if (!data.success) throw new Error(data.error || 'Request failed');
+            currentLocations = data.locations || [];
+            renderLocations();
         } catch (error) {
             showToast(error.message, 'error');
         }
@@ -1488,6 +2325,9 @@
     });
     document.getElementById('confirmCsvDeleteModal')?.addEventListener('click', (e) => {
         if (e.target.id === 'confirmCsvDeleteModal') closeCsvDeleteModal();
+    });
+    document.getElementById('campaignRunModal')?.addEventListener('click', (e) => {
+        if (e.target.id === 'campaignRunModal') closeCampaignRunModal();
     });
 
     /* ---------- Initialize (Auto Scraper is the default landing tab) ---------- */

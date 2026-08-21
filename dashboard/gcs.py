@@ -338,6 +338,7 @@ def _format_size(size_bytes):
 
 RUNS_PREFIX = 'scraper_runs/'
 KEYWORDS_CONFIG_PATH = 'scraper_config/keywords.json'
+LOCATIONS_CONFIG_PATH = 'scraper_config/locations.json'
 PROGRESS_PATH = 'scraper_config/progress.json'
 STATS_PATH = 'scraper_config/stats.json'
 
@@ -347,6 +348,14 @@ DEFAULT_SCRAPE_KEYWORDS = [
     'real estate',
     'agentic ai',
     'manufacturing company',
+]
+
+# Default locations seeded on first use
+DEFAULT_SCRAPE_LOCATIONS = [
+    'USA',
+    'Australia',
+    'UAE',
+    'New Zealand',
 ]
 
 
@@ -403,6 +412,28 @@ def get_scrape_keywords():
 def save_scrape_keywords(keywords):
     """Persist the keyword list to GCS. Returns True on success."""
     return upload_json_blob(KEYWORDS_CONFIG_PATH, {'keywords': keywords})
+
+
+def get_scrape_locations():
+    """
+    Get the configured scrape locations from GCS.
+    Seeds defaults on first use. Returns a list of dicts:
+    [{'location': str, 'active': bool, 'created_at': str}, ...]
+    """
+    data = get_json_blob(LOCATIONS_CONFIG_PATH)
+    if data is None:
+        locations = [
+            {'location': loc, 'active': True, 'created_at': None}
+            for loc in DEFAULT_SCRAPE_LOCATIONS
+        ]
+        save_scrape_locations(locations)
+        return locations
+    return data.get('locations', [])
+
+
+def save_scrape_locations(locations):
+    """Persist the location list to GCS. Returns True on success."""
+    return upload_json_blob(LOCATIONS_CONFIG_PATH, {'locations': locations})
 
 
 def upload_scrape_run(run_path, payload):
@@ -485,3 +516,95 @@ def append_scrape_stat(entry, cap=1000):
     entries.append(entry)
     entries = entries[-cap:]
     return upload_json_blob(STATS_PATH, {'entries': entries})
+
+
+# ---------------------------------------------------------------------------
+# Auto Campaign Engine: config + run history storage
+# ---------------------------------------------------------------------------
+
+CAMPAIGN_CONFIG_PATH = 'campaign_config/config.json'
+CAMPAIGN_PROGRESS_PATH = 'campaign_config/progress.json'
+CAMPAIGN_RUNS_PREFIX = 'campaign_runs/'
+
+
+def get_campaign_config():
+    """
+    Get the configured auto-campaign settings from GCS.
+    Returns a dict or a default config when nothing is saved yet.
+    """
+    data = get_json_blob(CAMPAIGN_CONFIG_PATH)
+    if not data:
+        return {
+            'category': 'suppliers',
+            'template_id': None,
+            'daily_limit': 25,
+            'personalize_subject': True,
+            'personalize_body': True,
+        }
+    return data
+
+
+def save_campaign_config(config):
+    """Persist the auto-campaign config to GCS. Returns True on success."""
+    return upload_json_blob(CAMPAIGN_CONFIG_PATH, config)
+
+
+def get_campaign_progress():
+    """
+    Get the current/last auto-campaign run's progress state.
+    Returns a dict or None if no run has been recorded yet.
+    """
+    return get_json_blob(CAMPAIGN_PROGRESS_PATH)
+
+
+def save_campaign_progress(data):
+    """Persist auto-campaign run progress (called by the running campaign job)."""
+    return upload_json_blob(CAMPAIGN_PROGRESS_PATH, data)
+
+
+def upload_campaign_run(run_path, payload):
+    """Upload a campaign-run result batch. run_path is relative to CAMPAIGN_RUNS_PREFIX."""
+    return upload_json_blob(f"{CAMPAIGN_RUNS_PREFIX}{run_path}", payload)
+
+
+def list_campaign_runs(limit=100):
+    """
+    List historical auto-campaign runs from GCS, newest first.
+    Returns a list of dicts: {name, path, date, size, size_display, updated}
+    """
+    try:
+        bucket = _get_bucket()
+        if not bucket:
+            logger.error("Unable to get GCS bucket")
+            return []
+
+        blobs = bucket.list_blobs(prefix=CAMPAIGN_RUNS_PREFIX)
+        runs = []
+        for blob in blobs:
+            if not blob.name.endswith('.json'):
+                continue
+            rel = blob.name.replace(CAMPAIGN_RUNS_PREFIX, '')
+            runs.append({
+                'name': rel,
+                'path': blob.name,
+                'size': blob.size,
+                'size_display': _format_size(blob.size),
+                'updated': blob.updated.isoformat() if blob.updated else None,
+            })
+
+        runs.sort(key=lambda x: x['updated'] or '', reverse=True)
+        return runs[:limit]
+    except Exception as e:
+        logger.error(f"Failed to list campaign runs: {e}")
+        return []
+
+
+def get_campaign_run(run_path):
+    """
+    Fetch a single auto-campaign run batch by full blob path.
+    Validates the path stays under CAMPAIGN_RUNS_PREFIX to prevent path traversal.
+    """
+    if not run_path or not run_path.startswith(CAMPAIGN_RUNS_PREFIX) or '..' in run_path:
+        logger.warning(f"Invalid campaign run path requested: {run_path}")
+        return None
+    return get_json_blob(run_path)

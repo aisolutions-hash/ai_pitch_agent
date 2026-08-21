@@ -12,6 +12,15 @@ class EmailTemplate(models.Model):
 class Campaign(models.Model):
     subject = models.CharField(max_length=255)
     sent_at = models.DateTimeField(auto_now_add=True)
+    template = models.ForeignKey(
+        EmailTemplate,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='campaigns',
+        help_text='The email template this campaign was sent from.'
+    )
+    body_html = models.TextField(blank=True, default='', help_text='Snapshot of the HTML sent in this campaign.')
 
     def __str__(self):
         return f"Campaign: {self.subject} ({self.sent_at.strftime('%Y-%m-%d %H:%M')})"

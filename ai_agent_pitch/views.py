@@ -6,6 +6,7 @@ import json
 import random
 import logging
 import textwrap
+import threading
 import google.generativeai as genai
 from django.shortcuts import render, redirect
 from django.conf import settings
@@ -20,6 +21,8 @@ from django.core.paginator import Paginator
 from .models import EmailTemplate, Campaign, Recipient
 from django.core.mail import send_mail
 from django.http import Http404
+from dashboard import gcs
+from .auto_campaign_service import run_auto_campaign
 
 
 logger = logging.getLogger(__name__)
@@ -73,6 +76,31 @@ def _find_column(headers, keywords):
             if kw in lh:
                 return original
     return None
+
+def _build_template_clusters():
+    """Group templates by the campaign they were most recently used in."""
+    from collections import OrderedDict
+    templates = EmailTemplate.objects.all().order_by('name')
+    cluster_map = OrderedDict()
+    unassigned = []
+    for template in templates:
+        latest_campaign = template.campaigns.order_by('-sent_at').first()
+        if latest_campaign:
+            cluster_map.setdefault(latest_campaign.id, {
+                'campaign': latest_campaign,
+                'templates': [],
+            })['templates'].append(template)
+        else:
+            unassigned.append(template)
+
+    clusters = list(cluster_map.values())
+    if unassigned:
+        clusters.append({
+            'campaign': None,
+            'templates': unassigned,
+        })
+    return clusters
+
 
 def pitch_creator_view(request):
     if request.method == 'POST':
@@ -155,7 +183,15 @@ def pitch_creator_view(request):
             return redirect('ai_agent_pitch:pitch_creator')
 
         try:
-            campaign = Campaign.objects.create(subject=subject)
+            template_id = request.POST.get('template_id')
+            linked_template = None
+            if template_id:
+                try:
+                    linked_template = EmailTemplate.objects.get(id=template_id)
+                except EmailTemplate.DoesNotExist:
+                    linked_template = None
+
+            campaign = Campaign.objects.create(subject=subject, template=linked_template, body_html=html_content)
             sent_count = 0
             failed_count = 0
 
@@ -200,18 +236,6 @@ def pitch_creator_view(request):
                 messages.warning(request, f'Partial success: {sent_count} sent, {failed_count} failed.')
             else:
                 messages.success(request, f'Success: Sent campaign to {sent_count} recipient(s)!')
-
-            # Auto-save the sent email as a reusable template
-            if sent_count > 0:
-                try:
-                    template_name = f"Sent: {subject[:60]} ({timezone.now().strftime('%b %d, %Y')})"
-                    EmailTemplate.objects.update_or_create(
-                        name=template_name,
-                        defaults={'html_content': html_content}
-                    )
-                    logger.info(f"Auto-saved sent email as template: {template_name}")
-                except Exception as template_error:
-                    logger.warning(f"Failed to auto-save sent email as template: {template_error}")
         except Exception as e:
             messages.error(request, f'An error occurred: {e}')
             logger.error(f"SMTP sending error: {e}", exc_info=True)
@@ -219,7 +243,10 @@ def pitch_creator_view(request):
         return redirect('ai_agent_pitch:pitch_creator')
 
     templates = EmailTemplate.objects.all().order_by('name')
-    context = {'templates': templates}
+    context = {
+        'templates': templates,
+        'clusters': _build_template_clusters(),
+    }
     return render(request, 'ai_agent_pitch/pitch_creator.html', context)
 
 @require_POST
@@ -463,3 +490,145 @@ def mark_as_opened_view(request, campaign_id, recipient_email):
     except Exception as e:
         logger.error(f"Error marking email as opened: {e}")
         return HttpResponse(status=500)
+
+
+# ---------------------------------------------------------------------------
+# AI Auto Campaign Engine (dashboard section-autocampaign)
+# ---------------------------------------------------------------------------
+
+CATEGORY_LABELS = {
+    'suppliers': 'Suppliers',
+    'buyers': 'Buyers',
+    'events': 'Events',
+    'linkedin': 'LinkedIn Contacts',
+}
+
+
+def campaign_engine_config_view(request):
+    """GET — return the saved auto-campaign config plus options (templates, categories)."""
+    try:
+        config = gcs.get_campaign_config()
+        templates = list(EmailTemplate.objects.all().order_by('name').values('id', 'name'))
+
+        category_counts = {}
+        for cat, label in CATEGORY_LABELS.items():
+            contacts = gcs.list_contacts(cat) or []
+            category_counts[cat] = {'label': label, 'count': len(contacts)}
+
+        return JsonResponse({
+            'success': True,
+            'config': config,
+            'templates': templates,
+            'categories': category_counts,
+        })
+    except Exception as e:
+        logger.error(f"Error loading campaign engine config: {e}")
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@csrf_exempt
+@require_POST
+def campaign_engine_config_save_view(request):
+    """POST JSON — persist the auto-campaign config."""
+    try:
+        body = json.loads(request.body)
+        config = gcs.get_campaign_config()
+        config['category'] = (body.get('category') or config.get('category') or 'suppliers').strip()
+        config['template_id'] = body.get('template_id')
+        config['subject'] = (body.get('subject') or '').strip()
+        try:
+            config['daily_limit'] = max(1, min(int(body.get('daily_limit') or config.get('daily_limit') or 25), 500))
+        except (TypeError, ValueError):
+            config['daily_limit'] = int(config.get('daily_limit') or 25)
+        config['personalize_subject'] = bool(body.get('personalize_subject', True))
+        config['personalize_body'] = bool(body.get('personalize_body', True))
+
+        if not gcs.save_campaign_config(config):
+            return JsonResponse({'success': False, 'error': 'Failed to save config to GCS'}, status=500)
+        return JsonResponse({'success': True, 'config': config})
+    except Exception as e:
+        logger.error(f"Error saving campaign engine config: {e}")
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+def _start_background_campaign(config, trigger='manual'):
+    def _target():
+        try:
+            run_auto_campaign(config, trigger=trigger)
+        except Exception as e:
+            logger.error(f"[auto-campaign] Background run failed: {e}", exc_info=True)
+            gcs.save_campaign_progress({
+                'state': 'failed',
+                'error': str(e),
+                'finished_at': timezone.now().isoformat(),
+            })
+
+    thread = threading.Thread(target=_target, daemon=True)
+    thread.start()
+    return thread
+
+
+@csrf_exempt
+@require_POST
+def campaign_engine_run_view(request):
+    """POST — start an auto-campaign in the background using the saved config."""
+    try:
+        config = gcs.get_campaign_config()
+        if request.body:
+            try:
+                body = json.loads(request.body)
+                if body:
+                    config.update({
+                        k: v for k, v in body.items()
+                        if k in ('category', 'template_id', 'subject', 'daily_limit',
+                                 'personalize_subject', 'personalize_body')
+                    })
+            except json.JSONDecodeError:
+                pass
+
+        if not config.get('template_id'):
+            templates = EmailTemplate.objects.order_by('name').values_list('id', flat=True)
+            if not templates:
+                return JsonResponse({'success': False, 'error': 'Create an email template in the Pitch Generator first.'}, status=400)
+            config['template_id'] = templates[0]
+
+        progress = gcs.get_campaign_progress()
+        if progress and progress.get('state') == 'running':
+            return JsonResponse({'success': False, 'error': 'An auto-campaign is already running.'}, status=409)
+
+        _start_background_campaign(config, trigger='manual')
+        return JsonResponse({'success': True, 'message': 'Auto-campaign started in the background.'})
+    except Exception as e:
+        logger.error(f"Error starting auto-campaign: {e}")
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+def campaign_engine_progress_view(request):
+    """GET — live progress of the current/last auto-campaign run."""
+    progress = gcs.get_campaign_progress()
+    if progress is None:
+        progress = {'state': 'idle'}
+    return JsonResponse(progress)
+
+
+def campaign_engine_runs_view(request):
+    """GET — list historical auto-campaign runs from GCS (newest first)."""
+    try:
+        runs = gcs.list_campaign_runs()
+        return JsonResponse({'success': True, 'runs': runs})
+    except Exception as e:
+        logger.error(f"Error listing campaign runs: {e}")
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+def campaign_engine_run_detail_view(request):
+    """GET ?path=<blob_path> — fetch a single auto-campaign run batch."""
+    try:
+        run_path = request.GET.get('path', '')
+        run = gcs.get_campaign_run(run_path)
+        if run is None:
+            return JsonResponse({'success': False, 'error': 'Run not found'}, status=404)
+        return JsonResponse({'success': True, 'run': run})
+    except Exception as e:
+        logger.error(f"Error fetching campaign run detail: {e}")
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)

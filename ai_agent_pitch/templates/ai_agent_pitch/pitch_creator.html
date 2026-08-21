@@ -80,11 +80,14 @@
       @input="localStorage.setItem('pitch_html', htmlContent)"
     />
 
+    <!-- Selected template id (set when a tile's Send button or the modal's Use & Send is clicked) -->
+    <input type="hidden" name="template_id" id="template_id" value="" />
+
     <div class="grid grid-cols-1 gap-8 h-full" :class="campaignOpen ? 'lg:grid-cols-2' : 'lg:grid-cols-1'">
 
       <!-- LEFT: Saved Templates -->
       <div
-        class="bg-white border border-slate-200 shadow-xl shadow-slate-200/60 rounded-2xl p-6 flex flex-col space-y-4 overflow-hidden"
+        class="bg-white border border-slate-200 shadow-xl shadow-slate-200/60 rounded-2xl p-5 sm:p-6 flex flex-col min-h-0 overflow-hidden"
       >
         <h3 class="text-base font-bold flex items-center gap-2 flex-shrink-0">
           <span class="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-purple-100 text-purple-600 text-sm shadow-sm">🗂️</span>
@@ -92,34 +95,35 @@
           <span class="text-xs font-bold text-purple-600 bg-purple-50 border border-purple-100 rounded-full px-2 py-0.5">{{ templates|length }}</span>
           <span class="flex-grow h-px bg-gradient-to-r from-purple-200 to-transparent"></span>
         </h3>
-        <p class="text-xs text-slate-500 flex-shrink-0">👁️ Preview &amp; edit a template, or hit 🚀 Send to configure your campaign.</p>
-        <div id="templates_grid" class="grid grid-cols-1 sm:grid-cols-2 gap-4 flex-grow overflow-y-auto light-scroll pr-1 content-start min-h-0" :class="campaignOpen ? 'lg:grid-cols-2' : 'lg:grid-cols-3 xl:grid-cols-4'">
+        <p class="text-xs text-slate-500 mt-1 flex-shrink-0">👁️ Preview &amp; edit a template, or hit 🚀 Send to configure your campaign.</p>
+
+        <div id="templates_grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3 content-start flex-1 min-h-0 overflow-y-auto light-scroll pr-1 mt-4" :class="campaignOpen ? 'lg:grid-cols-2' : 'lg:grid-cols-3 xl:grid-cols-3'">
           {% for template in templates %}
-          <div class="template-tile group relative bg-white border border-slate-200 rounded-xl overflow-hidden hover:border-purple-300 hover:shadow-xl hover:shadow-purple-100 hover:-translate-y-0.5 transition-all duration-200 flex flex-col" data-template-id="{{ template.id }}">
-            <div class="h-1.5 bg-gradient-to-r {% cycle 'from-purple-500 to-indigo-500' 'from-pink-500 to-rose-500' 'from-cyan-500 to-blue-500' 'from-amber-500 to-orange-500' %}"></div>
-            <div class="p-3.5 flex flex-col gap-2.5 flex-grow">
-              <div class="flex items-center gap-2.5 min-w-0">
-                <span class="inline-flex items-center justify-center w-9 h-9 rounded-lg {% cycle 'bg-purple-100 text-purple-600' 'bg-pink-100 text-pink-600' 'bg-cyan-100 text-cyan-600' 'bg-amber-100 text-amber-600' %} text-base flex-shrink-0 group-hover:scale-110 transition-transform shadow-sm">📄</span>
+          <div class="template-tile group relative bg-white border border-slate-200 rounded-xl overflow-hidden hover:border-purple-300 hover:shadow-lg hover:shadow-purple-100 hover:-translate-y-0.5 transition-all duration-200 flex flex-col cursor-pointer" data-template-id="{{ template.id }}" onclick="openTemplatePreview(this, '{{ template.id }}')">
+            <div class="h-1 bg-gradient-to-r {% cycle 'from-purple-500 to-indigo-500' 'from-pink-500 to-rose-500' 'from-cyan-500 to-blue-500' 'from-amber-500 to-orange-500' %}"></div>
+            <div class="p-3.5 flex flex-col gap-2.5">
+              <div class="flex items-start gap-2.5 min-w-0">
+                <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg {% cycle 'bg-purple-100 text-purple-600' 'bg-pink-100 text-pink-600' 'bg-cyan-100 text-cyan-600' 'bg-amber-100 text-amber-600' %} text-sm flex-shrink-0 group-hover:scale-110 transition-transform shadow-sm">📄</span>
                 <div class="min-w-0">
-                  <p class="font-bold text-slate-800 text-sm truncate" title="{{ template.name }}">{{ template.name }}</p>
-                  <p class="text-[11px] text-slate-400 font-medium">📅 {{ template.created_at|date:"M d, Y" }}</p>
+                  <p class="font-bold text-slate-800 text-[13px] truncate leading-snug" title="{{ template.name }}">{{ template.name }}</p>
+                  <p class="text-[10px] text-slate-400 font-medium mt-0.5">📅 {{ template.created_at|date:"M d, Y" }}</p>
                 </div>
               </div>
-              <p class="text-xs text-slate-400 leading-relaxed truncate" title="{{ template.html_content|striptags|truncatechars:80 }}">{{ template.html_content|striptags|truncatechars:60 }}</p>
-              <div class="flex gap-1.5 mt-auto pt-1">
-                <button type="button" class="preview-template-btn flex-1 inline-flex items-center justify-center gap-1 px-2 py-1.5 text-xs font-semibold rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white transition" data-template-id="{{ template.id }}">
+              <p class="text-[11px] text-slate-400 leading-relaxed" style="-webkit-line-clamp: 2; display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; min-height: 2rem;" title="{{ template.html_content|striptags|truncatechars:120 }}">{{ template.html_content|striptags|truncatechars:80 }}</p>
+              <div class="flex gap-2">
+                <button type="button" class="preview-template-btn flex-1 inline-flex items-center justify-center gap-1 px-2 py-2 text-xs font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm transition" data-template-id="{{ template.id }}" onclick="event.stopPropagation(); openTemplatePreview(this, '{{ template.id }}')">
                   👁️ Preview
                 </button>
-                <button type="button" class="send-template-btn flex-1 inline-flex items-center justify-center gap-1 px-2 py-1.5 text-xs font-semibold rounded-lg bg-green-50 text-green-600 hover:bg-green-600 hover:text-white transition" data-template-id="{{ template.id }}">
+                <button type="button" class="send-template-btn flex-1 inline-flex items-center justify-center gap-1 px-2 py-2 text-xs font-semibold rounded-lg bg-green-600 text-white hover:bg-green-700 shadow-sm transition" data-template-id="{{ template.id }}" onclick="event.stopPropagation(); selectTemplateForSend(this, '{{ template.id }}')">
                   🚀 Send
                 </button>
               </div>
             </div>
           </div>
           {% empty %}
-          <p id="no_templates_msg" class="col-span-full text-center text-sm text-slate-400 bg-slate-50 border border-dashed border-slate-300 rounded-xl py-6">No saved templates yet — click "＋ New Template" to create one 💡</p>
+          <p id="no_templates_msg" class="col-span-full text-center text-sm text-slate-400 bg-slate-50 border border-dashed border-slate-300 rounded-xl py-10">No saved templates yet — click "＋ New Template" to create one 💡</p>
           {% endfor %}
-          <button type="button" id="new_template_tile" class="border-2 border-dashed border-slate-300 rounded-xl p-3 text-slate-400 hover:border-purple-400 hover:text-purple-600 hover:bg-purple-50/50 hover:-translate-y-0.5 hover:shadow-lg transition-all duration-200 flex flex-col items-center justify-center gap-1.5 min-h-[132px]">
+          <button type="button" id="new_template_tile" class="border-2 border-dashed border-slate-300 rounded-xl p-4 text-slate-400 hover:border-purple-400 hover:text-purple-600 hover:bg-purple-50/50 hover:-translate-y-0.5 hover:shadow-lg transition-all duration-200 flex flex-col items-center justify-center gap-1.5 min-h-[120px]">
             <span class="text-3xl leading-none">＋</span>
             <span class="text-xs font-semibold">New Template</span>
             <span class="text-[10px] text-slate-400">Create from scratch</span>
@@ -150,6 +154,14 @@
             </button>
           </h3>
           <p class="text-xs text-slate-500 mt-1">Template selected ✓ — now configure and send your campaign.</p>
+        </div>
+
+        <div id="selected_template_info" class="flex items-center gap-3 bg-indigo-50/70 border border-indigo-100 rounded-xl px-3.5 py-2.5">
+          <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-100 text-indigo-600 text-sm shadow-sm flex-shrink-0">📄</span>
+          <div class="min-w-0">
+            <p class="text-[10px] font-bold uppercase tracking-wider text-indigo-500">Selected Template</p>
+            <p id="selected_template_name" class="font-semibold text-slate-800 text-sm truncate">—</p>
+          </div>
         </div>
 
         <div>
@@ -302,14 +314,22 @@
             class="flex-grow min-w-0 font-bold text-slate-800 bg-transparent border-b-2 border-transparent hover:border-slate-300 focus:border-purple-400 focus:outline-none px-1 py-0.5 placeholder-slate-400 placeholder:font-medium"
           />
         </div>
+        <button
+          type="button"
+          id="modal_toggle_code_btn"
+          class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200 transition flex-shrink-0"
+          title="Show or hide the HTML code editor"
+        >
+          🧩 View Code
+        </button>
         <button type="button" id="close_preview_modal_btn" class="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition flex-shrink-0" title="Close">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
         </button>
       </div>
 
-      <!-- Modal Body: HTML editor + Live preview -->
-      <div class="flex-grow grid grid-cols-1 md:grid-cols-2 min-h-0">
-        <div class="flex flex-col md:border-r border-b md:border-b-0 border-slate-200 min-h-0">
+      <!-- Modal Body: HTML editor (togglable) + Live preview -->
+      <div id="modal_body_grid" class="flex-grow grid grid-cols-1 md:grid-cols-2 min-h-0">
+        <div id="modal_html_pane" class="flex flex-col md:border-r border-b md:border-b-0 border-slate-200 min-h-0">
           <div class="px-3 py-2 text-xs font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200 bg-slate-50/60 flex items-center gap-1.5 flex-shrink-0">
             <span class="inline-flex items-center justify-center w-5 h-5 rounded-md bg-pink-100 text-pink-600 text-[11px]">🧩</span>HTML Code
           </div>
@@ -384,6 +404,11 @@
     const modalSaveBtn = document.getElementById('modal_save_btn');
     const modalUseBtn = document.getElementById('modal_use_btn');
     const closePreviewModalBtn = document.getElementById('close_preview_modal_btn');
+    const modalToggleCodeBtn = document.getElementById('modal_toggle_code_btn');
+    const modalBodyGrid = document.getElementById('modal_body_grid');
+    const modalHtmlPane = document.getElementById('modal_html_pane');
+    const templateIdInput = document.getElementById('template_id');
+    const selectedTemplateNameEl = document.getElementById('selected_template_name');
     const loadTemplateBaseUrl = `{% url 'ai_agent_pitch:load_template' 999 %}`;
 
     let currentTemplateId = null;   // Template currently open in the modal
@@ -418,21 +443,22 @@
         if (emptyMsg) emptyMsg.remove();
 
         const tile = document.createElement('div');
-        tile.className = 'template-tile group relative bg-white border border-slate-200 rounded-xl overflow-hidden hover:border-purple-300 hover:shadow-xl hover:shadow-purple-100 hover:-translate-y-0.5 transition-all duration-200 flex flex-col';
+        tile.className = 'template-tile group relative bg-white border border-slate-200 rounded-xl overflow-hidden hover:border-purple-300 hover:shadow-lg hover:shadow-purple-100 hover:-translate-y-0.5 transition-all duration-200 flex flex-col cursor-pointer';
         tile.dataset.templateId = id;
+        tile.setAttribute('onclick', `openTemplatePreview(this, '${id}')`);
         tile.innerHTML = `
-            <div class="h-1.5 bg-gradient-to-r from-purple-500 to-indigo-500"></div>
-            <div class="p-3.5 flex flex-col gap-2.5 flex-grow">
-                <div class="flex items-center gap-2.5 min-w-0">
-                    <span class="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-purple-100 text-purple-600 text-base flex-shrink-0 shadow-sm">📄</span>
+            <div class="h-1 bg-gradient-to-r from-purple-500 to-indigo-500"></div>
+            <div class="p-3.5 flex flex-col gap-2.5">
+                <div class="flex items-start gap-2.5 min-w-0">
+                    <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-purple-100 text-purple-600 text-sm flex-shrink-0 shadow-sm">📄</span>
                     <div class="min-w-0">
-                        <p class="font-bold text-slate-800 text-sm truncate"></p>
-                        <p class="text-[11px] text-slate-400 font-medium">📅 Just now</p>
+                        <p class="font-bold text-slate-800 text-[13px] truncate leading-snug"></p>
+                        <p class="text-[10px] text-slate-400 font-medium mt-0.5">📅 Just now</p>
                     </div>
                 </div>
-                <div class="flex gap-1.5 mt-auto pt-1">
-                    <button type="button" class="preview-template-btn flex-1 inline-flex items-center justify-center gap-1 px-2 py-1.5 text-xs font-semibold rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white transition">👁️ Preview</button>
-                    <button type="button" class="send-template-btn flex-1 inline-flex items-center justify-center gap-1 px-2 py-1.5 text-xs font-semibold rounded-lg bg-green-50 text-green-600 hover:bg-green-600 hover:text-white transition">🚀 Send</button>
+                <div class="flex gap-2">
+                    <button type="button" class="preview-template-btn flex-1 inline-flex items-center justify-center gap-1 px-2 py-2 text-xs font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm transition" onclick="event.stopPropagation(); openTemplatePreview(this, '${id}')">👁️ Preview</button>
+                    <button type="button" class="send-template-btn flex-1 inline-flex items-center justify-center gap-1 px-2 py-2 text-xs font-semibold rounded-lg bg-green-600 text-white hover:bg-green-700 shadow-sm transition" onclick="event.stopPropagation(); selectTemplateForSend(this, '${id}')">🚀 Send</button>
                 </div>
             </div>`;
         const nameEl = tile.querySelector('p');
@@ -467,8 +493,22 @@
         modalNameEl.value = name;
         modalHtmlEl.value = content;
         renderPreviewFrame(content);
+        // Default to preview-only view; user can toggle the code editor via "View Code"
+        setCodePaneVisible(false);
         previewModal.classList.remove('hidden');
         previewModal.classList.add('flex');
+    }
+
+    function setCodePaneVisible(visible) {
+        if (modalHtmlPane) modalHtmlPane.classList.toggle('hidden', !visible);
+        if (modalBodyGrid) modalBodyGrid.classList.toggle('md:grid-cols-2', visible);
+        if (modalToggleCodeBtn) {
+            modalToggleCodeBtn.textContent = visible ? '🧩 Hide Code' : '🧩 View Code';
+            modalToggleCodeBtn.classList.toggle('bg-indigo-600', visible);
+            modalToggleCodeBtn.classList.toggle('text-white', visible);
+            modalToggleCodeBtn.classList.toggle('bg-slate-100', !visible);
+            modalToggleCodeBtn.classList.toggle('text-slate-600', !visible);
+        }
     }
 
     function closePreviewModal() {
@@ -498,6 +538,8 @@
         htmlContentEl.value = content;
         htmlContentEl.dispatchEvent(new Event('input'));
         selectedTemplateId = templateId ? String(templateId) : null;
+        if (templateIdInput) templateIdInput.value = selectedTemplateId || '';
+        if (selectedTemplateNameEl) selectedTemplateNameEl.textContent = name || '—';
         localStorage.setItem('pitch_selected_template', selectedTemplateId || '');
         highlightSelectedTile();
         window.dispatchEvent(new CustomEvent('open-campaign'));
@@ -509,9 +551,33 @@
         }, 150);
     }
 
+    async function openTemplatePreview(cardOrBtn, templateId) {
+        const tile = (cardOrBtn && cardOrBtn.closest) ? cardOrBtn.closest('.template-tile') : null;
+        const tileName = tile ? (tile.querySelector('p') || {}).textContent || '' : '';
+        try {
+            const data = await fetchTemplateContent(templateId);
+            openTemplateModal({ id: templateId, name: tileName, content: data.html_content });
+        } catch (error) {
+            showToast(`Could not load template: ${error.message}`, 'error');
+        }
+    }
+
+    async function selectTemplateForSend(btn, templateId) {
+        const tile = (btn && btn.closest) ? btn.closest('.template-tile') : null;
+        const tileName = tile ? (tile.querySelector('p') || {}).textContent || '' : '';
+        try {
+            const data = await fetchTemplateContent(templateId);
+            selectForCampaign(data.html_content, templateId, tileName);
+        } catch (error) {
+            showToast(`Could not load template: ${error.message}`, 'error');
+        }
+    }
+
     function deselectTemplate() {
         selectedTemplateId = null;
         localStorage.removeItem('pitch_selected_template');
+        if (templateIdInput) templateIdInput.value = '';
+        if (selectedTemplateNameEl) selectedTemplateNameEl.textContent = '—';
         htmlContentEl.value = '';
         highlightSelectedTile();
         window.dispatchEvent(new CustomEvent('close-campaign'));
@@ -519,27 +585,7 @@
 
     // --- Event Listeners ---
 
-    // 1. Template tiles: Preview / Send (event delegation so new tiles also work)
-    templatesGrid.addEventListener('click', async (e) => {
-        const previewBtn = e.target.closest('.preview-template-btn');
-        const sendBtn = e.target.closest('.send-template-btn');
-        if (!previewBtn && !sendBtn) return;
-
-        const btn = previewBtn || sendBtn;
-        const templateId = btn.dataset.templateId;
-        const tileName = btn.closest('.template-tile').querySelector('p').textContent;
-
-        try {
-            const data = await fetchTemplateContent(templateId);
-            if (previewBtn) {
-                openTemplateModal({ id: templateId, name: tileName, content: data.html_content });
-            } else {
-                selectForCampaign(data.html_content, templateId, tileName);
-            }
-        } catch (error) {
-            showToast(`Could not load template: ${error.message}`, 'error');
-        }
-    });
+    // 1. Template tiles: inline onclick (openTemplatePreview / selectTemplateForSend) — no delegation needed
 
     // 2. New Template tile opens a blank modal
     newTemplateTile.addEventListener('click', () => openTemplateModal({}));
@@ -655,6 +701,11 @@
     });
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && !previewModal.classList.contains('hidden')) closePreviewModal();
+    });
+
+    // 7b. Toggle HTML code editor in the modal
+    modalToggleCodeBtn.addEventListener('click', () => {
+        setCodePaneVisible(modalHtmlPane.classList.contains('hidden'));
     });
 
     // 8. Generate Subject (AI) — uses the selected template content

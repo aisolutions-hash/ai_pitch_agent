@@ -101,10 +101,12 @@ def _parse_linkedin_title(title):
     return position, company, location
 
 
-def _serpapi_linkedin_search(query, num=10):
+def _serpapi_linkedin_search(query, num=10, location=None):
     """
     Search LinkedIn via SerpAPI — tries LinkedIn Profile API for full profiles,
     falls back to LinkedIn search, then to Google search.
+    `location` (e.g. "USA", "Australia") is appended to the query when present
+    so results are filtered to that region on the Google fallback.
     """
     # Try direct profile fetch if query looks like a URL
     if "linkedin.com/in/" in query:
@@ -125,6 +127,9 @@ def _serpapi_linkedin_search(query, num=10):
             params["last_name"] = " ".join(parts[1:])
         else:
             params["last_name"] = ""
+        if location:
+            params["keywords"] = location
+            params["location"] = location
 
         resp = requests.get("https://serpapi.com/search", params=params, timeout=10)
         data = resp.json()
@@ -137,7 +142,7 @@ def _serpapi_linkedin_search(query, num=10):
                 continue
             name = r.get("name", r.get("title", ""))
             headline = r.get("headline", r.get("occupation", ""))
-            location = r.get("location", "")
+            location_val = r.get("location", "")
             about = r.get("summary", r.get("about", ""))
             education = r.get("education", [])
             skills = [s.get("name", s) if isinstance(s, dict) else s for s in r.get("skills", [])]
@@ -149,12 +154,12 @@ def _serpapi_linkedin_search(query, num=10):
                 company = exp[0].get("company", exp[0].get("company_name", ""))
 
             profiles.append({
-                "title": f"{name} - {position} at {company} - {location}" if company else name,
+                "title": f"{name} - {position} at {company} - {location_val}" if company else name,
                 "link": link,
                 "snippet": about[:300] if about else headline,
                 "position": position,
                 "company": company,
-                "location": location,
+                "location": location_val or location or "",
                 "education": ", ".join([e.get("name", e.get("school_name", "")) if isinstance(e, dict) else str(e) for e in education]) if education else "",
                 "about": about,
                 "skills": skills
@@ -168,9 +173,12 @@ def _serpapi_linkedin_search(query, num=10):
 
     # Attempt 2: Google search proxy (always works)
     try:
+        search_query = f'site:linkedin.com/in/ "{query}"'
+        if location:
+            search_query += f' "{location}"'
         params = {
             "engine": "google",
-            "q": f'site:linkedin.com/in/ "{query}"',
+            "q": search_query,
             "api_key": settings.SERPAPI_API_KEY,
             "num": num
         }
@@ -186,7 +194,7 @@ def _serpapi_linkedin_search(query, num=10):
             pos, comp, loc = _parse_linkedin_title(title)
             profiles.append({
                 "title": title, "link": link, "snippet": snippet,
-                "position": pos, "company": comp, "location": loc,
+                "position": pos, "company": comp, "location": loc or location or "",
                 "education": "", "about": "", "skills": []
             })
         return profiles
@@ -447,10 +455,11 @@ def _save_profile_to_sheets(contact_data, saved_at):
 # Scheduled scrape runner
 # ---------------------------------------------------------------------------
 
-def scrape_keyword(keyword, num=10, save_contacts=True, on_profile_done=None):
+def scrape_keyword(keyword, num=10, save_contacts=True, on_profile_done=None, location=None):
     """
-    Scrape LinkedIn for a keyword, analyze each profile with Gemini, and
-    store the batch result in GCS (scraper_runs/<date>/<keyword-slug>.json).
+    Scrape LinkedIn for a keyword (optionally filtered to a location), analyze
+    each profile with Gemini, and store the batch result in GCS
+    (scraper_runs/<date>/<keyword-slug>.json or <keyword-slug>-<location-slug>.json).
     Each analyzed profile is also upserted into contacts/linkedin/ so it
     appears in Dashboard -> LinkedIn Contacts.
 
@@ -460,6 +469,7 @@ def scrape_keyword(keyword, num=10, save_contacts=True, on_profile_done=None):
     started = timezone.now()
     summary = {
         'keyword': keyword,
+        'location': location or '',
         'started_at': started.isoformat(),
         'status': 'failed',
         'profiles_found': 0,
@@ -470,7 +480,7 @@ def scrape_keyword(keyword, num=10, save_contacts=True, on_profile_done=None):
     }
 
     try:
-        profiles = _serpapi_linkedin_search(keyword, num=num)
+        profiles = _serpapi_linkedin_search(keyword, num=num, location=location)
         profiles = _extract_profile_fields(profiles)
         summary['profiles_found'] = len(profiles)
 
@@ -505,6 +515,8 @@ def scrape_keyword(keyword, num=10, save_contacts=True, on_profile_done=None):
                 analysis=analysis,
             )
             contact_data['source_keyword'] = keyword
+            if location:
+                contact_data['source_location'] = location
             contact_data['scraped_at'] = started.isoformat()
 
             if save_contacts:
@@ -528,10 +540,14 @@ def scrape_keyword(keyword, num=10, save_contacts=True, on_profile_done=None):
 
         # Store the historical batch in GCS
         date_str = started.strftime('%Y-%m-%d')
-        run_rel_path = f"{date_str}/{_keyword_slug(keyword)}.json"
+        run_stem = _keyword_slug(keyword)
+        if location:
+            run_stem = f"{run_stem}-{_keyword_slug(location)}"
+        run_rel_path = f"{date_str}/{run_stem}.json"
         finished = timezone.now().isoformat()
         run_payload = {
             'keyword': keyword,
+            'location': location or '',
             'run_at': started.isoformat(),
             'finished_at': finished,
             'profiles_found': summary['profiles_found'],
@@ -547,6 +563,7 @@ def scrape_keyword(keyword, num=10, save_contacts=True, on_profile_done=None):
                 append_scrape_stat({
                     'date': date_str,
                     'keyword': keyword,
+                    'location': location or '',
                     'profiles_found': summary['profiles_found'],
                     'profiles_analyzed': summary['profiles_analyzed'],
                     'run_path': summary['run_path'],
@@ -567,22 +584,38 @@ def scrape_keyword(keyword, num=10, save_contacts=True, on_profile_done=None):
     return summary
 
 
-def run_daily_scrape(keywords=None, num=10, trigger='manual'):
+def run_daily_scrape(keywords=None, locations=None, num=10, trigger='manual'):
     """
-    Run the daily scrape for all (or given) keywords, persisting live
-    progress to GCS (scraper_config/progress.json) so the dashboard can
+    Run the daily scrape for all (or given) keywords × locations, persisting
+    live progress to GCS (scraper_config/progress.json) so the dashboard can
     show a real-time progress bar.
 
+    Locations act as an additional filter for each keyword (e.g. "USA",
+    "Australia"). If locations is None, all active configured locations are used.
+
     trigger: 'command' (local cron/mgmt cmd), 'scheduler', or 'manual' (dashboard).
-    Returns a list of per-keyword summary dicts.
+    Returns a list of per-(keyword, location) summary dicts.
     """
     if keywords is None:
         from dashboard.gcs import get_scrape_keywords
         keywords = [k['keyword'] for k in get_scrape_keywords() if k.get('active')]
 
+    if locations is None:
+        from dashboard.gcs import get_scrape_locations
+        locations = [l['location'] for l in get_scrape_locations() if l.get('active')]
+
     if not keywords:
         logger.warning("No active scrape keywords configured — nothing to do.")
         return []
+
+    # Build the ordered job list (keyword × location; empty location = no filter)
+    jobs = []
+    for kw in keywords:
+        if locations:
+            for loc in locations:
+                jobs.append({'keyword': kw, 'location': loc})
+        else:
+            jobs.append({'keyword': kw, 'location': ''})
 
     started = timezone.now()
     progress = {
@@ -592,8 +625,11 @@ def run_daily_scrape(keywords=None, num=10, trigger='manual'):
         'updated_at': started.isoformat(),
         'finished_at': None,
         'total_keywords': len(keywords),
-        'current_keyword_index': 0,
-        'current_keyword': keywords[0],
+        'total_locations': len(locations),
+        'total_jobs': len(jobs),
+        'current_job_index': 0,
+        'current_keyword': jobs[0]['keyword'],
+        'current_location': jobs[0]['location'],
         'current_keyword_profiles_found': 0,
         'current_keyword_profiles_analyzed': 0,
         'total_profiles_analyzed': 0,
@@ -603,9 +639,12 @@ def run_daily_scrape(keywords=None, num=10, trigger='manual'):
     save_scrape_progress(progress)
 
     summaries = []
-    for i, keyword in enumerate(keywords):
-        progress['current_keyword_index'] = i
+    for i, job in enumerate(jobs):
+        keyword = job['keyword']
+        location = job['location']
+        progress['current_job_index'] = i
         progress['current_keyword'] = keyword
+        progress['current_location'] = location
         progress['current_keyword_profiles_found'] = 0
         progress['current_keyword_profiles_analyzed'] = 0
         progress['updated_at'] = timezone.now().isoformat()
@@ -620,7 +659,8 @@ def run_daily_scrape(keywords=None, num=10, trigger='manual'):
             progress['updated_at'] = timezone.now().isoformat()
             save_scrape_progress(progress)
 
-        summaries.append(scrape_keyword(keyword, num=num, on_profile_done=_on_profile_done))
+        summaries.append(scrape_keyword(keyword, num=num, location=location or None,
+                                        on_profile_done=_on_profile_done))
         progress['summaries'] = summaries
 
     ok = sum(1 for s in summaries if s.get('status') == 'success')
@@ -630,7 +670,8 @@ def run_daily_scrape(keywords=None, num=10, trigger='manual'):
     progress['total_profiles_analyzed'] = sum(s.get('profiles_analyzed', 0) for s in summaries)
     if ok < len(summaries):
         progress['error'] = '; '.join(
-            f"{s['keyword']}: {s.get('error') or 'unknown'}" for s in summaries if s.get('status') != 'success'
+            f"{s['keyword']}{'/' + s['location'] if s.get('location') else ''}: "
+            f"{s.get('error') or 'unknown'}" for s in summaries if s.get('status') != 'success'
         ) or None
     save_scrape_progress(progress)
     return summaries

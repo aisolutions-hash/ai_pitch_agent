@@ -12,11 +12,16 @@ logger = logging.getLogger(__name__)
 def home(request):
     categories = [
         {'name': 'linkedin', 'label': 'LinkedIn Contacts', 'color': 'blue'},
+    ]
+    combined_categories = [
         {'name': 'suppliers', 'label': 'Suppliers', 'color': 'amber'},
         {'name': 'buyers', 'label': 'Buyers', 'color': 'teal'},
         {'name': 'events', 'label': 'Events', 'color': 'purple'},
     ]
-    return render(request, 'dashboard/index.html', {'categories': categories})
+    return render(request, 'dashboard/index.html', {
+        'categories': categories,
+        'combined_categories': combined_categories,
+    })
 
 
 def contacts_list(request):
