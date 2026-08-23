@@ -7,8 +7,15 @@ from google.oauth2 import service_account
 logger = logging.getLogger(__name__)
 
 
+_client_cache = None
+
+
 def _get_gcs_client():
-    """Initialize and return a GCS client."""
+    """Initialize and return a GCS client (cached per process - the
+    google-auth credentials object refreshes its token internally)."""
+    global _client_cache
+    if _client_cache is not None:
+        return _client_cache
     try:
         from sales_project.google_auth import default_or_loaded
 
@@ -20,6 +27,7 @@ def _get_gcs_client():
             credentials=credentials,
             project=settings.GCS_PROJECT_ID or None,
         )
+        _client_cache = client
         return client
     except Exception as e:
         logger.error(f"Failed to initialize GCS client: {e}")

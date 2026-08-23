@@ -1103,26 +1103,33 @@
     async function loadCounts() {
         try {
             const response = await fetch('/app/api/contacts/count/');
-            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-            const counts = await response.json();
-            if (!counts.error) {
-                animateCount(document.getElementById('count-total'), counts.total || 0);
-                animateCount(document.getElementById('count-linkedin'), counts.linkedin || 0);
-                animateCount(document.getElementById('count-suppliers'), counts.suppliers || 0);
-                animateCount(document.getElementById('count-buyers'), counts.buyers || 0);
+            const data = await response.json();
+            if (!response.ok && !data) throw new Error(`HTTP error! status: ${response.status}`);
 
-                categories.forEach(cat => {
-                    const badge = document.getElementById(`badge-${cat.name}`);
-                    if (badge) badge.textContent = counts[cat.name] || 0;
-                });
+            // Surface backend/storage problems visibly instead of silent zeros
+            if (data.error) {
+                console.error('Counts backend error:', data.error);
+                showToast('Contact data: ' + data.error, 'error');
+            }
 
-                const campaignsBadge = document.getElementById('badge-campaigns');
-                if (campaignsBadge) {
-                    campaignsBadge.textContent = (counts.suppliers || 0) + (counts.buyers || 0) + (counts.events || 0);
-                }
+            animateCount(document.getElementById('count-total'), data.total || 0);
+            animateCount(document.getElementById('count-linkedin'), (data.counts && data.counts.linkedin) || 0);
+            animateCount(document.getElementById('count-suppliers'), (data.counts && data.counts.suppliers) || 0);
+            animateCount(document.getElementById('count-buyers'), (data.counts && data.counts.buyers) || 0);
+
+            categories.forEach(cat => {
+                const badge = document.getElementById(`badge-${cat.name}`);
+                if (badge) badge.textContent = (data.counts && data.counts[cat.name]) || 0;
+            });
+
+            const campaignsBadge = document.getElementById('badge-campaigns');
+            if (campaignsBadge) {
+                const c = data.counts || {};
+                campaignsBadge.textContent = (c.suppliers || 0) + (c.buyers || 0) + (c.events || 0);
             }
         } catch (error) {
             console.error('Error loading counts:', error);
+            showToast('Could not load contact counts', 'error');
         }
     }
 

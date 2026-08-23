@@ -110,29 +110,34 @@ def contacts_list(request):
 def contacts_count(request):
     """
     API endpoint to get contact counts for all categories.
-    Returns: JsonResponse with counts per category and total (user-scoped)
+    Returns: JsonResponse with counts per category and total (user-scoped).
+    On backend failures an 'error' field is included instead of silently
+    reporting zero, so issues (e.g. storage credentials) surface immediately.
     """
-    try:
-        categories = ['linkedin', 'suppliers', 'buyers', 'events']
-        counts = {}
-        total = 0
-        
-        for category in categories:
-            try:
-                contacts = gcs.list_contacts(category, user=request.user)
-                if contacts is None:
-                    counts[category] = 0
-                else:
-                    counts[category] = len(contacts)
-                    total += len(contacts)
-            except Exception as e:
-                logger.error(f"Error getting contacts for {category}: {e}")
+    categories = ['linkedin', 'suppliers', 'buyers', 'events']
+    counts = {}
+    total = 0
+    errors = []
+
+    for category in categories:
+        try:
+            contacts = gcs.list_contacts(category, user=request.user)
+            if contacts is None:
                 counts[category] = 0
-        
-        return JsonResponse({'counts': counts, 'total': total})
-    except Exception as e:
-        logger.error(f"Error getting contact counts: {e}")
-        return JsonResponse({'counts': {}, 'total': 0})
+                errors.append(f'{category}: storage backend unavailable')
+            else:
+                counts[category] = len(contacts)
+                total += len(contacts)
+        except Exception as e:
+            logger.error(f"Error getting contacts for {category}: {e}")
+            counts[category] = 0
+            errors.append(f'{category}: {e}')
+
+    payload = {'counts': counts, 'total': total}
+    if errors:
+        payload['error'] = '; '.join(errors)
+        return JsonResponse(payload, status=502)
+    return JsonResponse(payload)
 
 
 @login_required
