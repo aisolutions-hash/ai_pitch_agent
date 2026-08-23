@@ -1,5 +1,4 @@
 # views.py
-
 import imaplib
 import email
 from email.header import decode_header
@@ -8,105 +7,47 @@ import csv
 import re
 import io
 import json
-from django.shortcuts import render, redirect # --- NEW ---
-from django.http import HttpResponse, JsonResponse # --- NEW ---
-from django.conf import settings # --- NEW ---
+from django.shortcuts import render, redirect
+from django.http import HttpResponse, JsonResponse
+from django.conf import settings
 from dotenv import load_dotenv
 from .models import Supplier
+from django.contrib.auth.decorators import login_required
 import google.generativeai as genai
-
-# --- NEW Google Sheet Imports ---
-import google.auth
-import gspread
-from google.oauth2.service_account import Credentials
-# --- END NEW ---
-
-load_dotenv()
 
 # --- Gemini API Client Setup ---
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
-# --- NEW Google Sheet Client Cache ---
-_worksheet_cache = None
-# --- END NEW ---
 
-
-# --- NEW Google Sheet Helper Functions ---
+# --- Google Sheets helper ---
 
 def get_google_worksheet():
     """
-    Connects to Google Sheets using service account and returns the first worksheet.
-    Uses a simple cache to avoid re-authenticating.
+    Open the configured supplier Google Sheet and return its first
+    worksheet. Returns None when credentials/sheet id are missing or
+    the connection fails (views degrade gracefully with a message).
     """
-    global _worksheet_cache
-    if _worksheet_cache:
-        return _worksheet_cache
-
     try:
-        SCOPES = [
-            "https://www.googleapis.com/auth/spreadsheets",
-            "https://www.googleapis.com/auth/drive.file"
-        ]
+        import gspread
+        from google.oauth2.service_account import Credentials
 
-        if settings.GOOGLE_CREDENTIALS_FILE:
-            creds = Credentials.from_service_account_file(
-                settings.GOOGLE_CREDENTIALS_FILE, scopes=SCOPES
-            )
-        else:
-            creds, _ = google.auth.default(scopes=SCOPES)
+        sheet_id = getattr(settings, 'GOOGLE_SHEET_ID', None)
+        if not sheet_id:
+            print("Google Sheets error: GOOGLE_SHEET_ID is not configured")
+            return None
+
+        scopes = [
+            'https://www.googleapis.com/auth/spreadsheets',
+            'https://www.googleapis.com/auth/drive',
+        ]
+        from sales_project.google_auth import default_or_loaded
+        creds = default_or_loaded(scopes)
 
         client = gspread.authorize(creds)
-
-        sheet_id = os.getenv('GOOGLE_SHEET_ID')
-        spreadsheet = client.open_by_key(sheet_id)
-        worksheet = spreadsheet.get_worksheet(0)
-
-        header = ['Company Name', 'Email Address', 'Contact Name', 'Contact Number']
-        if worksheet.get_all_values() == []:
-             worksheet.append_row(header)
-
-        _worksheet_cache = worksheet
-        return worksheet
-
+        return client.open_by_key(sheet_id).sheet1
     except Exception as e:
-        print(f"Error connecting to Google Sheets: {e}")
+        print(f"Google Sheets error: {e}")
         return None
-
-def sync_supplier_to_sheet(supplier_data, worksheet):
-    """
-    Finds a supplier by email in the sheet and updates it,
-    or appends it as a new row.
-    """
-    if not worksheet:
-        print("Google Sheet not available. Skipping sync.")
-        return
-
-    try:
-        # Data to be written
-        row_data = [
-            supplier_data.get('company', 'N/A'),
-            supplier_data.get('email', 'N/A'),
-            supplier_data.get('name', 'N/A'),
-            supplier_data.get('number', 'N/A')
-        ]
-        
-        # Find cell with matching email (Column 2)
-        cell = worksheet.find(supplier_data['email'], in_column=2)
-        
-        if cell:
-            # Email found, update the row
-            worksheet.update(f'A{cell.row}:D{cell.row}', [row_data])
-            print(f"Updated supplier in Google Sheet: {supplier_data['email']}")
-        else:
-            # Email not found, append a new row
-            worksheet.append_row(row_data)
-            print(f"Added new supplier to Google Sheet: {supplier_data['email']}")
-
-    except Exception as e:
-        # Handle API rate limits or other errors
-        print(f"Error syncing to Google Sheet: {e}")
-
-# --- END NEW ---
 
 
 # --- Helper Functions (Your existing code) ---
@@ -129,17 +70,20 @@ def get_email_body(msg):
             pass
     return ""
 
+
 def is_request_or_purchase(subject, body):
     # ... (no changes) ...
     keywords = ['request for quotation', 'rfq', 'inquiry', 'requirement', 'purchase order', 'po']
     content = (subject + ' ' + body).lower()
     return any(keyword in content for keyword in keywords)
 
+
 def is_incoming_quotation(subject, body):
     # ... (no changes) ...
     keywords = ['quotation', 'quote', 'proposal', 'estimate', 'proforma', 'offer']
     content = (subject + ' ' + body).lower()
     return any(keyword in content for keyword in keywords)
+
 
 def extract_entities_with_gemini(subject, body, from_address):
     # ... (no changes) ...
@@ -178,8 +122,8 @@ def extract_entities_with_gemini(subject, body, from_address):
     Email: priya.s@innovativesolutions.com
     Web: www.innovativesolutions.com
     Mobile: +91-98765 43210 | Tel: (022) 1234 5678
-
     ---
+
     **Expected JSON Output:**
     ```json
     {{
@@ -243,6 +187,7 @@ def extract_entities_with_gemini(subject, body, from_address):
         }
     # --- DELETED a redundant except block here ---
 
+
 def search_emails(query, user_email):
     # ... (no changes) ...
     PASSWORD = os.getenv('EMAIL_PASS')
@@ -298,12 +243,13 @@ def search_emails(query, user_email):
 
     return list(suppliers.values())
 
+
 # --- Django Views ---
 
+@login_required
 def search_view(request):
-    """Email search aur CSV upload ko handle karta hai."""
+    """Handles email search and CSV upload."""
     context = {}
-    user_email = os.getenv('EMAIL_USER')
     
     # --- NEW: Get the Google Sheet worksheet ---
     worksheet = get_google_worksheet()
@@ -336,7 +282,7 @@ def search_view(request):
                     company_name = row[company_col_index].strip()
                     if not company_name: continue
 
-                    results = search_emails(company_name, user_email)
+                    results = search_emails(company_name, request.user.email)
                     if not results: continue
 
                     for supplier in results:
@@ -347,6 +293,7 @@ def search_view(request):
                             
                             # Save to Database
                             Supplier.objects.update_or_create(
+                                user=request.user,
                                 email=supplier['email'],
                                 defaults={
                                     'company': supplier['company'],
@@ -364,14 +311,13 @@ def search_view(request):
                 context['results'] = all_results
                 context['query'] = f"Bulk search from {uploaded_file.name}"
                 context['is_bulk_search'] = True
-
             except Exception as e:
                 context['error'] = f"Error processing CSV: {e}"
         else:
             # Single query search logic
             query = request.POST.get('query', '')
-            if query and user_email:
-                results = search_emails(query, user_email)
+            if query and request.user.email:
+                results = search_emails(query, request.user.email)
                 if results is not None:
                     filtered_results = [
                         supplier for supplier in results
@@ -380,6 +326,7 @@ def search_view(request):
                     for supplier in filtered_results:
                         # Save to Database
                         Supplier.objects.update_or_create(
+                            user=request.user,
                             email=supplier['email'],
                             defaults={
                                 'company': supplier['company'],
@@ -392,17 +339,19 @@ def search_view(request):
                         sync_supplier_to_sheet(supplier, worksheet)
                         # --- END NEW ---
                         
-                    request.session['results'] = filtered_results
-                    context['results'] = filtered_results
-                    context['query'] = query
-                else:
-                    context['error'] = "Could not connect to email server. Check credentials and IMAP settings."
+                        request.session['results'] = filtered_results
+                        context['results'] = filtered_results
+                        context['query'] = query
+                    else:
+                        context['error'] = "Could not connect to email server. Check credentials and IMAP settings."
 
     return render(request, 'extractor/index.html', context)
 
+
+@login_required
 def download_csv(request):
-    """Supplier data ko CSV ke roop mein export karta hai."""
-    results = Supplier.objects.all()
+    """Exports supplier data as a CSV file."""
+    results = Supplier.objects.filter(user=request.user)
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = 'attachment; filename="suppliers.csv"'
 
@@ -419,10 +368,12 @@ def download_csv(request):
 
     return response
 
+
 # --- NEW: Optional Full Sync View ---
 # This view will sync your *entire* local database to Google Sheets at once.
 # It's useful if your sheet gets out of sync.
 
+@login_required
 def sync_all_to_google_sheet(request):
     """
     DANGER: This function REPLACES the entire Google Sheet
@@ -434,7 +385,7 @@ def sync_all_to_google_sheet(request):
 
     try:
         # Get all suppliers from DB
-        suppliers = Supplier.objects.all().order_by('company')
+        suppliers = Supplier.objects.filter(user=request.user).order_by('company')
         
         # Prepare data for bulk update
         header = ['Company Name', 'Email Address', 'Contact Name', 'Contact Number']
@@ -456,5 +407,3 @@ def sync_all_to_google_sheet(request):
     
     except Exception as e:
         return JsonResponse({"status": "error", "message": str(e)}, status=500)
-
-# --- END NEW ---

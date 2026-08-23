@@ -15,6 +15,7 @@ urlpatterns = [
     # --- Existing AJAX URLs ---
     path('save-template/', views.save_template_view, name='save_template'),
     path('load-template/<int:template_id>/', views.load_template_view, name='load_template'),
+    path('delete-template/<int:template_id>/', views.delete_template_view, name='delete_template'),
     path('generate-subject/', views.generate_subject_view, name='generate_subject'),
     path('enhance-with-ai/', views.enhance_with_ai_view, name='enhance_with_ai'),
 

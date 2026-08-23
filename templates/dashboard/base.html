@@ -57,7 +57,7 @@
                 <span class="text-lg">🏠</span>
                 <span>Dashboard</span>
             </a>
-            <a href="/scraper/" class="flex items-center gap-3 px-4 py-2.5 text-slate-600 hover:text-purple-700 hover:bg-purple-50 rounded-lg transition-colors">
+            <a href="/app/scraper/" class="flex items-center gap-3 px-4 py-2.5 text-slate-600 hover:text-purple-700 hover:bg-purple-50 rounded-lg transition-colors">
                 <span class="text-lg">🔗</span>
                 <span>LinkedIn Scraper</span>
             </a>
@@ -78,12 +78,30 @@
                 <span class="text-lg">🎯</span>
                 <span>Pitch Generator</span>
             </a>
+
+            <!-- Divider -->
+            <div class="my-4 border-t border-slate-200"></div>
+
+            <!-- Settings Section -->
+            <a href="/app/gmail-settings/" class="flex items-center gap-3 px-4 py-2.5 text-slate-600 hover:text-purple-700 hover:bg-purple-50 rounded-lg transition-colors">
+                <span class="text-lg">📧</span>
+                <span>Gmail Settings</span>
+            </a>
         </nav>
     </aside>
 
     <!-- Main Content -->
     <main class="ml-56 mt-16 p-6 min-h-screen">
         <div id="top"></div>
+        {% if messages %}
+            <div class="mb-4 space-y-2">
+                {% for message in messages %}
+                    <div class="px-4 py-3 rounded-lg text-sm border {% if message.tags == 'error' %}bg-red-50 border-red-200 text-red-600{% elif message.tags == 'success' %}bg-emerald-50 border-emerald-200 text-emerald-700{% elif message.tags == 'warning' %}bg-amber-50 border-amber-200 text-amber-700{% else %}bg-slate-50 border-slate-200 text-slate-600{% endif %}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
         {% block content %}{% endblock %}
     </main>
 

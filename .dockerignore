@@ -1,5 +1,7 @@
 .env
 cloudrun.env
+cloudrun.env.yaml
+cloudrun.env.yaml.example
 .git
 .gitignore
 *.md

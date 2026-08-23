@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create Account — KalisoftAI</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap">
+  <style>
+    * { font-family: 'Inter', sans-serif; }
+    body { background: linear-gradient(135deg, #f8fafc 0%, #eef2ff 50%, #faf5ff 100%); min-height: 100vh; }
+
+    /* ---------- Auth field system (shared with login) ---------- */
+    .auth-field { position: relative; }
+    .field-label {
+      display: block;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: #475569;
+      margin-bottom: 0.35rem;
+    }
+    .help-text {
+      font-size: 0.75rem;
+      line-height: 1.6;
+      color: #94a3b8;
+      margin: 0.125rem 0 0.5rem;
+    }
+    .error-text {
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: #dc2626;
+      margin-top: 0.375rem;
+    }
+    .input-shell { position: relative; }
+    .field-icon {
+      position: absolute;
+      left: 0.875rem;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 1.125rem;
+      height: 1.125rem;
+      color: #94a3b8;
+      pointer-events: none;
+    }
+    .auth-input {
+      display: block;
+      width: 100%;
+      padding: 0.6875rem 0.75rem 0.6875rem 2.625rem;
+      font-size: 0.9375rem;
+      color: #1e293b;
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 0.5rem;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .auth-input::placeholder { color: #94a3b8; }
+    .auth-input:focus {
+      outline: none;
+      border-color: #f59e0b; /* gold accent focus */
+      box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.28);
+    }
+
+    /* ---------- Checkbox ---------- */
+    .checkbox-input {
+      width: 1rem;
+      height: 1rem;
+      border: 2px solid #64748b;
+      border-radius: 4px;
+      cursor: pointer;
+      position: relative;
+      appearance: none;
+      background: #fff;
+    }
+    .checkbox-input:checked { background-color: #a855f7; }
+    .checkbox-input:checked::after {
+      content: '';
+      position: absolute;
+      left: 0.1rem;
+      top: 0.1rem;
+      width: 0.4rem;
+      height: 0.6rem;
+      border: solid #fff;
+      border-width: 0 2px 2px 0;
+      transform: rotate(45deg);
+    }
+
+    /* ---------- Gold accents ---------- */
+    .logo-halo {
+      box-shadow: 0 0 0 3px rgba(252, 211, 77, 0.45),
+                  0 18px 30px -10px rgba(124, 58, 237, 0.35);
+    }
+    .heading-accent {
+      width: 3rem;
+      height: 0.25rem;
+      margin: 0.75rem auto 0;
+      border-radius: 9999px;
+      background: linear-gradient(90deg, #fcd34d, #f59e0b);
+    }
+  </style>
+</head>
+<body class="flex items-center justify-center min-h-screen py-8">
+  <div class="w-full max-w-md mx-4">
+    <div class="bg-white/90 backdrop-blur-sm rounded-2xl shadow-2xl shadow-slate-200/80 border border-slate-200">
+      <div class="text-center pt-8 pb-6 px-8">
+        <div class="w-14 h-14 mx-auto mb-5 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-2xl flex items-center justify-center logo-halo">
+          <span class="text-3xl font-bold text-white">K</span>
+        </div>
+        <h1 class="text-3xl font-bold text-slate-800">Create Account</h1>
+        <div class="heading-accent" aria-hidden="true"></div>
+        <p class="text-slate-500 mt-3">Join KalisoftAI and start managing your sales workflow with AI</p>
+      </div>
+
+      <form method="post" class="px-8 pb-8 space-y-5">
+        {% csrf_token %}
+
+        {% if form.errors %}
+          <div class="bg-red-50 border border-red-300 text-red-700 px-4 py-3 rounded-lg text-sm mb-4">
+            <p class="font-semibold mb-1">Your account could not be created. Please fix the errors below:</p>
+            <ul class="list-disc list-inside space-y-0.5">
+              {% for field, errors in form.errors.items %}
+                {% for error in errors %}
+                  <li>{{ error }}</li>
+                {% endfor %}
+              {% endfor %}
+            </ul>
+          </div>
+        {% endif %}
+
+        {% if messages %}
+          {% for message in messages %}
+            <div class="mb-3 p-3 rounded-md" style="background-color: #d1fae5; color: #059669;">
+              {{ message }}
+            </div>
+          {% endfor %}
+        {% endif %}
+
+        {% for field in form %}
+          <div class="auth-field">
+            {% if field.field.required %}
+              <label for="{{ field.id_for_label }}" class="field-label">{{ field.label }}{% if field.field.required %}<span class="text-red-500">*</span>{% endif %}</label>
+            {% else %}
+              <label for="{{ field.id_for_label }}" class="field-label">{{ field.label }}</label>
+            {% endif %}
+            {% if field.errors %}
+              <p class="error-text">{{ field.errors }}</p>
+            {% endif %}
+            <div class="input-shell">
+              {% if field.field.widget.input_type == 'password' %}
+                <svg xmlns="http://www.w3.org/2000/svg" class="field-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                </svg>
+              {% else %}
+                <svg xmlns="http://www.w3.org/2000/svg" class="field-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                </svg>
+              {% endif %}
+              {% if field.value and field.field.widget.input_type != "password" %}
+                <input type="{{ field.field.widget.input_type }}" name="{{ field.name }}" id="{{ field.id_for_label }}" required
+                  class="auth-input"
+                  value="{{ field.value }}">
+              {% else %}
+                <input type="{{ field.field.widget.input_type }}" name="{{ field.name }}" id="{{ field.id_for_label }}" required
+                  class="auth-input"
+                  placeholder="{{ field.placeholder|default:'Enter value' }}">
+              {% endif %}
+            </div>
+            {% if field.help_text %}
+              <p class="help-text">{{ field.help_text }}</p>
+            {% endif %}
+          </div>
+        {% endfor %}
+
+        <div>
+          <button type="submit"
+            class="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-semibold py-3 rounded-lg transition shadow-lg shadow-purple-200">
+            Create Account
+          </button>
+        </div>
+      </form>
+
+      <div class="text-center pb-8">
+        <p class="text-sm text-slate-500">Already have an account?</p>
+        <a href="{% url 'login' %}" class="font-medium text-purple-600 hover:text-purple-500 underline">Sign in</a>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

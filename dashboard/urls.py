@@ -12,4 +12,10 @@ urlpatterns = [
     path('api/csv/count/', views.csv_files_count, name='csv-files-count'),
     path('api/csv/download/<str:category>/<str:filename>/', views.csv_file_download, name='csv-file-download'),
     path('api/csv/delete/', views.csv_file_delete, name='csv-file-delete'),
+
+    # Gmail Settings (per-user SMTP configuration)
+    path('gmail-settings/', views.gmail_settings_page, name='gmail-settings-page'),
+    path('api/gmail/save/', views.gmail_settings_save, name='gmail-settings-save'),
+    path('api/gmail/test/', views.gmail_settings_test, name='gmail-settings-test'),
+    path('api/gmail/status/', views.gmail_settings_status, name='gmail-settings-status'),
 ]

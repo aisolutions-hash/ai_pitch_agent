@@ -1,0 +1,849 @@
+{% extends "base.html" %}
+
+{% block title %}KalisoftAI — AI Powered Sales Automation{% endblock %}
+
+{% block content %}
+<style>
+    /* ============================================================
+       KalisoftAI Landing — design tokens
+       Palette lives in CSS variables so a future dark/light theme
+       swap is a variable change, not a markup rewrite.
+       Brand: white / off-white paper, slate ink, restrained gold accents.
+    ============================================================ */
+    :root {
+        --ks-ink: #ffffff;            /* page surface (light theme) */
+        --ks-ink-soft: #fafaf9;       /* raised / tinted surface */
+        --ks-ink-line: rgba(24, 24, 27, 0.08);
+        --ks-paper: #fafaf8;          /* off-white section background */
+        --ks-gold: #f5b301;           /* brand gold — fills, underlines, borders */
+        --ks-gold-strong: #d99e00;    /* gold hover state */
+        --ks-gold-deep: #b45309;      /* amber-700: gold as text/icons on light bg */
+        --ks-gold-soft: rgba(245, 179, 1, 0.12);
+        --ks-body-dark: #52525b;      /* body text (light theme) */
+        --ks-body-light: #52525b;     /* body text on light */
+    }
+
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap');
+
+    .ks-page {
+        font-family: 'Inter', system-ui, sans-serif;
+    }
+    .ks-display {
+        font-family: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+        letter-spacing: -0.02em;
+    }
+
+    /* ---------- Buttons ---------- */
+    .ks-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        font-weight: 600;
+        border-radius: 0.75rem;
+        transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+    }
+    .ks-btn:focus-visible {
+        outline: 2px solid var(--ks-gold);
+        outline-offset: 3px;
+    }
+    .ks-btn-gold {
+        background: var(--ks-gold);
+        color: #1c1917;
+    }
+    .ks-btn-gold:hover {
+        background: var(--ks-gold-strong);
+        transform: translateY(-2px);
+        box-shadow: 0 10px 30px rgba(245, 179, 1, 0.35);
+    }
+    .ks-btn-ghost {
+        background: transparent;
+        color: #3f3f46;
+        border: 1px solid rgba(24, 24, 27, 0.15);
+    }
+    .ks-btn-ghost:hover {
+        border-color: var(--ks-gold-deep);
+        color: var(--ks-gold-deep);
+        transform: translateY(-2px);
+    }
+
+    /* ---------- Navbar ---------- */
+    .ks-nav-link {
+        position: relative;
+        color: #52525b;
+        font-size: 0.875rem;
+        font-weight: 500;
+        transition: color 0.2s ease;
+    }
+    .ks-nav-link::after {
+        content: '';
+        position: absolute;
+        left: 0;
+        bottom: -6px;
+        width: 0;
+        height: 2px;
+        background: var(--ks-gold);
+        border-radius: 1px;
+        transition: width 0.25s ease;
+    }
+    .ks-nav-link:hover { color: #18181b; }
+    .ks-nav-link:hover::after { width: 100%; }
+
+    /* ---------- Hero animated background (CSS/SVG only) ---------- */
+    .ks-hero-bg { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+    .ks-hero-grid {
+        position: absolute;
+        inset: 0;
+        background-image:
+            linear-gradient(rgba(24,24,27,0.05) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(24,24,27,0.05) 1px, transparent 1px);
+        background-size: 56px 56px;
+        mask-image: radial-gradient(ellipse 80% 60% at 50% 40%, black 30%, transparent 75%);
+        -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 40%, black 30%, transparent 75%);
+    }
+    .ks-blob {
+        position: absolute;
+        border-radius: 9999px;
+        filter: blur(90px);
+        opacity: 0.32;
+        will-change: transform;
+    }
+    .ks-blob-gold {
+        width: 480px; height: 480px;
+        background: radial-gradient(circle, rgba(245,179,1,0.28), transparent 65%);
+        top: -120px; left: 55%;
+        animation: ksFloat 14s ease-in-out infinite alternate;
+    }
+    .ks-blob-white {
+        width: 380px; height: 380px;
+        background: radial-gradient(circle, rgba(180, 83, 9, 0.07), transparent 65%);
+        bottom: -80px; left: 8%;
+        animation: ksFloat 18s ease-in-out infinite alternate-reverse;
+    }
+    @keyframes ksFloat {
+        from { transform: translate3d(0, 0, 0) scale(1); }
+        to   { transform: translate3d(-60px, 40px, 0) scale(1.12); }
+    }
+
+    /* Gold gradient headline span */
+    .ks-text-gold-grad {
+        background: linear-gradient(100deg, #b45309 10%, #d99e00 50%, #b45309 90%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+    }
+
+    /* ---------- Cards ---------- */
+    .ks-card-light {
+        background: #ffffff;
+        border: 1px solid #e4e4e7;
+        border-radius: 1rem;
+        box-shadow: 0 1px 2px rgba(24, 24, 27, 0.05);
+        transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+    }
+    .ks-card-light:hover {
+        transform: translateY(-4px);
+        border-color: rgba(217, 158, 0, 0.5);
+        box-shadow: 0 16px 40px rgba(24, 24, 27, 0.09);
+    }
+    .ks-icon-chip {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 2.75rem;
+        height: 2.75rem;
+        border-radius: 0.85rem;
+        background: var(--ks-gold-soft);
+        border: 1px solid rgba(245, 179, 1, 0.25);
+        flex-shrink: 0;
+        transition: transform 0.25s ease;
+    }
+    .ks-icon-chip svg { width: 1.25rem; height: 1.25rem; color: var(--ks-gold-deep); }
+    .ks-card-light:hover .ks-icon-chip { transform: scale(1.08); }
+
+    /* ---------- Section eyebrows ---------- */
+    .ks-eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--ks-gold-deep);
+    }
+    .ks-eyebrow::before {
+        content: '';
+        width: 1.5rem;
+        height: 1px;
+        background: var(--ks-gold);
+    }
+
+    /* ---------- Entrance animations (hero) ---------- */
+    .fade-in-up {
+        opacity: 0;
+        transform: translateY(20px);
+        animation: fadeInUp 0.6s ease forwards;
+    }
+    .fade-in-delay-1 { animation-delay: 0.1s; }
+    .fade-in-delay-2 { animation-delay: 0.2s; }
+    .fade-in-delay-3 { animation-delay: 0.3s; }
+    .fade-in-delay-4 { animation-delay: 0.4s; }
+    @keyframes fadeInUp {
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ---------- Scroll reveal (wired by IntersectionObserver below) ---------- */
+    .ks-reveal {
+        opacity: 0;
+        transform: translateY(28px);
+        transition: opacity 0.65s ease, transform 0.65s ease;
+    }
+    .ks-reveal.is-visible {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    /* ---------- Reduced motion ---------- */
+    @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+            scroll-behavior: auto !important;
+        }
+        .ks-reveal { opacity: 1; transform: none; }
+        .fade-in-up { opacity: 1; transform: none; }
+    }
+
+    html { scroll-behavior: smooth; }
+</style>
+
+<div class="ks-page">
+<!-- ============================
+     Landing navbar (public links only)
+============================ -->
+<nav class="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-b border-zinc-200" x-data="{ open: false }">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6">
+        <div class="flex items-center justify-between h-16">
+            <!-- Left: Brand -->
+            <a href="{% url 'landing' %}" class="flex items-center gap-2.5 group">
+                <div class="w-9 h-9 rounded-xl bg-[var(--ks-gold-soft)] border border-[rgba(217,158,0,0.35)] flex items-center justify-center group-hover:border-[var(--ks-gold)] transition-colors">
+                    <span class="text-lg font-bold ks-display" style="color: var(--ks-gold-deep);">K</span>
+                </div>
+                <span class="text-xl font-bold ks-display text-zinc-900 tracking-tight">Kalisoft<span style="color: var(--ks-gold-deep);">AI</span></span>
+            </a>
+
+            <!-- Center/right: desktop nav anchors -->
+            <div class="hidden md:flex items-center gap-8">
+                <a href="#features" class="ks-nav-link">Features</a>
+                <a href="#how-it-works" class="ks-nav-link">How It Works</a>
+                <a href="#solutions" class="ks-nav-link">Solutions</a>
+                <a href="#about" class="ks-nav-link">About</a>
+            </div>
+
+            <!-- Desktop CTAs -->
+            <div class="hidden md:flex items-center gap-3">
+                <a href="{% url 'login' %}" data-cta="nav-sign-in" class="ks-btn ks-btn-ghost py-2.5 px-5 text-sm">Sign In</a>
+                <a href="{% url 'login' %}" data-cta="nav-get-started" class="ks-btn ks-btn-gold py-2.5 px-5 text-sm">Get Started</a>
+            </div>
+
+            <!-- Mobile hamburger -->
+            <button type="button"
+                    class="md:hidden inline-flex items-center justify-center w-10 h-10 rounded-lg text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--ks-gold)]"
+                    aria-label="Toggle navigation menu"
+                    aria-controls="ks-mobile-menu"
+                    :aria-expanded="open"
+                    @click="open = !open">
+                <svg x-show="!open" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                </svg>
+                <svg x-show="open" x-cloak class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- Mobile menu panel -->
+    <div id="ks-mobile-menu"
+         x-show="open"
+         x-cloak
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="opacity-0 -translate-y-2"
+         x-transition:enter-end="opacity-100 translate-y-0"
+         x-transition:leave="transition ease-in duration-150"
+         x-transition:leave-start="opacity-100 translate-y-0"
+         x-transition:leave-end="opacity-0 -translate-y-2"
+         class="md:hidden absolute top-full inset-x-0 bg-white border-b border-zinc-200 shadow-xl"
+         @click.outside="open = false">
+        <div class="px-4 pt-3 pb-5 space-y-1">
+            <a href="#features" @click="open = false" class="block px-3 py-3 rounded-lg text-sm font-medium text-zinc-600 hover:text-zinc-900 hover:bg-zinc-50">Features</a>
+            <a href="#how-it-works" @click="open = false" class="block px-3 py-3 rounded-lg text-sm font-medium text-zinc-600 hover:text-zinc-900 hover:bg-zinc-50">How It Works</a>
+            <a href="#solutions" @click="open = false" class="block px-3 py-3 rounded-lg text-sm font-medium text-zinc-600 hover:text-zinc-900 hover:bg-zinc-50">Solutions</a>
+            <a href="#about" @click="open = false" class="block px-3 py-3 rounded-lg text-sm font-medium text-zinc-600 hover:text-zinc-900 hover:bg-zinc-50">About</a>
+            <div class="pt-3 mt-2 border-t border-zinc-200 flex flex-col gap-2.5">
+                <a href="{% url 'login' %}" data-cta="mobile-sign-in" @click="open = false" class="ks-btn ks-btn-ghost py-3 px-5 text-sm w-full">Sign In</a>
+                <a href="{% url 'login' %}" data-cta="mobile-get-started" @click="open = false" class="ks-btn ks-btn-gold py-3 px-5 text-sm w-full">Get Started</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- ============================
+     Hero
+============================ -->
+<header class="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-b from-[#fffbeb] via-white to-[color:var(--ks-paper)] pt-24 pb-28">
+    <div class="ks-hero-bg" aria-hidden="true">
+        <div class="ks-hero-grid"></div>
+        <div class="ks-blob ks-blob-gold"></div>
+        <div class="ks-blob ks-blob-white"></div>
+    </div>
+
+    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 py-12 md:py-20 text-center">
+        <div class="fade-in-up inline-flex items-center gap-2 rounded-full border border-[rgba(217,158,0,0.35)] bg-[rgba(245,179,1,0.10)] px-4 py-1.5 mb-8">
+            <span class="relative flex h-2 w-2" aria-hidden="true">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--ks-gold)] opacity-60"></span>
+                <span class="relative inline-flex rounded-full h-2 w-2 bg-[var(--ks-gold)]"></span>
+            </span>
+            <span class="text-xs sm:text-sm font-medium text-zinc-600">AI-powered sales automation platform</span>
+        </div>
+
+        <h1 class="fade-in-up fade-in-delay-1 ks-display font-bold text-zinc-900 tracking-tight leading-[1.05] text-[2.6rem] sm:text-6xl lg:text-7xl xl:text-[5rem] mb-6 max-w-5xl mx-auto">
+            Turn Leads Into <span class="ks-text-gold-grad">Conversations With AI</span>
+        </h1>
+
+        <p class="fade-in-up fade-in-delay-2 mx-auto max-w-2xl text-base sm:text-lg md:text-xl leading-relaxed text-[color:var(--ks-body-dark)] mb-10">
+            Discover prospects, extract lead information, identify pain points, and generate personalized pitches automatically. KalisoftAI streamlines your entire sales workflow from lead discovery to campaign management — all within your own secure workspace.
+        </p>
+
+        <div class="fade-in-up fade-in-delay-3 flex flex-col sm:flex-row gap-4 justify-center items-stretch sm:items-center">
+            <a href="{% url 'login' %}" data-cta="hero-get-started" class="ks-btn ks-btn-gold py-3.5 px-9 text-base">
+                Get Started
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+                </svg>
+            </a>
+            <a href="{% url 'login' %}" data-cta="hero-sign-in" class="ks-btn ks-btn-ghost py-3.5 px-9 text-base">Sign In</a>
+        </div>
+
+        <p class="fade-in-up fade-in-delay-4 mt-8 text-xs sm:text-sm text-neutral-500">
+            Your own secure workspace from day one &nbsp;•&nbsp; Leads, pitches &amp; campaigns in one place
+        </p>
+    </div>
+</header>
+
+<!-- ============================
+     Features (#features)
+============================ -->
+<section id="features" class="py-20 md:py-24 bg-white border-t border-zinc-100">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6">
+        <div class="max-w-2xl mx-auto text-center mb-14 ks-reveal">
+            <p class="ks-eyebrow justify-center mb-4">Features</p>
+            <h2 class="ks-display text-3xl sm:text-4xl lg:text-5xl font-bold text-zinc-900 tracking-tight mb-4">Everything your sales team needs</h2>
+            <p class="text-base md:text-lg text-[color:var(--ks-body-dark)]">Six connected tools that take you from raw prospect lists to sent campaigns — without leaving your workspace.</p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 lg:gap-6">
+            <!-- AI Auto Scraper -->
+            <div class="ks-card-light ks-reveal p-6 lg:p-7">
+                <div class="ks-icon-chip mb-5">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"/>
+                    </svg>
+                </div>
+                <h3 class="ks-display text-lg font-semibold text-zinc-900 mb-2">AI Auto Scraper</h3>
+                <p class="text-sm leading-relaxed text-[color:var(--ks-body-dark)]">Discover and collect relevant prospects automatically by scraping LinkedIn profiles daily with Gemini AI analysis.</p>
+            </div>
+
+            <!-- AI Auto Campaign Engine -->
+            <div class="ks-card-light ks-reveal p-6 lg:p-7">
+                <div class="ks-icon-chip mb-5">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                    </svg>
+                </div>
+                <h3 class="ks-display text-lg font-semibold text-zinc-900 mb-2">AI Auto Campaign Engine</h3>
+                <p class="text-sm leading-relaxed text-[color:var(--ks-body-dark)]">Automate personalized email outreach workflows, track opens and engagement, and manage campaigns from one dashboard.</p>
+            </div>
+
+            <!-- LinkedIn Scraper -->
+            <div class="ks-card-light ks-reveal p-6 lg:p-7">
+                <div class="ks-icon-chip mb-5">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-2-2 2 2 0 00-2 2v7h-4v-7a6 6 0 016-6zM2 9h4v12H2zM4 6a2 2 0 100-4 2 2 0 000 4z"/>
+                    </svg>
+                </div>
+                <h3 class="ks-display text-lg font-semibold text-zinc-900 mb-2">LinkedIn Scraper</h3>
+                <p class="text-sm leading-relaxed text-[color:var(--ks-body-dark)]">Search profiles by name/URL, analyze with Gemini, generate pitches for LinkedIn, WhatsApp, and Email.</p>
+            </div>
+
+            <!-- AI Pitch Creator -->
+            <div class="ks-card-light ks-reveal p-6 lg:p-7">
+                <div class="ks-icon-chip mb-5">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                    </svg>
+                </div>
+                <h3 class="ks-display text-lg font-semibold text-zinc-900 mb-2">AI Pitch Creator</h3>
+                <p class="text-sm leading-relaxed text-[color:var(--ks-body-dark)]">Create personalized sales pitches based on each prospect's company, role and pain points.</p>
+            </div>
+
+            <!-- Pitch Dashboard -->
+            <div class="ks-card-light ks-reveal p-6 lg:p-7">
+                <div class="ks-icon-chip mb-5">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+                <h3 class="ks-display text-lg font-semibold text-zinc-900 mb-2">Pitch Dashboard</h3>
+                <p class="text-sm leading-relaxed text-[color:var(--ks-body-dark)]">Manage and track generated pitches, monitor open rates, and organize recipients through the dashboard.</p>
+            </div>
+
+            <!-- Smart Lead Management -->
+            <div class="ks-card-light ks-reveal p-6 lg:p-7">
+                <div class="ks-icon-chip mb-5">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+                    </svg>
+                </div>
+                <h3 class="ks-display text-lg font-semibold text-zinc-900 mb-2">Smart Lead Management</h3>
+                <p class="text-sm leading-relaxed text-[color:var(--ks-body-dark)]">Centralize and organize prospect information, with AI-enriched data including company size, seniority level, pain points, and priority scoring.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ============================
+     How It Works (#how-it-works)
+============================ -->
+<section id="how-it-works" class="py-20 md:py-24 bg-[color:var(--ks-paper)]">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6">
+        <div class="max-w-2xl mx-auto text-center mb-14 ks-reveal">
+            <p class="ks-eyebrow justify-center mb-4">How It Works</p>
+            <h2 class="ks-display text-3xl sm:text-4xl lg:text-5xl font-bold text-zinc-900 tracking-tight mb-4">From lead list to launched campaign</h2>
+            <p class="text-base md:text-lg text-[color:var(--ks-body-light)]">Four steps, one continuous workflow — powered by Gemini AI at every stage.</p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
+            <!-- Step 1 -->
+            <div class="ks-reveal relative text-center sm:text-left">
+                <div class="flex items-center justify-center sm:justify-start gap-3 mb-4">
+                    <span class="ks-display text-4xl font-bold" style="color: var(--ks-gold-deep);">01</span>
+                    <div class="ks-icon-chip">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                        </svg>
+                    </div>
+                </div>
+                <h3 class="ks-display text-lg font-semibold text-zinc-900 mb-2">Discover Leads</h3>
+                <p class="text-sm leading-relaxed text-[color:var(--ks-body-light)]">Search LinkedIn profiles by name, query, or domain to build your prospect list.</p>
+            </div>
+
+            <!-- Step 2 -->
+            <div class="ks-reveal relative text-center sm:text-left">
+                <div class="flex items-center justify-center sm:justify-start gap-3 mb-4">
+                    <span class="ks-display text-4xl font-bold" style="color: var(--ks-gold-deep);">02</span>
+                    <div class="ks-icon-chip">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                        </svg>
+                    </div>
+                </div>
+                <h3 class="ks-display text-lg font-semibold text-zinc-900 mb-2">Analyze &amp; Enrich</h3>
+                <p class="text-sm leading-relaxed text-[color:var(--ks-body-light)]">Gemini AI extracts pain points, intent, company size, seniority level, and generates detailed profile reports for each prospect.</p>
+            </div>
+
+            <!-- Step 3 -->
+            <div class="ks-reveal relative text-center sm:text-left">
+                <div class="flex items-center justify-center sm:justify-start gap-3 mb-4">
+                    <span class="ks-display text-4xl font-bold" style="color: var(--ks-gold-deep);">03</span>
+                    <div class="ks-icon-chip">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                        </svg>
+                    </div>
+                </div>
+                <h3 class="ks-display text-lg font-semibold text-zinc-900 mb-2">Generate Pitches</h3>
+                <p class="text-sm leading-relaxed text-[color:var(--ks-body-light)]">Create personalized email subjects, bodies, WhatsApp messages, and call scripts in seconds, tailored to each prospect's pain points and role.</p>
+            </div>
+
+            <!-- Step 4 -->
+            <div class="ks-reveal relative text-center sm:text-left">
+                <div class="flex items-center justify-center sm:justify-start gap-3 mb-4">
+                    <span class="ks-display text-4xl font-bold" style="color: var(--ks-gold-deep);">04</span>
+                    <div class="ks-icon-chip">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+                        </svg>
+                    </div>
+                </div>
+                <h3 class="ks-display text-lg font-semibold text-zinc-900 mb-2">Launch Campaigns</h3>
+                <p class="text-sm leading-relaxed text-[color:var(--ks-body-light)]">Send personalized email campaigns, track open rates, and manage recipients through the dashboard to convert prospects into conversations.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ============================
+     Solutions — AI Sales Automation (#solutions)
+============================ -->
+<section id="solutions" class="py-20 md:py-24 bg-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+            <div class="ks-reveal">
+                <p class="ks-eyebrow mb-4">Solutions</p>
+                <h2 class="ks-display text-3xl sm:text-4xl lg:text-5xl font-bold text-zinc-900 tracking-tight mb-5">AI Sales Automation</h2>
+                <p class="text-base md:text-lg leading-relaxed text-[color:var(--ks-body-dark)] mb-7">
+                    Transform your manual sales process into an AI-assisted workflow that works while you focus on closing deals. From lead discovery to campaign management, automate every step of the sales cycle.
+                </p>
+                <ul class="space-y-3.5 mb-8">
+                    <li class="flex items-start gap-3">
+                        <svg class="w-5 h-5 mt-0.5 flex-shrink-0" style="color: var(--ks-gold-deep);" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                        <span class="text-sm md:text-base text-zinc-600">Lead discovery through AI-powered prospecting</span>
+                    </li>
+                    <li class="flex items-start gap-3">
+                        <svg class="w-5 h-5 mt-0.5 flex-shrink-0" style="color: var(--ks-gold-deep);" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                        <span class="text-sm md:text-base text-zinc-600">AI analysis of business data and pain points</span>
+                    </li>
+                    <li class="flex items-start gap-3">
+                        <svg class="w-5 h-5 mt-0.5 flex-shrink-0" style="color: var(--ks-gold-deep);" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                        <span class="text-sm md:text-base text-zinc-600">Personalized messaging at scale</span>
+                    </li>
+                    <li class="flex items-start gap-3">
+                        <svg class="w-5 h-5 mt-0.5 flex-shrink-0" style="color: var(--ks-gold-deep);" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                        <span class="text-sm md:text-base text-zinc-600">Automated campaign management and tracking</span>
+                    </li>
+                    <li class="flex items-start gap-3">
+                        <svg class="w-5 h-5 mt-0.5 flex-shrink-0" style="color: var(--ks-gold-deep);" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                        <span class="text-sm md:text-base text-zinc-600">Real-time pitch performance monitoring</span>
+                    </li>
+                </ul>
+
+                <div class="space-y-3 border-l-2 pl-4" style="border-color: rgba(245,179,1,0.4);">
+                    <p class="text-sm text-zinc-500"><strong class="text-zinc-900 font-semibold">Manual Sales Process:</strong> Time-consuming research, manual outreach, fragmented tracking</p>
+                    <p class="text-sm text-zinc-500"><strong class="text-zinc-900 font-semibold">AI-Assisted Workflow:</strong> Automated prospecting, AI analysis, personalized pitches</p>
+                    <p class="text-sm text-zinc-500"><strong class="text-zinc-900 font-semibold">Automated Sales Operations:</strong> Fully managed campaigns, real-time analytics, continuous optimization</p>
+                </div>
+            </div>
+
+            <!-- Transformation visual -->
+            <div class="ks-reveal relative">
+                <div class="absolute -inset-6 rounded-3xl bg-[radial-gradient(circle_at_30%_20%,rgba(245,179,1,0.14),transparent_60%)] blur-2xl pointer-events-none" aria-hidden="true"></div>
+                <div class="relative rounded-3xl p-7 md:p-8 border border-zinc-200 bg-white shadow-xl">
+                    <h3 class="ks-display text-lg font-semibold text-zinc-900 mb-6">AI-Powered Sales Transformation</h3>
+                    <div class="space-y-4">
+                        <div class="rounded-xl border border-zinc-100 bg-zinc-50 p-4">
+                            <p class="text-xs uppercase tracking-widest text-zinc-400 mb-1">Manual</p>
+                            <p class="font-medium text-zinc-600">Hours of manual research</p>
+                        </div>
+                        <div class="rounded-xl border border-zinc-100 bg-zinc-50 p-4">
+                            <p class="text-xs uppercase tracking-widest text-zinc-400 mb-1">AI-Assisted</p>
+                            <p class="font-medium text-zinc-700">Minutes of AI-powered analysis</p>
+                        </div>
+                        <div class="rounded-xl p-4 border border-[rgba(245,179,1,0.35)] bg-[rgba(245,179,1,0.07)]">
+                            <p class="text-xs uppercase tracking-widest mb-1" style="color: var(--ks-gold-deep);">Automated Operations</p>
+                            <p class="font-medium text-zinc-900">Fully managed campaigns, real-time analytics, continuous optimization</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ============================
+     Benefits
+============================ -->
+<section class="py-20 md:py-24 bg-[color:var(--ks-paper)]">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6">
+        <div class="max-w-2xl mx-auto text-center mb-14 ks-reveal">
+            <p class="ks-eyebrow justify-center mb-4">Benefits</p>
+            <h2 class="ks-display text-3xl sm:text-4xl lg:text-5xl font-bold text-zinc-900 tracking-tight mb-4">Why teams choose KalisoftAI</h2>
+            <p class="text-base md:text-lg text-[color:var(--ks-body-light)]">Spend time closing deals — let automation handle the rest of the pipeline.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="ks-card-light ks-reveal p-7 text-center">
+                <div class="ks-icon-chip mx-auto mb-5">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                    </svg>
+                </div>
+                <h3 class="ks-display text-lg font-semibold text-zinc-900 mb-2">Save Time</h3>
+                <p class="text-sm leading-relaxed text-[color:var(--ks-body-light)]">Automate repetitive prospecting and outreach tasks.</p>
+            </div>
+
+            <div class="ks-card-light ks-reveal p-7 text-center">
+                <div class="ks-icon-chip mx-auto mb-5">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    </svg>
+                </div>
+                <h3 class="ks-display text-lg font-semibold text-zinc-900 mb-2">Automate Tasks</h3>
+                <p class="text-sm leading-relaxed text-[color:var(--ks-body-light)]">Set up daily scrapers and auto-campaigns that run while you focus on closing deals.</p>
+            </div>
+
+            <div class="ks-card-light ks-reveal p-7 text-center">
+                <div class="ks-icon-chip mx-auto mb-5">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                    </svg>
+                </div>
+                <h3 class="ks-display text-lg font-semibold text-zinc-900 mb-2">Personalized Outreach</h3>
+                <p class="text-sm leading-relaxed text-[color:var(--ks-body-light)]">AI analyzes prospect data and generates personalized pitches tailored to each prospect's pain points and role.</p>
+            </div>
+        </div>
+
+        <div class="mt-12 pt-8 border-t border-zinc-200 text-center ks-reveal">
+            <p class="text-sm text-[color:var(--ks-body-light)]">Centralized lead management&nbsp;&nbsp;•&nbsp;&nbsp;Scalable workflow&nbsp;&nbsp;•&nbsp;&nbsp;Secure data</p>
+        </div>
+    </div>
+
+    <!-- ================================================================
+         PRICING_SECTION_PLACEHOLDER
+         Future pricing table goes here (after Benefits).
+         Stub intentionally commented out — uncomment and build when ready.
+    <section id="pricing" class="py-20 md:py-24 bg-white border-t border-zinc-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6">
+            <h2 class="ks-display text-3xl font-bold text-zinc-900 text-center">Pricing</h2>
+            -- pricing tiers grid --
+        </div>
+    </section>
+    ================================================================ -->
+</section>
+
+<!-- ============================
+     Social proof — testimonial + client logo strip placeholder
+============================ -->
+<section class="py-20 md:py-24 bg-white border-y border-zinc-100">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6">
+
+        <!-- Logo / social-proof strip placeholder.
+             Replace boxes with real client/partner logo images (via the static template tag)
+             once available. -->
+        <!-- LOGO_STRIP_PLACEHOLDER -->
+        <div class="mb-16 ks-reveal" aria-label="Trusted by teams at">
+            <p class="text-xs uppercase tracking-[0.2em] text-zinc-400 text-center mb-6">Trusted by teams at</p>
+            <div class="grid grid-cols-3 sm:grid-cols-5 gap-3 sm:gap-4">
+                <div class="flex items-center justify-center h-14 rounded-xl border border-dashed border-zinc-300 text-[11px] font-medium uppercase tracking-wider text-zinc-400">Client logo</div>
+                <div class="flex items-center justify-center h-14 rounded-xl border border-dashed border-zinc-300 text-[11px] font-medium uppercase tracking-wider text-zinc-400">Client logo</div>
+                <div class="flex items-center justify-center h-14 rounded-xl border border-dashed border-zinc-300 text-[11px] font-medium uppercase tracking-wider text-zinc-400">Client logo</div>
+                <div class="hidden sm:flex items-center justify-center h-14 rounded-xl border border-dashed border-zinc-300 text-[11px] font-medium uppercase tracking-wider text-zinc-400">Client logo</div>
+                <div class="hidden sm:flex items-center justify-center h-14 rounded-xl border border-dashed border-zinc-300 text-[11px] font-medium uppercase tracking-wider text-zinc-400">Client logo</div>
+            </div>
+        </div>
+
+        <!-- Testimonial.
+             Kept as a single self-contained figure[data-testimonial] block so it can be
+             duplicated into a rotating carousel later without structural changes. -->
+        <figure class="ks-reveal max-w-3xl mx-auto text-center" data-testimonial="primary">
+            <svg class="w-10 h-10 mx-auto mb-6" style="color: var(--ks-gold-deep);" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M9.983 3v7.391c0 5.704-3.731 9.57-8.983 10.609l-.995-2.151c2.432-.917 3.995-3.638 3.995-5.849h-4v-10h9.983zM24 3v7.391c0 5.704-3.748 9.571-9 10.609l-.996-2.151c2.433-.917 3.996-3.638 3.996-5.849h-3.983v-10h9.983z"/>
+            </svg>
+            <blockquote class="ks-display text-xl sm:text-2xl md:text-[1.75rem] leading-snug font-medium text-zinc-900 mb-8">
+                "Since using KalisoftAI, I've cut my lead research time by 70% and seen a 3x increase in response rates."
+            </blockquote>
+            <figcaption class="flex items-center justify-center gap-3">
+                <div class="w-10 h-10 rounded-full flex items-center justify-center ks-display text-sm font-bold" style="background: var(--ks-gold-soft); color: var(--ks-gold-strong); border: 1px solid rgba(245,179,1,0.35);" aria-hidden="true">VU</div>
+                <div class="text-left">
+                    <p class="text-sm font-semibold text-zinc-900">Verified User</p>
+                    <p class="text-xs text-zinc-500">Sales professional using KalisoftAI</p>
+                </div>
+            </figcaption>
+        </figure>
+    </div>
+</section>
+
+<!-- ============================
+     Data Privacy / User Isolation (#about)
+============================ -->
+<section id="about" class="py-20 md:py-24 bg-[color:var(--ks-paper)]">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6">
+        <div class="max-w-2xl mx-auto text-center mb-14 ks-reveal">
+            <p class="ks-eyebrow justify-center mb-4">About &amp; Trust</p>
+            <h2 class="ks-display text-3xl sm:text-4xl lg:text-5xl font-bold text-zinc-900 tracking-tight mb-4">Your Secure Workspace</h2>
+            <p class="text-base md:text-lg text-[color:var(--ks-body-dark)]">Your leads, pitches, campaigns and configurations are organized within your own secure workspace. Your data stays yours.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="ks-card-light ks-reveal p-7 text-center">
+                <div class="ks-icon-chip mx-auto mb-5">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+                    </svg>
+                </div>
+                <h3 class="ks-display text-lg font-semibold text-zinc-900 mb-2">Data Isolation</h3>
+                <p class="text-sm leading-relaxed text-[color:var(--ks-body-dark)]">Your workspace data is logically isolated from other users. Each account owns their own records.</p>
+            </div>
+
+            <div class="ks-card-light ks-reveal p-7 text-center">
+                <div class="ks-icon-chip mx-auto mb-5">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                    </svg>
+                </div>
+                <h3 class="ks-display text-lg font-semibold text-zinc-900 mb-2">Privacy Control</h3>
+                <p class="text-sm leading-relaxed text-[color:var(--ks-body-dark)]">You control what data is collected and how it's used. Adjust your privacy settings at any time.</p>
+            </div>
+
+            <div class="ks-card-light ks-reveal p-7 text-center">
+                <div class="ks-icon-chip mx-auto mb-5">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                    </svg>
+                </div>
+                <h3 class="ks-display text-lg font-semibold text-zinc-900 mb-2">Secure Access</h3>
+                <p class="text-sm leading-relaxed text-[color:var(--ks-body-dark)]">All workspace data is transmitted securely. Authentication protects your account.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ============================
+     Final CTA
+============================ -->
+<section class="py-20 md:py-28 bg-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6">
+        <div class="ks-reveal relative overflow-hidden rounded-3xl bg-[#fffcf2] border border-[rgba(217,158,0,0.25)] px-6 py-16 md:px-16 md:py-20 text-center">
+            <div class="absolute inset-0 pointer-events-none" aria-hidden="true">
+                <div class="ks-blob ks-blob-gold" style="width:360px;height:360px;top:-140px;left:60%;"></div>
+                <div class="ks-hero-grid"></div>
+            </div>
+
+            <div class="relative max-w-2xl mx-auto">
+                <h2 class="ks-display text-3xl sm:text-4xl lg:text-5xl font-bold text-zinc-900 tracking-tight mb-5">
+                    Build Your <span class="ks-text-gold-grad">AI-Powered Sales Workspace</span>
+                </h2>
+                <p class="text-base md:text-lg leading-relaxed text-[color:var(--ks-body-dark)] mb-8">
+                    Start discovering leads, creating personalized pitches and managing your sales workflow with AI. Your workspace is waiting.
+                </p>
+
+                <ul class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2.5 text-left mb-10 max-w-xl mx-auto">
+                    <li class="flex items-start gap-2.5">
+                        <svg class="w-4 h-4 mt-1 flex-shrink-0" style="color: var(--ks-gold-deep);" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                        <span class="text-sm text-zinc-600">Your own secure workspace from day one</span>
+                    </li>
+                    <li class="flex items-start gap-2.5">
+                        <svg class="w-4 h-4 mt-1 flex-shrink-0" style="color: var(--ks-gold-deep);" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                        <span class="text-sm text-zinc-600">Leads, pitches and campaigns in one place</span>
+                    </li>
+                    <li class="flex items-start gap-2.5">
+                        <svg class="w-4 h-4 mt-1 flex-shrink-0" style="color: var(--ks-gold-deep);" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                        <span class="text-sm text-zinc-600">AI-powered personalization at scale</span>
+                    </li>
+                    <li class="flex items-start gap-2.5">
+                        <svg class="w-4 h-4 mt-1 flex-shrink-0" style="color: var(--ks-gold-deep);" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                        <span class="text-sm text-zinc-600">Scalable from individual to team usage</span>
+                    </li>
+                </ul>
+
+                <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-4">
+                    <a href="{% url 'login' %}" data-cta="final-create-account" class="ks-btn ks-btn-gold py-3.5 px-9 text-base">
+                        Create Your Account
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+                        </svg>
+                    </a>
+                    <p class="text-sm text-neutral-400 sm:hidden text-center">or</p>
+                    <p class="hidden sm:block text-sm text-neutral-400">Already have an account?</p>
+                    <a href="{% url 'login' %}" data-cta="final-sign-in" class="ks-btn ks-btn-ghost py-3.5 px-9 text-base">Sign In</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ============================
+     Footer
+============================ -->
+<footer class="bg-[#fafaf8] border-t border-zinc-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-14">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-10">
+            <div class="col-span-2 md:col-span-1">
+                <a href="{% url 'landing' %}" class="inline-flex items-center gap-2.5 mb-4">
+                    <div class="w-8 h-8 rounded-lg bg-[var(--ks-gold-soft)] border border-[rgba(217,158,0,0.35)] flex items-center justify-center">
+                        <span class="text-base font-bold ks-display" style="color: var(--ks-gold-deep);">K</span>
+                    </div>
+                    <span class="text-lg font-bold ks-display text-zinc-900 tracking-tight">Kalisoft<span style="color: var(--ks-gold-deep);">AI</span></span>
+                </a>
+                <p class="text-sm leading-relaxed text-[color:var(--ks-body-dark)]">
+                    AI-powered sales automation platform helping teams discover leads, create personalized pitches and manage campaigns more effectively.
+                </p>
+            </div>
+
+            <div>
+                <h3 class="text-sm font-semibold text-zinc-900 uppercase tracking-wider mb-4">Product</h3>
+                <ul class="space-y-2.5">
+                    <li><a href="#features" class="text-sm text-[color:var(--ks-body-dark)] hover:text-[var(--ks-gold-deep)] transition-colors">Features</a></li>
+                    <li><a href="#" class="text-sm text-[color:var(--ks-body-dark)] hover:text-[var(--ks-gold-deep)] transition-colors">Pricing</a></li>
+                    <li><a href="#" class="text-sm text-[color:var(--ks-body-dark)] hover:text-[var(--ks-gold-deep)] transition-colors">Roadmap</a></li>
+                </ul>
+            </div>
+
+            <div>
+                <h3 class="text-sm font-semibold text-zinc-900 uppercase tracking-wider mb-4">Company</h3>
+                <ul class="space-y-2.5">
+                    <li><a href="#about" class="text-sm text-[color:var(--ks-body-dark)] hover:text-[var(--ks-gold-deep)] transition-colors">About</a></li>
+                    <li><a href="#" class="text-sm text-[color:var(--ks-body-dark)] hover:text-[var(--ks-gold-deep)] transition-colors">Careers</a></li>
+                    <li><a href="#" class="text-sm text-[color:var(--ks-body-dark)] hover:text-[var(--ks-gold-deep)] transition-colors">Press</a></li>
+                </ul>
+            </div>
+
+            <div>
+                <h3 class="text-sm font-semibold text-zinc-900 uppercase tracking-wider mb-4">Resources</h3>
+                <ul class="space-y-2.5">
+                    <li><a href="#" class="text-sm text-[color:var(--ks-body-dark)] hover:text-[var(--ks-gold-deep)] transition-colors">Blog</a></li>
+                    <li><a href="#" class="text-sm text-[color:var(--ks-body-dark)] hover:text-[var(--ks-gold-deep)] transition-colors">Documentation</a></li>
+                    <li><a href="#" class="text-sm text-[color:var(--ks-body-dark)] hover:text-[var(--ks-gold-deep)] transition-colors">API</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- CHAT_WIDGET_MOUNT: live chat / interactive AI demo widget mounts here -->
+        <div class="mt-12 pt-8 border-t border-zinc-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <p class="text-sm text-neutral-500">&copy; 2024 KalisoftAI. All rights reserved.</p>
+            <div class="flex items-center gap-5">
+                <a href="#" aria-label="Twitter" class="text-neutral-500 hover:text-[var(--ks-gold-deep)] transition-colors">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.29 20.251c7.547 0 11.675-6.253 11.675-11.675 0-.178 0-.355-.012-.53A8.348 8.348 0 0022 5.92a8.19 8.19 0 01-2.357.646 4.118 4.118 0 001.804-2.27 8.224 8.224 0 01-2.605.996 4.107 4.107 0 00-6.993 3.743 11.65 11.65 0 01-8.457-4.287 4.106 4.106 0 001.27 5.477A4.072 4.072 0 012.8 9.713v.052a4.105 4.105 0 003.292 4.022 4.095 4.095 0 01-1.853.07 4.108 4.108 0 003.834 2.85A8.233 8.233 0 012 18.407a11.616 11.616 0 006.29 1.84"/></svg>
+                </a>
+                <a href="#" aria-label="LinkedIn" class="text-neutral-500 hover:text-[var(--ks-gold-deep)] transition-colors">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>
+                </a>
+                <a href="#" aria-label="GitHub" class="text-neutral-500 hover:text-[var(--ks-gold-deep)] transition-colors">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
+                </a>
+            </div>
+        </div>
+    </div>
+</footer>
+</div><!-- /.ks-page -->
+
+<script>
+    // Scroll-reveal wiring (vanilla, page-scoped).
+    // Respects prefers-reduced-motion: elements are shown immediately when reduced motion is on.
+    (function () {
+        var reveals = document.querySelectorAll('.ks-reveal');
+        if (!reveals.length) return;
+
+        var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (reduceMotion || !('IntersectionObserver' in window)) {
+            reveals.forEach(function (el) { el.classList.add('is-visible'); });
+            return;
+        }
+
+        var observer = new IntersectionObserver(function (entries) {
+            entries.forEach(function (entry) {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('is-visible');
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+
+        reveals.forEach(function (el) { observer.observe(el); });
+    })();
+</script>
+
+{% endblock %}

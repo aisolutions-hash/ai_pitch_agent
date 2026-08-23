@@ -8,7 +8,7 @@ import logging
 import textwrap
 import threading
 import google.generativeai as genai
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.conf import settings
 from django.contrib import messages
 from django.core.exceptions import ValidationError
@@ -17,10 +17,13 @@ from django.http import JsonResponse, HttpResponse
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth import get_user_model
 from django.core.paginator import Paginator
 from .models import EmailTemplate, Campaign, Recipient
 from django.core.mail import send_mail
-from django.http import Http404
+from dashboard.gmail import resolve_sender, SenderNotConfigured
+from django.http import Http404, HttpResponseForbidden
 from dashboard import gcs
 from .auto_campaign_service import run_auto_campaign
 
@@ -77,10 +80,10 @@ def _find_column(headers, keywords):
                 return original
     return None
 
-def _build_template_clusters():
+def _build_template_clusters(user):
     """Group templates by the campaign they were most recently used in."""
     from collections import OrderedDict
-    templates = EmailTemplate.objects.all().order_by('name')
+    templates = EmailTemplate.objects.filter(user=user).order_by('name')
     cluster_map = OrderedDict()
     unassigned = []
     for template in templates:
@@ -99,6 +102,7 @@ def _build_template_clusters():
             'campaign': None,
             'templates': unassigned,
         })
+
     return clusters
 
 
@@ -187,13 +191,21 @@ def pitch_creator_view(request):
             linked_template = None
             if template_id:
                 try:
-                    linked_template = EmailTemplate.objects.get(id=template_id)
+                    linked_template = EmailTemplate.objects.get(id=template_id, user=request.user)
                 except EmailTemplate.DoesNotExist:
                     linked_template = None
 
-            campaign = Campaign.objects.create(subject=subject, template=linked_template, body_html=html_content)
+            campaign = Campaign.objects.create(subject=subject, template=linked_template, body_html=html_content, user=request.user)
             sent_count = 0
             failed_count = 0
+
+            # Per-user verified Gmail required (owner of the default account
+            # excepted). Otherwise alert and stop.
+            try:
+                sender_connection, sender_from = resolve_sender(request.user)
+            except SenderNotConfigured as exc:
+                messages.error(request, str(exc))
+                return redirect('ai_agent_pitch:pitch_creator')
 
             for email, data in recipient_data.items():
                 tracking_pixel_url = f"{settings.SITE_URL}/pitch/mark-opened/{campaign.id}/{email}/"
@@ -207,16 +219,18 @@ def pitch_creator_view(request):
                     send_mail(
                         subject=personalized_subject,
                         message='',
-                        from_email=f"{settings.DEFAULT_FROM_NAME} <{settings.DEFAULT_FROM_EMAIL}>",
+                        from_email=sender_from,
                         recipient_list=[email],
                         html_message=personalized_content,
                         fail_silently=False,
+                        connection=sender_connection,
                     )
                     Recipient.objects.create(
                         campaign=campaign,
                         name=data['name'],
                         email=email,
-                        status='sent'
+                        status='sent',
+                        user=request.user
                     )
                     sent_count += 1
                 except Exception as send_error:
@@ -225,7 +239,8 @@ def pitch_creator_view(request):
                         campaign=campaign,
                         name=data['name'],
                         email=email,
-                        status='failed'
+                        status='failed',
+                        user=request.user
                     )
                     failed_count += 1
 
@@ -242,35 +257,46 @@ def pitch_creator_view(request):
         
         return redirect('ai_agent_pitch:pitch_creator')
 
-    templates = EmailTemplate.objects.all().order_by('name')
+    templates = EmailTemplate.objects.filter(user=request.user).order_by('name')
     context = {
         'templates': templates,
-        'clusters': _build_template_clusters(),
+        'clusters': _build_template_clusters(request.user),
     }
     return render(request, 'ai_agent_pitch/pitch_creator.html', context)
 
 @require_POST
 @csrf_exempt
 def save_template_view(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            template_name = data.get('name')
+            html_content = data.get('html_content')
+            if not template_name or not html_content:
+                return JsonResponse({'status': 'error', 'message': 'Template name and content cannot be empty.'}, status=400)
+            template, created = EmailTemplate.objects.update_or_create(
+                name=template_name, defaults={'html_content': html_content, 'user': request.user}
+            )
+            message = 'Template saved successfully!' if created else 'Template updated successfully!'
+            return JsonResponse({'status': 'success', 'message': message, 'template_id': template.id, 'template_name': template.name})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method.'}, status=405)
+
+def delete_template_view(request, template_id):
+    """Delete a template by ID."""
     try:
-        data = json.loads(request.body)
-        template_name = data.get('name')
-        html_content = data.get('html_content')
-        if not template_name or not html_content:
-            return JsonResponse({'status': 'error', 'message': 'Template name and content cannot be empty.'}, status=400)
-        template, created = EmailTemplate.objects.update_or_create(
-            name=template_name, defaults={'html_content': html_content}
-        )
-        message = 'Template saved successfully!' if created else 'Template updated successfully!'
-        return JsonResponse({'status': 'success', 'message': message, 'template_id': template.id, 'template_name': template.name})
+        template = get_object_or_404(EmailTemplate, id=template_id, user=request.user)
+        template.delete()
+        return JsonResponse({'status': 'success', 'message': 'Template deleted successfully!'})
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
 def load_template_view(request, template_id):
     try:
-        template = EmailTemplate.objects.get(id=template_id)
+        template = get_object_or_404(EmailTemplate, id=template_id, user=request.user)
         return JsonResponse({'status': 'success', 'html_content': template.html_content})
-    except EmailTemplate.DoesNotExist:
+    except Exception:
         return JsonResponse({'status': 'error', 'message': 'Template not found.'}, status=404)
 
 @require_POST
@@ -455,7 +481,10 @@ def campaign_detail_view(request, campaign_id):
 @csrf_exempt
 def get_campaigns_view(request):
     try:
-        campaigns = Campaign.objects.all().order_by('-sent_at')
+        if request.user.is_authenticated:
+            campaigns = Campaign.objects.filter(user=request.user).order_by('-sent_at')
+        else:
+            campaigns = Campaign.objects.none()
         campaign_data = []
         for campaign in campaigns:
             recipients = campaign.recipients.all()
@@ -474,18 +503,21 @@ def get_campaigns_view(request):
 
 def mark_as_opened_view(request, campaign_id, recipient_email):
     try:
-        recipient = Recipient.objects.get(campaign_id=campaign_id, email=recipient_email)
+        recipient = get_object_or_404(Recipient, campaign_id=campaign_id, email=recipient_email, user=request.user)
         if recipient.status != 'opened':
             recipient.status = 'opened'
             recipient.opened_at = timezone.now()
             recipient.save()
+        content_type = 'image/gif'
         return HttpResponse(
             (b'\x47\x49\x46\x38\x39\x61\x01\x00\x01\x00\x80\x00\x00\xff\xff\xff'
              b'\x00\x00\x00\x21\xf9\x04\x01\x00\x00\x00\x00\x2c\x00\x00\x00\x00'
              b'\x01\x00\x01\x00\x00\x02\x02\x44\x01\x00\x3b'),
-            content_type='image/gif'
+            content_type=content_type
         )
     except Recipient.DoesNotExist:
+        return HttpResponse(status=404)
+    except Exception as e:
         return HttpResponse(status=404)
     except Exception as e:
         logger.error(f"Error marking email as opened: {e}")
@@ -508,11 +540,14 @@ def campaign_engine_config_view(request):
     """GET — return the saved auto-campaign config plus options (templates, categories)."""
     try:
         config = gcs.get_campaign_config()
-        templates = list(EmailTemplate.objects.all().order_by('name').values('id', 'name'))
-
+        if request.user.is_authenticated:
+            templates = list(EmailTemplate.objects.filter(user=request.user).order_by('name').values('id', 'name'))
+        else:
+            templates = []
+        
         category_counts = {}
         for cat, label in CATEGORY_LABELS.items():
-            contacts = gcs.list_contacts(cat) or []
+            contacts = gcs.list_contacts(cat, user=request.user) or []
             category_counts[cat] = {'label': label, 'count': len(contacts)}
 
         return JsonResponse({
@@ -574,6 +609,7 @@ def campaign_engine_run_view(request):
     """POST — start an auto-campaign in the background using the saved config."""
     try:
         config = gcs.get_campaign_config()
+        config['user'] = request.user.username
         if request.body:
             try:
                 body = json.loads(request.body)
@@ -591,6 +627,12 @@ def campaign_engine_run_view(request):
             if not templates:
                 return JsonResponse({'success': False, 'error': 'Create an email template in the Pitch Generator first.'}, status=400)
             config['template_id'] = templates[0]
+
+        # Instant alert: block the run before the background thread starts.
+        try:
+            resolve_sender(request.user)
+        except SenderNotConfigured as exc:
+            return JsonResponse({'success': False, 'error': str(exc)}, status=400)
 
         progress = gcs.get_campaign_progress()
         if progress and progress.get('state') == 'running':

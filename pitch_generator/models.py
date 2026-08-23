@@ -1,7 +1,21 @@
 # pitch_generator/models.py
 from django.db import models
+from django.conf import settings
+
+
+def get_user_model():
+    return settings.AUTH_USER_MODEL
+
 
 class LeadPitch(models.Model):
+    user = models.ForeignKey(
+        get_user_model(),
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='lead_pitches',
+        help_text='The user who created this pitch.'
+    )
     company_name = models.CharField(max_length=255)
     website_url = models.URLField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)

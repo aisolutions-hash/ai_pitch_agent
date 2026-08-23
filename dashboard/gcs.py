@@ -10,15 +10,16 @@ logger = logging.getLogger(__name__)
 def _get_gcs_client():
     """Initialize and return a GCS client."""
     try:
-        if settings.GCS_KEY_PATH:
-            # Use service account key file
-            credentials = service_account.Credentials.from_service_account_file(
-                settings.GCS_KEY_PATH
-            )
-            client = storage.Client(credentials=credentials)
-        else:
-            # Use default credentials (e.g., environment variables)
-            client = storage.Client()
+        from sales_project.google_auth import default_or_loaded
+
+        try:
+            credentials = default_or_loaded()
+        except Exception:
+            credentials = None  # nothing configured; storage.Client() will report ADC errors
+        client = storage.Client(
+            credentials=credentials,
+            project=settings.GCS_PROJECT_ID or None,
+        )
         return client
     except Exception as e:
         logger.error(f"Failed to initialize GCS client: {e}")
@@ -38,14 +39,24 @@ def _get_bucket():
         return None
 
 
-def upload_contact(category, uid, data_dict):
+def _user_category(category, user):
     """
-    Upload a contact as JSON to GCS.
+    Prefix the category with the user identifier to ensure user isolation.
+    Returns 'user_{id}_{category}' format.
+    """
+    user_id = user.id if user else 'public'
+    return f"user_{user_id}_{category}"
+
+
+def upload_contact(category, uid, data_dict, user):
+    """
+    Upload a contact as JSON to GCS with user isolation.
     
     Args:
         category (str): Category/folder name
         uid (str): Unique identifier for the contact
         data_dict (dict): Data to upload as JSON
+        user: Django user object
     
     Returns:
         bool: True on success, None on error
@@ -56,7 +67,9 @@ def upload_contact(category, uid, data_dict):
             logger.error("Unable to get GCS bucket")
             return None
         
-        blob_path = f"contacts/{category}/{uid}.json"
+        # Use user-prefixed category for isolation
+        prefixed_category = _user_category(category, user)
+        blob_path = f"contacts/{prefixed_category}/{uid}.json"
         blob = bucket.blob(blob_path)
         
         json_data = json.dumps(data_dict)
@@ -72,12 +85,13 @@ def upload_contact(category, uid, data_dict):
         return None
 
 
-def list_contacts(category):
+def list_contacts(category, user):
     """
-    List all contacts in a category.
+    List all contacts in a category for a specific user.
     
     Args:
         category (str): Category/folder name
+        user: Django user object
     
     Returns:
         list: List of dicts with 'uid' and 'data' keys, None on error
@@ -88,42 +102,50 @@ def list_contacts(category):
             logger.error("Unable to get GCS bucket")
             return None
         
-        prefix = f"contacts/{category}/"
+        # Use user-prefixed category for isolation
+        prefixed_category = _user_category(category, user)
+        prefix = f"contacts/{prefixed_category}/"
         blobs = bucket.list_blobs(prefix=prefix)
         
         contacts = []
         for blob in blobs:
-            # Skip folder-like objects
-            if blob.name.endswith('/'):
+            # Only individual contact snapshots are JSON documents;
+            # CSV uploads/exports in the same folder are not contacts.
+            if not blob.name.endswith('.json'):
                 continue
             
             try:
-                # Extract uid from blob name (contacts/category/uid.json -> uid)
+                # Extract uid from blob name (contacts/user_id_category/uid.json -> uid)
+                # Format: contacts/user_{id}_{category}/uid.json
+                name_parts = blob.name[len('contacts/'):]  # Remove 'contacts/' prefix
+                # Format: user_{id}_{category}/uid.json
                 uid = blob.name.replace(prefix, '').replace('.json', '')
-                json_data = blob.download_as_string()
-                data = json.loads(json_data)
+                # Also extract the actual category for reference
+                data = json.loads(blob.download_as_string())
                 contacts.append({
                     'uid': uid,
-                    'data': data
+                    'data': data,
+                    'category': category
                 })
             except Exception as e:
                 logger.warning(f"Failed to parse blob {blob.name}: {e}")
                 continue
         
-        logger.info(f"Successfully listed {len(contacts)} contacts in category {category}")
+        logger.info(f"Successfully listed {len(contacts)} contacts for user {user.id} in category {category}")
         return contacts
     except Exception as e:
         logger.error(f"Failed to list contacts: {e}")
         return None
 
 
-def get_contact(category, uid):
+def get_contact(category, uid, user):
     """
-    Download and return a single contact.
+    Download and return a single contact for a specific user.
     
     Args:
         category (str): Category/folder name
         uid (str): Unique identifier for the contact
+        user: Django user object
     
     Returns:
         dict: Contact data, None on error
@@ -134,7 +156,9 @@ def get_contact(category, uid):
             logger.error("Unable to get GCS bucket")
             return None
         
-        blob_path = f"contacts/{category}/{uid}.json"
+        # Use user-prefixed category for isolation
+        prefixed_category = _user_category(category, user)
+        blob_path = f"contacts/{prefixed_category}/{uid}.json"
         blob = bucket.blob(blob_path)
         
         if not blob.exists():
@@ -151,13 +175,14 @@ def get_contact(category, uid):
         return None
 
 
-def delete_contact(category, uid):
+def delete_contact(category, uid, user):
     """
-    Delete a contact from GCS.
+    Delete a contact from GCS for a specific user.
     
     Args:
         category (str): Category/folder name
         uid (str): Unique identifier for the contact
+        user: Django user object
     
     Returns:
         bool: True on success, None on error
@@ -168,7 +193,9 @@ def delete_contact(category, uid):
             logger.error("Unable to get GCS bucket")
             return None
         
-        blob_path = f"contacts/{category}/{uid}.json"
+        # Use user-prefixed category for isolation
+        prefixed_category = _user_category(category, user)
+        blob_path = f"contacts/{prefixed_category}/{uid}.json"
         blob = bucket.blob(blob_path)
         
         blob.delete()
@@ -180,14 +207,15 @@ def delete_contact(category, uid):
         return None
 
 
-def upload_csv_file(category, file_obj, filename):
+def upload_csv_file(category, file_obj, filename, user):
     """
-    Upload a CSV file to GCS under contacts/{category}/.
+    Upload a CSV file to GCS under user-prefixed contacts/{category}/.
     
     Args:
         category (str): Category/folder name
         file_obj (file-like): The CSV file object to upload
         filename (str): The name to save the file as (should end in .csv)
+        user: Django user object
     
     Returns:
         str: The blob path on success, None on error
@@ -197,19 +225,21 @@ def upload_csv_file(category, file_obj, filename):
         if not bucket:
             logger.error("Unable to get GCS bucket")
             return None
-
+        
         if not filename.lower().endswith('.csv'):
             filename = filename + '.csv'
-
-        blob_path = f"contacts/{category}/{filename}"
+        
+        # Use user-prefixed category for isolation
+        prefixed_category = _user_category(category, user)
+        blob_path = f"contacts/{prefixed_category}/{filename}"
         blob = bucket.blob(blob_path)
-
+        
         file_obj.seek(0)
         blob.upload_from_string(
             file_obj.read(),
             content_type='text/csv'
         )
-
+        
         logger.info(f"Successfully uploaded CSV to {blob_path}")
         return blob_path
     except Exception as e:
@@ -217,12 +247,13 @@ def upload_csv_file(category, file_obj, filename):
         return None
 
 
-def list_csv_files(category):
+def list_csv_files(category, user):
     """
-    List all CSV files in a category folder.
+    List all CSV files in a user-prefixed category folder.
     
     Args:
         category (str): Category/folder name
+        user: Django user object
     
     Returns:
         list: List of dicts with file info (name, size, updated, blob_path)
@@ -232,10 +263,12 @@ def list_csv_files(category):
         if not bucket:
             logger.error("Unable to get GCS bucket")
             return None
-
-        prefix = f"contacts/{category}/"
+        
+        # Use user-prefixed category for isolation
+        prefixed_category = _user_category(category, user)
+        prefix = f"contacts/{prefixed_category}/"
         blobs = bucket.list_blobs(prefix=prefix)
-
+        
         csv_files = []
         for blob in blobs:
             if blob.name.endswith('.csv'):
@@ -247,7 +280,7 @@ def list_csv_files(category):
                     'blob_path': blob.name,
                     'category': category
                 })
-
+        
         csv_files.sort(key=lambda x: x['updated'] or '', reverse=True)
         return csv_files
     except Exception as e:
@@ -255,13 +288,14 @@ def list_csv_files(category):
         return None
 
 
-def get_csv_file(category, filename):
+def get_csv_file(category, filename, user):
     """
-    Get a CSV file's content and metadata from GCS.
+    Get a CSV file's content and metadata from GCS for a specific user.
     
     Args:
         category (str): Category/folder name
         filename (str): CSV file name
+        user: Django user object
     
     Returns:
         dict: Content and metadata, None on error
@@ -271,14 +305,16 @@ def get_csv_file(category, filename):
         if not bucket:
             logger.error("Unable to get GCS bucket")
             return None
-
-        blob_path = f"contacts/{category}/{filename}"
+        
+        # Use user-prefixed category for isolation
+        prefixed_category = _user_category(category, user)
+        blob_path = f"contacts/{prefixed_category}/{filename}"
         blob = bucket.blob(blob_path)
-
+        
         if not blob.exists():
             logger.warning(f"CSV file not found: {blob_path}")
             return None
-
+        
         content = blob.download_as_string()
         return {
             'name': filename,
@@ -293,13 +329,14 @@ def get_csv_file(category, filename):
         return None
 
 
-def delete_csv_file(category, filename):
+def delete_csv_file(category, filename, user):
     """
-    Delete a CSV file from GCS.
+    Delete a CSV file from GCS for a specific user.
     
     Args:
         category (str): Category/folder name
         filename (str): CSV file name
+        user: Django user object
     
     Returns:
         bool: True on success, None on error
@@ -309,10 +346,12 @@ def delete_csv_file(category, filename):
         if not bucket:
             logger.error("Unable to get GCS bucket")
             return None
-
-        blob_path = f"contacts/{category}/{filename}"
+        
+        # Use user-prefixed category for isolation
+        prefixed_category = _user_category(category, user)
+        blob_path = f"contacts/{prefixed_category}/{filename}"
         blob = bucket.blob(blob_path)
-
+        
         blob.delete()
         logger.info(f"Successfully deleted CSV from {blob_path}")
         return True
@@ -436,6 +475,27 @@ def save_scrape_locations(locations):
     return upload_json_blob(LOCATIONS_CONFIG_PATH, {'locations': locations})
 
 
+def get_scrape_stats():
+    """Get the list of per-keyword run stat entries (newest last)."""
+    data = get_json_blob(STATS_PATH)
+    if not data:
+        return []
+    return data.get('entries', [])
+
+
+def append_scrape_stat(entry, cap=1000):
+    """Append a per-keyword run stat entry (keeps the last `cap` entries)."""
+    entries = get_scrape_stats()
+    entries.append(entry)
+    entries = entries[-cap:]
+    return upload_json_blob(STATS_PATH, {'entries': entries})
+
+
+def save_scrape_progress(data):
+    """Persist scrape run progress (called by the running scrape job)."""
+    return upload_json_blob(PROGRESS_PATH, data)
+
+
 def upload_scrape_run(run_path, payload):
     """Upload a scrape-run result batch. run_path is relative to RUNS_PREFIX."""
     return upload_json_blob(f"{RUNS_PREFIX}{run_path}", payload)
@@ -470,7 +530,6 @@ def list_scrape_runs(limit=200):
                 'size_display': _format_size(blob.size),
                 'updated': blob.updated.isoformat() if blob.updated else None,
             })
-
         runs.sort(key=lambda x: x['updated'] or '', reverse=True)
         return runs[:limit]
     except Exception as e:
@@ -478,70 +537,44 @@ def list_scrape_runs(limit=200):
         return []
 
 
-def get_scrape_run(run_path):
-    """
-    Fetch a single scrape-run batch by full blob path.
-    Validates the path stays under RUNS_PREFIX to prevent path traversal.
-    """
-    if not run_path or not run_path.startswith(RUNS_PREFIX) or '..' in run_path:
-        logger.warning(f"Invalid scrape run path requested: {run_path}")
-        return None
-    return get_json_blob(run_path)
-
-
 def get_scrape_progress():
-    """
-    Get the current/last scrape run's progress state.
-    Returns a dict or None if no run has been recorded yet.
-    """
+    """Get current scrape-run progress payload (None if never run)."""
     return get_json_blob(PROGRESS_PATH)
 
 
-def save_scrape_progress(data):
-    """Persist scrape run progress (called by the running scrape job)."""
-    return upload_json_blob(PROGRESS_PATH, data)
-
-
-def get_scrape_stats():
-    """Get the list of per-keyword run stat entries (newest last)."""
-    data = get_json_blob(STATS_PATH)
-    if not data:
-        return []
-    return data.get('entries', [])
-
-
-def append_scrape_stat(entry, cap=1000):
-    """Append a per-keyword run stat entry (keeps the last `cap` entries)."""
-    entries = get_scrape_stats()
-    entries.append(entry)
-    entries = entries[-cap:]
-    return upload_json_blob(STATS_PATH, {'entries': entries})
+def get_scrape_run(run_path):
+    """Fetch a single scrape-run batch. Accepts full blob path or path relative to RUNS_PREFIX."""
+    if not run_path:
+        return None
+    path = run_path if run_path.startswith(RUNS_PREFIX) else f"{RUNS_PREFIX}{run_path}"
+    return get_json_blob(path)
 
 
 # ---------------------------------------------------------------------------
-# Auto Campaign Engine: config + run history storage
+# Auto Campaign Engine: config + progress + run history storage
 # ---------------------------------------------------------------------------
 
-CAMPAIGN_CONFIG_PATH = 'campaign_config/config.json'
-CAMPAIGN_PROGRESS_PATH = 'campaign_config/progress.json'
+CAMPAIGN_CONFIG_PATH = 'campaign_engine/config.json'
+CAMPAIGN_PROGRESS_PATH = 'campaign_engine/progress.json'
 CAMPAIGN_RUNS_PREFIX = 'campaign_runs/'
+
+DEFAULT_CAMPAIGN_CONFIG = {
+    'category': 'suppliers',
+    'template_id': None,
+    'subject': '',
+    'daily_limit': 25,
+    'personalize_subject': True,
+    'personalize_body': True,
+}
 
 
 def get_campaign_config():
-    """
-    Get the configured auto-campaign settings from GCS.
-    Returns a dict or a default config when nothing is saved yet.
-    """
+    """Get saved auto-campaign config, seeded with defaults on first use."""
     data = get_json_blob(CAMPAIGN_CONFIG_PATH)
-    if not data:
-        return {
-            'category': 'suppliers',
-            'template_id': None,
-            'daily_limit': 25,
-            'personalize_subject': True,
-            'personalize_body': True,
-        }
-    return data
+    config = dict(DEFAULT_CAMPAIGN_CONFIG)
+    if data:
+        config.update(data)
+    return config
 
 
 def save_campaign_config(config):
@@ -549,28 +582,33 @@ def save_campaign_config(config):
     return upload_json_blob(CAMPAIGN_CONFIG_PATH, config)
 
 
-def get_campaign_progress():
-    """
-    Get the current/last auto-campaign run's progress state.
-    Returns a dict or None if no run has been recorded yet.
-    """
-    return get_json_blob(CAMPAIGN_PROGRESS_PATH)
-
-
 def save_campaign_progress(data):
-    """Persist auto-campaign run progress (called by the running campaign job)."""
+    """Persist live auto-campaign progress (called by the running campaign)."""
     return upload_json_blob(CAMPAIGN_PROGRESS_PATH, data)
 
 
-def upload_campaign_run(run_path, payload):
-    """Upload a campaign-run result batch. run_path is relative to CAMPAIGN_RUNS_PREFIX."""
-    return upload_json_blob(f"{CAMPAIGN_RUNS_PREFIX}{run_path}", payload)
+def get_campaign_progress():
+    """Get current/last auto-campaign progress payload (None if never run)."""
+    return get_json_blob(CAMPAIGN_PROGRESS_PATH)
 
 
-def list_campaign_runs(limit=100):
+def upload_campaign_run(rel_path, payload):
+    """Upload an auto-campaign run result batch. rel_path is relative to CAMPAIGN_RUNS_PREFIX."""
+    return upload_json_blob(f"{CAMPAIGN_RUNS_PREFIX}{rel_path}", payload)
+
+
+def get_campaign_run(run_path):
+    """Fetch a single auto-campaign run batch. Accepts full blob path or path relative to CAMPAIGN_RUNS_PREFIX."""
+    if not run_path:
+        return None
+    path = run_path if run_path.startswith(CAMPAIGN_RUNS_PREFIX) else f"{CAMPAIGN_RUNS_PREFIX}{run_path}"
+    return get_json_blob(path)
+
+
+def list_campaign_runs(limit=200):
     """
     List historical auto-campaign runs from GCS, newest first.
-    Returns a list of dicts: {name, path, date, size, size_display, updated}
+    Returns list of dicts: {name, path, size, size_display, updated}
     """
     try:
         bucket = _get_bucket()
@@ -591,20 +629,8 @@ def list_campaign_runs(limit=100):
                 'size_display': _format_size(blob.size),
                 'updated': blob.updated.isoformat() if blob.updated else None,
             })
-
         runs.sort(key=lambda x: x['updated'] or '', reverse=True)
         return runs[:limit]
     except Exception as e:
         logger.error(f"Failed to list campaign runs: {e}")
         return []
-
-
-def get_campaign_run(run_path):
-    """
-    Fetch a single auto-campaign run batch by full blob path.
-    Validates the path stays under CAMPAIGN_RUNS_PREFIX to prevent path traversal.
-    """
-    if not run_path or not run_path.startswith(CAMPAIGN_RUNS_PREFIX) or '..' in run_path:
-        logger.warning(f"Invalid campaign run path requested: {run_path}")
-        return None
-    return get_json_blob(run_path)

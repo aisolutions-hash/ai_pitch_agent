@@ -1,0 +1,187 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}Gmail Settings - KalisoftAI{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-800">Gmail Settings</h1>
+            <p class="text-slate-500 text-sm mt-1">Connect your own Gmail account. Used for sending pitches and campaign emails from your address.</p>
+        </div>
+        <div id="statusBadge"
+             class="px-3 py-1.5 rounded-full text-sm font-semibold flex items-center gap-2
+             {% if gmail_connected %}bg-emerald-50 text-emerald-700 border border-emerald-200{% else %}bg-red-50 text-red-600 border border-red-200{% endif %}">
+            <span id="statusDot" class="w-2 h-2 rounded-full {% if gmail_connected %}bg-emerald-500{% else %}bg-red-500{% endif %}"></span>
+            <span id="statusText">{% if gmail_connected %}Connected{% else %}Not Connected{% endif %}</span>
+        </div>
+    </div>
+
+    <!-- Banner -->
+    <div id="banner" class="hidden mb-5 px-4 py-3 rounded-lg text-sm"></div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        <!-- Configuration Card -->
+        <div class="lg:col-span-3 bg-white/90 backdrop-blur rounded-xl border border-slate-200 shadow-sm p-6">
+            <h2 class="font-semibold text-slate-800 mb-4">Your Gmail configuration</h2>
+            <form id="gmailForm" class="space-y-5" onsubmit="return false;">
+                {% csrf_token %}
+
+                <div>
+                    <label for="gmailAddress" class="block text-sm font-medium text-slate-600 mb-1.5">Gmail address<span class="text-red-500">*</span></label>
+                    <input type="email" id="gmailAddress" name="email" autocomplete="off"
+                           value="{{ gmail_address }}"
+                           placeholder="yourname@gmail.com"
+                           class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-lg text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                </div>
+
+                <div>
+                    <label for="gmailPassword" class="block text-sm font-medium text-slate-600 mb-1.5">
+                        Gmail App Password<span class="text-red-500">*</span>
+                    </label>
+                    <div class="relative">
+                        <input type="password" id="gmailPassword" name="app_password" autocomplete="new-password"
+                               placeholder="{% if gmail_cfg %}Saved - enter only to replace{% else %}16-character App Password{% endif %}"
+                               class="w-full px-3.5 py-2.5 pr-11 bg-slate-50 border border-slate-300 rounded-lg text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                        <button type="button" id="togglePw" title="Show / hide password"
+                                class="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-slate-400 hover:text-purple-600 transition-colors">
+                            <!-- eye open -->
+                            <svg id="eyeOpen" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                            </svg>
+                            <!-- eye closed -->
+                            <svg id="eyeClosed" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18"/>
+                            </svg>
+                        </button>
+                    </div>
+                    {% if gmail_masked %}
+                    <p class="text-xs text-slate-400 mt-1.5">Saved password: <span class="tracking-widest">{{ gmail_masked }}</span> (stored encrypted, never displayed)</p>
+                    {% endif %}
+                </div>
+
+                <div class="flex flex-wrap items-center gap-3 pt-1">
+                    <button type="button" id="saveBtn"
+                            class="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white text-sm font-semibold rounded-lg shadow-md shadow-purple-200 transition">
+                        Save
+                    </button>
+                    <button type="button" id="testBtn"
+                            class="px-5 py-2.5 bg-white hover:bg-slate-50 text-purple-700 text-sm font-semibold rounded-lg border border-purple-300 transition">
+                        Test Connection
+                    </button>
+                    <span id="busySpinner" class="hidden w-5 h-5 border-2 border-purple-300 border-t-purple-600 rounded-full animate-spin"></span>
+                </div>
+
+                {% if gmail_last_tested %}
+                <p class="text-xs text-slate-400">Last tested: {{ gmail_last_tested|date:"M d, Y H:i" }}</p>
+                {% endif %}
+                {% if gmail_last_error %}
+                <p class="text-xs text-red-500">Last error: {{ gmail_last_error }}</p>
+                {% endif %}
+            </form>
+        </div>
+
+        <!-- Instructions Card -->
+        <div class="lg:col-span-2 bg-white/90 backdrop-blur rounded-xl border border-slate-200 shadow-sm p-6">
+            <h2 class="font-semibold text-slate-800 mb-4">How to create a Gmail App Password</h2>
+            <ol class="space-y-3 text-sm text-slate-600 list-decimal list-inside">
+                <li>Turn on <strong>2-Step Verification</strong> for your Google account
+                    (<a href="https://myaccount.google.com/security" target="_blank" rel="noopener" class="text-purple-600 underline">myaccount.google.com/security</a>).</li>
+                <li>Open <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener" class="text-purple-600 underline break-all">myaccount.google.com/apppasswords</a>.</li>
+                <li>Enter an app name such as <em>KalisoftAI</em> and click <strong>Create</strong>.</li>
+                <li>Google shows a <strong>16-character password</strong>. Copy it.</li>
+                <li>Paste it into the App Password field here, then click <strong>Save</strong> and <strong>Test Connection</strong>.</li>
+            </ol>
+            <div class="mt-4 bg-amber-50 border border-amber-200 text-amber-700 rounded-lg px-3.5 py-2.5 text-xs leading-relaxed">
+                Note: your normal Gmail login password will not work. Google requires a special App Password for apps like this one.
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+    const csrf = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    const emailEl = document.getElementById('gmailAddress');
+    const pwEl = document.getElementById('gmailPassword');
+    const banner = document.getElementById('banner');
+    const spinner = document.getElementById('busySpinner');
+    const statusText = document.getElementById('statusText');
+    const statusDot = document.getElementById('statusDot');
+
+    function showBanner(kind, msg) {
+        banner.className = 'mb-5 px-4 py-3 rounded-lg text-sm ' +
+            (kind === 'success'
+                ? 'bg-emerald-50 border border-emerald-200 text-emerald-700'
+                : 'bg-red-50 border border-red-200 text-red-600');
+        banner.textContent = msg;
+    }
+
+    function setBusy(b) { spinner.classList.toggle('hidden', !b); }
+
+    function setStatus(connected) {
+        statusText.textContent = connected ? 'Connected' : 'Not Connected';
+        statusDot.className = 'w-2 h-2 rounded-full ' + (connected ? 'bg-emerald-500' : 'bg-red-500');
+        document.getElementById('statusBadge').className =
+            'px-3 py-1.5 rounded-full text-sm font-semibold flex items-center gap-2 ' +
+            (connected
+                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                : 'bg-red-50 text-red-600 border border-red-200');
+    }
+
+    async function post(url, body) {
+        const resp = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
+            body: JSON.stringify(body || {})
+        });
+        return await resp.json();
+    }
+
+    document.getElementById('togglePw').addEventListener('click', function () {
+        const hidden = pwEl.type === 'password';
+        pwEl.type = hidden ? 'text' : 'password';
+        document.getElementById('eyeOpen').classList.toggle('hidden', hidden);
+        document.getElementById('eyeClosed').classList.toggle('hidden', !hidden);
+    });
+
+    document.getElementById('saveBtn').addEventListener('click', async function () {
+        showBanner('info', ''); banner.classList.add('hidden'); setBusy(true);
+        try {
+            const data = await post('/app/api/gmail/save/', {
+                email: emailEl.value.trim(),
+                app_password: pwEl.value
+            });
+            if (data.success) {
+                showBanner('success', data.message + ' Now click "Test Connection".');
+                setStatus(false);
+                pwEl.value = '';
+            } else {
+                showBanner('error', data.error || 'Could not save settings.');
+            }
+        } catch (e) {
+            showBanner('error', 'Network error: ' + e.message);
+        } finally { setBusy(false); }
+    });
+
+    document.getElementById('testBtn').addEventListener('click', async function () {
+        showBanner('info', ''); banner.classList.add('hidden'); setBusy(true);
+        try {
+            const data = await post('/app/api/gmail/test/', {
+                email: emailEl.value.trim(),
+                app_password: pwEl.value
+            });
+            showBanner(data.success ? 'success' : 'error', data.message || data.error);
+            setStatus(data.success);
+            if (data.success && pwEl.value) pwEl.value = '';
+        } catch (e) {
+            showBanner('error', 'Network error: ' + e.message);
+        } finally { setBusy(false); }
+    });
+})();
+</script>
+{% endblock %}

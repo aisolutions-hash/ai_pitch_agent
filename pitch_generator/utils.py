@@ -194,12 +194,8 @@ def export_to_google_sheets(pitch_data):
         return False
 
     try:
-        SERVICE_ACCOUNT_FILE = getattr(settings, 'GOOGLE_CREDENTIALS_FILE', None)
-        if SERVICE_ACCOUNT_FILE and os.path.exists(str(SERVICE_ACCOUNT_FILE)):
-            creds = service_account.Credentials.from_service_account_file(
-                str(SERVICE_ACCOUNT_FILE), scopes=SCOPES)
-        else:
-            creds, _ = google.auth.default(scopes=SCOPES)
+        from sales_project.google_auth import default_or_loaded
+        creds = default_or_loaded(SCOPES)
         service = build('sheets', 'v4', credentials=creds)
 
         # 4. Prepare Row Data

@@ -12,10 +12,12 @@ import re
 from datetime import datetime
 
 from django.conf import settings
+from django.contrib.auth.models import User
 from django.core.mail import send_mail
 from django.utils import timezone
 
 from dashboard import gcs
+from dashboard.gmail import resolve_sender, SenderNotConfigured
 from .models import EmailTemplate, Campaign, Recipient
 from .gemma_service import generate_personalized_email
 
@@ -86,10 +88,20 @@ def run_auto_campaign(config, trigger='manual'):
     if not base_subject:
         base_subject = template.name
 
-    contacts = gcs.list_contacts(category) or []
+    owner = User.objects.filter(username=config.get('user') or '').first()
+    contacts = gcs.list_contacts(category, user=owner) or []
     if not contacts:
         _fail_progress(f'No contacts found in the "{category}" category.')
         return
+
+    # Per-user verified Gmail required; only the default-account owner may
+    # send without connecting (SenderNotConfigured otherwise).
+    try:
+        sender_connection, sender_from = resolve_sender(owner)
+    except SenderNotConfigured as exc:
+        _fail_progress(str(exc))
+        return
+    logger.info(f"[auto-campaign] Sending via: {sender_from}")
 
     run_id = datetime.now().strftime('%Y%m%d-%H%M%S')
     selected = contacts[:daily_limit]
@@ -152,10 +164,11 @@ def run_auto_campaign(config, trigger='manual'):
             send_mail(
                 subject=personalized_subject,
                 message='',
-                from_email=f"{settings.DEFAULT_FROM_NAME} <{settings.DEFAULT_FROM_EMAIL}>",
+                from_email=sender_from,
                 recipient_list=[email],
                 html_message=personalized_body,
                 fail_silently=False,
+                connection=sender_connection,
             )
             Recipient.objects.create(
                 campaign=campaign,

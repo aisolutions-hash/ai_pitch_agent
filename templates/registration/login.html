@@ -3,52 +3,220 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sign In — Sales Agent</title>
+  <title>Sign In — KalisoftAI</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap">
   <style>
+    * { font-family: 'Inter', sans-serif; }
     body { background: linear-gradient(135deg, #f8fafc 0%, #eef2ff 50%, #faf5ff 100%); min-height: 100vh; }
+
+    /* ---------- Auth field system (shared with signup) ---------- */
+    .auth-field { position: relative; }
+    .field-label {
+      display: block;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: #475569;
+      margin-bottom: 0.35rem;
+    }
+    .help-text {
+      font-size: 0.75rem;
+      line-height: 1.6;
+      color: #94a3b8;
+      margin: 0.125rem 0 0.5rem;
+    }
+    .error-text {
+      font-size: 0.75rem;
+      color: #ef4444;
+      margin-top: 0.375rem;
+    }
+    .input-shell { position: relative; }
+    .field-icon {
+      position: absolute;
+      left: 0.875rem;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 1.125rem;
+      height: 1.125rem;
+      color: #94a3b8;
+      pointer-events: none;
+    }
+    .auth-input {
+      display: block;
+      width: 100%;
+      padding: 0.6875rem 0.75rem 0.6875rem 2.625rem;
+      font-size: 0.9375rem;
+      color: #1e293b;
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 0.5rem;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .auth-input::placeholder { color: #94a3b8; }
+    .auth-input:focus {
+      outline: none;
+      border-color: #f59e0b; /* gold accent focus */
+      box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.28);
+    }
+    .has-eye .auth-input { padding-right: 2.875rem; }
+    .eye-btn {
+      position: absolute;
+      right: 0.625rem;
+      top: 50%;
+      transform: translateY(-50%);
+      padding: 0.25rem;
+      color: #94a3b8;
+      background: transparent;
+      border: 0;
+      border-radius: 0.375rem;
+      cursor: pointer;
+    }
+    .eye-btn:hover { color: #7c3aed; }
+    .eye-btn:focus-visible { outline: 2px solid #f59e0b; outline-offset: 2px; }
+
+    /* ---------- Checkbox (matches signup) ---------- */
+    .checkbox-input {
+      width: 1rem;
+      height: 1rem;
+      border: 2px solid #64748b;
+      border-radius: 4px;
+      cursor: pointer;
+      position: relative;
+      appearance: none;
+      background: #fff;
+    }
+    .checkbox-input:checked { background-color: #a855f7; }
+    .checkbox-input:checked::after {
+      content: '';
+      position: absolute;
+      left: 0.1rem;
+      top: 0.1rem;
+      width: 0.4rem;
+      height: 0.6rem;
+      border: solid #fff;
+      border-width: 0 2px 2px 0;
+      transform: rotate(45deg);
+    }
+
+    .remember-forgot { font-size: 0.875rem; }
+    .remember-forgot a { color: #64748b; text-decoration: underline; }
+    .remember-forgot a:hover { color: #1e40af; }
+
+    /* ---------- Gold accents ---------- */
+    .logo-halo {
+      box-shadow: 0 0 0 3px rgba(252, 211, 77, 0.45),
+                  0 18px 30px -10px rgba(124, 58, 237, 0.35);
+    }
+    .heading-accent {
+      width: 3rem;
+      height: 0.25rem;
+      margin: 0.75rem auto 0;
+      border-radius: 9999px;
+      background: linear-gradient(90deg, #fcd34d, #f59e0b);
+    }
   </style>
 </head>
-<body class="flex items-center justify-center">
-  <div class="w-full max-w-sm mx-4">
-    <div class="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl shadow-slate-200/80 border border-slate-200 p-8">
-      <div class="text-center mb-8">
-        <div class="w-12 h-12 mx-auto mb-4 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-purple-200">
-          <span class="text-white font-bold text-lg">K</span>
+<body class="flex items-center justify-center min-h-screen py-8">
+  <div class="w-full max-w-md mx-4">
+    <div class="bg-white/90 backdrop-blur-sm rounded-2xl shadow-2xl shadow-slate-200/80 border border-slate-200">
+      <div class="text-center pt-8 pb-6 px-8">
+        <div class="w-14 h-14 mx-auto mb-5 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-2xl flex items-center justify-center logo-halo">
+          <span class="text-3xl font-bold text-white">K</span>
         </div>
-        <h1 class="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-indigo-600">Sales Agent</h1>
-        <p class="text-slate-500 mt-2">Sign in to continue</p>
+        <h1 class="text-3xl font-bold text-slate-800">Welcome Back</h1>
+        <div class="heading-accent" aria-hidden="true"></div>
+        <p class="text-slate-500 mt-3">Sign in to continue to your KalisoftAI workspace</p>
       </div>
 
-      <form method="post" class="space-y-5">
+      <form method="post" class="px-8 pb-8 space-y-5">
         {% csrf_token %}
 
         {% if form.errors %}
           <div class="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm">
-            Invalid username or password.
+            <span class="font-medium">Invalid username or password.</span> Please try again.
           </div>
         {% endif %}
 
-        <div>
-          <label for="id_username" class="block text-sm font-medium text-slate-600 mb-1">Username</label>
-          <input type="text" name="username" id="id_username" required
-            class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg text-slate-800 placeholder-slate-400 focus:ring-purple-500 focus:border-purple-500"
-            placeholder="Enter username">
+        {% if next %}
+          <input type="hidden" name="next" value="{{ next }}">
+        {% endif %}
+
+        <div class="auth-field">
+          <label for="id_username" class="field-label">Username or Email</label>
+          <div class="input-shell">
+            <svg xmlns="http://www.w3.org/2000/svg" class="field-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+            </svg>
+            <input type="text" name="username" id="id_username" required
+              class="auth-input"
+              placeholder="Enter your username or email">
+          </div>
+        </div>
+
+        <div class="auth-field">
+          <label for="id_password" class="field-label">Password</label>
+          <div class="input-shell has-eye">
+            <svg xmlns="http://www.w3.org/2000/svg" class="field-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+            </svg>
+            <input type="password" name="password" id="id_password" required
+              class="auth-input"
+              placeholder="Enter your password"
+              aria-describedby="eye-toggle">
+            <button type="button" id="eye-toggle"
+              class="eye-btn"
+              aria-label="Toggle password visibility"
+              onclick="togglePasswordVisibility('id_password', this)">
+              <svg id="eye-open" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+              </svg>
+              <svg id="eye-closed" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M5 5l14 14"/>
+              </svg>
+            </button>
+          </div>
         </div>
 
         <div>
-          <label for="id_password" class="block text-sm font-medium text-slate-600 mb-1">Password</label>
-          <input type="password" name="password" id="id_password" required
-            class="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg text-slate-800 placeholder-slate-400 focus:ring-purple-500 focus:border-purple-500"
-            placeholder="Enter password">
+          <div class="flex items-center justify-between remember-forgot">
+            <label class="checkbox remember-me flex items-center">
+              <input type="checkbox" name="remember" class="checkbox-input">
+              <span class="ml-2 text-slate-600">Remember me</span>
+            </label>
+            <a href="{% url 'password_reset' %}" class="text-blue-600 hover:text-blue-500 underline">Forgot password?</a>
+          </div>
         </div>
 
         <button type="submit"
-          class="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-semibold py-2.5 rounded-lg transition shadow-lg shadow-purple-200">
+          class="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-semibold py-3 rounded-lg transition shadow-lg shadow-purple-200">
           Sign In
         </button>
       </form>
+
+      <div class="text-center pb-8">
+        <p class="text-sm text-slate-500">Don't have an account?</p>
+        <a href="{% url 'signup' %}" class="font-medium text-purple-600 hover:text-purple-500 underline">Create your account</a>
+      </div>
     </div>
   </div>
+
+  <script>
+    function togglePasswordVisibility(inputId, button) {
+      const input = document.getElementById(inputId);
+      const eyeOpen = document.getElementById('eye-open');
+      const eyeClosed = document.getElementById('eye-closed');
+
+      if (input.type === "password") {
+        input.type = "text";
+        eyeOpen.classList.add('hidden');
+        eyeClosed.classList.remove('hidden');
+      } else {
+        input.type = "password";
+        eyeOpen.classList.remove('hidden');
+        eyeClosed.classList.add('hidden');
+      }
+    }
+  </script>
 </body>
 </html>

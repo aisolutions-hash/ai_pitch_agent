@@ -98,24 +98,27 @@
         <p class="text-xs text-slate-500 mt-1 flex-shrink-0">👁️ Preview &amp; edit a template, or hit 🚀 Send to configure your campaign.</p>
 
         <div id="templates_grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3 content-start flex-1 min-h-0 overflow-y-auto light-scroll pr-1 mt-4" :class="campaignOpen ? 'lg:grid-cols-2' : 'lg:grid-cols-3 xl:grid-cols-3'">
-          {% for template in templates %}
-          <div class="template-tile group relative bg-white border border-slate-200 rounded-xl overflow-hidden hover:border-purple-300 hover:shadow-lg hover:shadow-purple-100 hover:-translate-y-0.5 transition-all duration-200 flex flex-col cursor-pointer" data-template-id="{{ template.id }}" onclick="openTemplatePreview(this, '{{ template.id }}')">
+{% for template in templates %}
+          <div class="template-tile group relative bg-white border border-slate-200 rounded-xl cursor-pointer" data-template-id="{{ template.id }}" onclick="openTemplatePreview(this, '{{ template.id }}')">
             <div class="h-1 bg-gradient-to-r {% cycle 'from-purple-500 to-indigo-500' 'from-pink-500 to-rose-500' 'from-cyan-500 to-blue-500' 'from-amber-500 to-orange-500' %}"></div>
-            <div class="p-3.5 flex flex-col gap-2.5">
+            <div class="p-3.5 flex flex-col gap-2.5 min-h-0">
               <div class="flex items-start gap-2.5 min-w-0">
-                <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg {% cycle 'bg-purple-100 text-purple-600' 'bg-pink-100 text-pink-600' 'bg-cyan-100 text-cyan-600' 'bg-amber-100 text-amber-600' %} text-sm flex-shrink-0 group-hover:scale-110 transition-transform shadow-sm">📄</span>
+                <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg {% cycle 'bg-purple-100 text-purple-600' 'bg-pink-100 text-pink-600' 'bg-cyan-100 text-cyan-600' 'bg-amber-100 text-amber-600' %} text-sm flex-shrink-0 shadow-sm">📄</span>
                 <div class="min-w-0">
                   <p class="font-bold text-slate-800 text-[13px] truncate leading-snug" title="{{ template.name }}">{{ template.name }}</p>
                   <p class="text-[10px] text-slate-400 font-medium mt-0.5">📅 {{ template.created_at|date:"M d, Y" }}</p>
                 </div>
               </div>
-              <p class="text-[11px] text-slate-400 leading-relaxed" style="-webkit-line-clamp: 2; display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; min-height: 2rem;" title="{{ template.html_content|striptags|truncatechars:120 }}">{{ template.html_content|striptags|truncatechars:80 }}</p>
-              <div class="flex gap-2">
+              <p class="text-[11px] text-slate-400 leading-relaxed overflow-hidden text-wrap" style="-webkit-line-clamp: 2; display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; min-height: 2rem;" title="{{ template.html_content|striptags|truncatechars:120 }}">{{ template.html_content|striptags|truncatechars:80 }}</p>
+              <div class="flex gap-2 pt-2">
                 <button type="button" class="preview-template-btn flex-1 inline-flex items-center justify-center gap-1 px-2 py-2 text-xs font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm transition" data-template-id="{{ template.id }}" onclick="event.stopPropagation(); openTemplatePreview(this, '{{ template.id }}')">
                   👁️ Preview
                 </button>
                 <button type="button" class="send-template-btn flex-1 inline-flex items-center justify-center gap-1 px-2 py-2 text-xs font-semibold rounded-lg bg-green-600 text-white hover:bg-green-700 shadow-sm transition" data-template-id="{{ template.id }}" onclick="event.stopPropagation(); selectTemplateForSend(this, '{{ template.id }}')">
                   🚀 Send
+                </button>
+                <button type="button" class="delete-template-btn flex-1 inline-flex items-center justify-center gap-1 px-2 py-2 text-xs font-semibold rounded-lg bg-red-500 text-white hover:bg-red-600 shadow-sm transition" data-template-id="{{ template.id }}" onclick="event.stopPropagation(); deleteTemplate(this, '{{ template.id }}')">
+                  🗑️ Delete
                 </button>
               </div>
             </div>
@@ -581,6 +584,43 @@
         htmlContentEl.value = '';
         highlightSelectedTile();
         window.dispatchEvent(new CustomEvent('close-campaign'));
+    }
+
+    function deleteTemplate(cardOrBtn, templateId) {
+        if (!confirm('Are you sure you want to delete this template?')) return;
+        const tile = (cardOrBtn && cardOrBtn.closest) ? cardOrBtn.closest('.template-tile') : null;
+        
+        // URL pattern: /pitch/delete-template/{templateId}/
+        fetch(`/pitch/delete-template/${templateId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                if (tile) tile.remove();
+                showToast(data.message, 'success');
+                // Check if no templates remain
+                if (templatesGrid.querySelectorAll('.template-tile').length === 0) {
+                    const emptyMsg = document.createElement('p');
+                    emptyMsg.id = 'no_templates_msg';
+                    emptyMsg.className = 'col-span-full text-center text-sm text-slate-400 bg-slate-50 border border-dashed border-slate-300 rounded-xl py-10';
+                    emptyMsg.textContent = 'No saved templates yet — click "＋ New Template" to create one 💡';
+                    if (templatesGrid.querySelector('#no_templates_msg')) {
+                        templatesGrid.querySelector('#no_templates_msg').remove();
+                    }
+                    templatesGrid.appendChild(emptyMsg);
+                }
+            } else {
+                showToast(data.message, 'error');
+            }
+        })
+        .catch(error => {
+            showToast('An error occurred while deleting the template.', 'error');
+        });
     }
 
     // --- Event Listeners ---

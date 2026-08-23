@@ -1,10 +1,13 @@
 # pitch_generator/views.py
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from .models import LeadPitch
 # Import the new export function here
 from .utils import perform_research, generate_pitch_content, export_to_google_sheets
 
+
+@login_required
 def create_pitch(request):
     if request.method == "POST":
         company_name = request.POST.get('company_name')
@@ -23,6 +26,7 @@ def create_pitch(request):
 
             # 3. Save to DB
             pitch = LeadPitch.objects.create(
+                user=request.user,
                 company_name=company_name,
                 website_url=website_url,
                 research_summary=research_summary,
@@ -63,10 +67,12 @@ def create_pitch(request):
             return redirect('pitch_generator:create_pitch')
 
     # --- FETCH HISTORY FOR UI TABLE ---
-    recent_pitches = LeadPitch.objects.all().order_by('-created_at')
+    recent_pitches = LeadPitch.objects.filter(user=request.user).order_by('-created_at')
     
     return render(request, 'pitch_generator/create_pitch.html', {'recent_pitches': recent_pitches})
 
+
+@login_required
 def view_pitch(request, pitch_id):
-    pitch = get_object_or_404(LeadPitch, id=pitch_id)
+    pitch = get_object_or_404(LeadPitch, id=pitch_id, user=request.user)
     return render(request, 'pitch_generator/view_pitch.html', {'pitch': pitch})

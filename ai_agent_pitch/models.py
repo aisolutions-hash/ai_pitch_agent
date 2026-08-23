@@ -1,7 +1,21 @@
 from django.db import models
 from django.utils import timezone
+from django.conf import settings
+
+
+def get_user_model():
+    return settings.AUTH_USER_MODEL
+
 
 class EmailTemplate(models.Model):
+    user = models.ForeignKey(
+        get_user_model(),
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='email_templates',
+        help_text='The user who created this template.'
+    )
     name = models.CharField(max_length=100, unique=True)
     html_content = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
@@ -9,7 +23,16 @@ class EmailTemplate(models.Model):
     def __str__(self):
         return self.name
 
+
 class Campaign(models.Model):
+    user = models.ForeignKey(
+        get_user_model(),
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='campaigns',
+        help_text='The user who owns this campaign.'
+    )
     subject = models.CharField(max_length=255)
     sent_at = models.DateTimeField(auto_now_add=True)
     template = models.ForeignKey(
@@ -25,16 +48,20 @@ class Campaign(models.Model):
     def __str__(self):
         return f"Campaign: {self.subject} ({self.sent_at.strftime('%Y-%m-%d %H:%M')})"
 
+
 class Recipient(models.Model):
-    STATUS_CHOICES = [
-        ('sent', 'Sent'),
-        ('opened', 'Opened'),
-        ('failed', 'Failed'),
-    ]
+    user = models.ForeignKey(
+        get_user_model(),
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='recipients',
+        help_text='The user who owns this recipient.'
+    )
     campaign = models.ForeignKey(Campaign, related_name='recipients', on_delete=models.CASCADE)
     name = models.CharField(max_length=255, blank=True)
     email = models.EmailField()
-    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='sent')
+    status = models.CharField(max_length=10, choices=[('sent', 'Sent'), ('opened', 'Opened'), ('failed', 'Failed')], default='sent')
     opened_at = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):

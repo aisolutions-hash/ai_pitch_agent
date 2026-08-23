@@ -877,7 +877,7 @@
         }
         try {
             const results = await Promise.all(['suppliers', 'buyers', 'events'].map(async cat => {
-                const resp = await fetch(`/api/contacts/list/?category=${cat}`);
+                const resp = await fetch(`/app/api/contacts/list/?category=${cat}`);
                 if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
                 const data = await resp.json();
                 return (data || []).map(c => ({ ...c, category: cat }));
@@ -947,7 +947,7 @@
         if (!container) return;
         try {
             const results = await Promise.all(['suppliers', 'buyers', 'events'].map(async cat => {
-                const resp = await fetch(`/api/csv/list/?category=${cat}`);
+                const resp = await fetch(`/app/api/csv/list/?category=${cat}`);
                 if (!resp.ok) return [];
                 const data = await resp.json();
                 return (data || []).map(f => ({ ...f, category: cat }));
@@ -990,7 +990,7 @@
                                 <td class="py-2 px-2 text-slate-500">${f.updated ? formatDate(f.updated) : 'Unknown'}</td>
                                 <td class="py-2 px-2 text-right">
                                     <div class="flex gap-1 justify-end">
-                                        <a href="/api/csv/download/${f.category}/${encodeURIComponent(f.name)}/" target="_blank"
+                                        <a href="/app/api/csv/download/${f.category}/${encodeURIComponent(f.name)}/" target="_blank"
                                            class="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded transition-colors" title="Download">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
@@ -1035,7 +1035,7 @@
     async function loadCategory(category) {
         showSkeletons(category);
         try {
-            const response = await fetch(`/api/contacts/list/?category=${category}`);
+            const response = await fetch(`/app/api/contacts/list/?category=${category}`);
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
             const data = await response.json();
             if (data.error) renderError(category, data.error);
@@ -1102,7 +1102,7 @@
 
     async function loadCounts() {
         try {
-            const response = await fetch('/api/contacts/count/');
+            const response = await fetch('/app/api/contacts/count/');
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
             const counts = await response.json();
             if (!counts.error) {
@@ -1128,7 +1128,7 @@
 
     async function loadCsvCounts() {
         try {
-            const response = await fetch('/api/csv/count/');
+            const response = await fetch('/app/api/csv/count/');
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
             const counts = await response.json();
             if (!counts.error) {
@@ -1151,7 +1151,7 @@
 
     async function loadCsvFiles(category) {
         try {
-            const response = await fetch(`/api/csv/list/?category=${category}`);
+            const response = await fetch(`/app/api/csv/list/?category=${category}`);
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
             const files = await response.json();
             renderCsvFiles(category, files || []);
@@ -1196,7 +1196,7 @@
                             <td class="py-2 px-2 text-slate-400">${f.updated ? formatDate(f.updated) : 'Unknown'}</td>
                             <td class="py-2 px-2 text-right">
                                 <div class="flex gap-1 justify-end">
-                                    <a href="/api/csv/download/${category}/${encodeURIComponent(f.name)}/" target="_blank"
+                                    <a href="/app/api/csv/download/${category}/${encodeURIComponent(f.name)}/" target="_blank"
                                        class="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded transition-colors" title="Download">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
@@ -1340,7 +1340,7 @@
         formData.append('category', currentCategory);
 
         try {
-            const response = await fetch('/api/contacts/upload/', {
+            const response = await fetch('/app/api/contacts/upload/', {
                 method: 'POST',
                 headers: { 'X-CSRFToken': getCookie('csrftoken') },
                 body: formData
@@ -1408,7 +1408,7 @@
         };
 
         try {
-            const response = await fetch('/api/contacts/add/', {
+            const response = await fetch('/app/api/contacts/add/', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
                 body: JSON.stringify({ category: currentCategory, ...contactData })
@@ -1503,7 +1503,7 @@
         if (!confirm(`Delete contact ${currentContactData.contact.name}?`)) return;
 
         try {
-            const response = await fetch('/api/contacts/delete/', {
+            const response = await fetch('/app/api/contacts/delete/', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
                 body: JSON.stringify({ category: currentContactData.category, uid: currentContactData.uid })
@@ -1539,7 +1539,7 @@
         btn.textContent = 'Deleting...';
 
         try {
-            const response = await fetch('/api/csv/delete/', {
+            const response = await fetch('/app/api/csv/delete/', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
                 body: JSON.stringify(pendingDeleteCsv)
@@ -1629,7 +1629,7 @@
 
     async function pollScrapeProgress() {
         try {
-            const response = await fetch('/scraper/progress/');
+            const response = await fetch('/app/scraper/progress/');
             const p = await response.json();
             const running = renderScrapeProgress(p);
 
@@ -1651,7 +1651,7 @@
     /* ----- Stats tiles + bar charts ----- */
     async function loadScrapeStats() {
         try {
-            const response = await fetch('/scraper/stats/');
+            const response = await fetch('/app/scraper/stats/');
             const data = await response.json();
             if (!data.success) throw new Error(data.error || 'Failed to load stats');
             renderScrapeStats(data);
@@ -1713,7 +1713,7 @@
     async function loadScrapeKeywords() {
         const container = document.getElementById('keywordsList');
         try {
-            const response = await fetch('/scraper/keywords/');
+            const response = await fetch('/app/scraper/keywords/');
             const data = await response.json();
             if (!data.success) throw new Error(data.error || 'Failed to load keywords');
             currentKeywords = data.keywords || [];
@@ -1756,7 +1756,7 @@
         const keyword = (input.value || '').trim();
         if (!keyword) { showToast('Enter a keyword first', 'error'); return; }
         try {
-            const data = await keywordPost('/scraper/keywords/add/', keyword);
+            const data = await keywordPost('/app/scraper/keywords/add/', keyword);
             if (!data.success) throw new Error(data.error || 'Failed to add keyword');
             currentKeywords = data.keywords || [];
             renderKeywords();
@@ -1770,7 +1770,7 @@
     async function loadScrapeLocations() {
         const container = document.getElementById('locationsList');
         try {
-            const response = await fetch('/scraper/locations/');
+            const response = await fetch('/app/scraper/locations/');
             const data = await response.json();
             if (!data.success) throw new Error(data.error || 'Failed to load locations');
             currentLocations = data.locations || [];
@@ -1814,7 +1814,7 @@
         const location = (input.value || '').trim();
         if (!location) { showToast('Enter a location first', 'error'); return; }
         try {
-            const data = await locationPost('/scraper/locations/add/', location);
+            const data = await locationPost('/app/scraper/locations/add/', location);
             if (!data.success) throw new Error(data.error || 'Failed to add location');
             currentLocations = data.locations || [];
             renderLocations();
@@ -1835,7 +1835,7 @@
         if (campaignLoaded) return;
         campaignLoaded = true;
         try {
-            const response = await fetch('/pitch/campaign-engine/config/');
+            const response = await fetch('/app/pitch/campaign-engine/config/');
             const data = await response.json();
             if (!data.success) throw new Error(data.error || 'Failed to load campaign config');
             campaignConfig = data.config || {};
@@ -1882,7 +1882,7 @@
     async function saveCampaignConfig() {
         const config = getCampaignConfigFromForm();
         try {
-            const response = await fetch('/pitch/campaign-engine/config/save/', {
+            const response = await fetch('/app/pitch/campaign-engine/config/save/', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
                 body: JSON.stringify(config)
@@ -1903,7 +1903,7 @@
         btn.classList.add('opacity-60');
         try {
             const config = getCampaignConfigFromForm();
-            const response = await fetch('/pitch/campaign-engine/run/', {
+            const response = await fetch('/app/pitch/campaign-engine/run/', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
                 body: JSON.stringify(config)
@@ -1923,7 +1923,7 @@
     async function pollCampaignProgress(showCard = false) {
         if (campaignPollTimer) clearTimeout(campaignPollTimer);
         try {
-            const response = await fetch('/pitch/campaign-engine/progress/');
+            const response = await fetch('/app/pitch/campaign-engine/progress/');
             const p = await response.json();
             updateCampaignProgress(p, showCard);
         } catch (error) {
@@ -1985,7 +1985,7 @@
     async function loadCampaignRuns() {
         const container = document.getElementById('campaignRunsList');
         try {
-            const response = await fetch('/pitch/campaign-engine/runs/');
+            const response = await fetch('/app/pitch/campaign-engine/runs/');
             const data = await response.json();
             if (!data.success) throw new Error(data.error || 'Failed to load campaign runs');
             campaignRuns = data.runs || [];
@@ -2014,7 +2014,7 @@
 
     async function openCampaignRunModal(path) {
         try {
-            const response = await fetch(`/pitch/campaign-engine/runs/detail/?path=${encodeURIComponent(path)}`);
+            const response = await fetch(`/app/pitch/campaign-engine/runs/detail/?path=${encodeURIComponent(path)}`);
             const data = await response.json();
             if (!data.success) throw new Error(data.error || 'Failed to load run');
             const run = data.run;
@@ -2085,7 +2085,7 @@
         btn.disabled = true;
         btn.classList.add('opacity-60');
         try {
-            const response = await fetch('/scraper/run-now/', {
+            const response = await fetch('/app/scraper/run-now/', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
                 body: '{}'
@@ -2111,7 +2111,7 @@
     async function loadScrapeRuns() {
         const container = document.getElementById('runsList');
         try {
-            const response = await fetch('/scraper/runs/');
+            const response = await fetch('/app/scraper/runs/');
             const data = await response.json();
             if (!data.success) throw new Error(data.error || 'Failed to load runs');
             currentRuns = data.runs || [];
@@ -2167,7 +2167,7 @@
         document.getElementById('runModal').classList.remove('hidden');
 
         try {
-            const response = await fetch(`/scraper/runs/detail/?path=${encodeURIComponent(run.path)}`);
+            const response = await fetch(`/app/scraper/runs/detail/?path=${encodeURIComponent(run.path)}`);
             const data = await response.json();
             if (!data.success) throw new Error(data.error || 'Failed to load run');
             const runData = data.run || {};
@@ -2240,7 +2240,7 @@
             if (!confirm(`Delete keyword "${kw.keyword}"?`)) return;
         }
         try {
-            const url = deleteBtn ? '/scraper/keywords/delete/' : '/scraper/keywords/toggle/';
+            const url = deleteBtn ? '/app/scraper/keywords/delete/' : '/app/scraper/keywords/toggle/';
             const data = await keywordPost(url, kw.keyword);
             if (!data.success) throw new Error(data.error || 'Request failed');
             currentKeywords = data.keywords || [];
@@ -2262,7 +2262,7 @@
             if (!confirm(`Delete location "${loc.location}"?`)) return;
         }
         try {
-            const url = deleteBtn ? '/scraper/locations/delete/' : '/scraper/locations/toggle/';
+            const url = deleteBtn ? '/app/scraper/locations/delete/' : '/app/scraper/locations/toggle/';
             const data = await locationPost(url, loc.location);
             if (!data.success) throw new Error(data.error || 'Request failed');
             currentLocations = data.locations || [];

@@ -29,6 +29,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'sales_project.middleware.FriendlyErrorMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -38,12 +39,13 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'sales_project.middleware.LoginRequiredMiddleware',
+    'sales_project.middleware.CacheControlMiddleware',
 ]
 
 ROOT_URLCONF = 'sales_project.urls'
 
 LOGIN_URL = '/login/'
-LOGIN_REDIRECT_URL = '/'
+LOGIN_REDIRECT_URL = '/app/'
 LOGOUT_REDIRECT_URL = '/login/'
 
 TEMPLATES = [
@@ -122,7 +124,13 @@ PITCH_EMAIL_HOST_USER = os.getenv('PITCH_EMAIL_HOST_USER')
 PITCH_GMAIL_APP_PASSWORD = os.getenv('PITCH_GMAIL_APP_PASSWORD')
 
 # --- Email (SMTP) Configuration (Used by ai_agent_pitch) ---
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+# Fall back to console email backend when no SMTP credentials are configured,
+# so auth flows (e.g. password reset) don't crash in dev. The reset link is
+# printed to the runserver console instead of being emailed.
+if PITCH_EMAIL_HOST_USER and PITCH_GMAIL_APP_PASSWORD:
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+else:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
@@ -131,6 +139,11 @@ EMAIL_HOST_PASSWORD = PITCH_GMAIL_APP_PASSWORD     # <-- Uses mapped GMAIL_APP_P
 DEFAULT_FROM_EMAIL = PITCH_EMAIL_HOST_USER
 DEFAULT_FROM_NAME = os.getenv('DEFAULT_FROM_NAME', 'KalisoftAI')
 SITE_URL = os.getenv('SITE_URL', 'http://127.0.0.1:8000')
+
+# The Django user who owns the default (env-configured) sending account.
+# Only this user may send without connecting a personal Gmail; everyone else
+# must connect + verify their own Gmail on the Gmail Settings page first.
+DEFAULT_EMAIL_OWNER_USERNAME = os.getenv('DEFAULT_EMAIL_OWNER_USERNAME', 'kalisoftai')
 
 
 # --- Google Sheets Configuration ---
@@ -173,3 +186,21 @@ GCS_CONTACTS_FOLDER = 'contacts/'
 # Shared secret used by Cloud Scheduler (or any cron) to trigger the daily
 # scrape via /scraper/scheduler/run/ (header X-Scheduler-Secret or ?token=).
 SCHEDULER_SECRET = os.getenv('SCHEDULER_SECRET', '')
+
+# ==================================================================
+# PRODUCTION HARDENING (applied automatically when DEBUG=False)
+# Cloud Run terminates TLS at Google's load balancer and forwards the
+# original protocol in X-Forwarded-Proto, so SECURE_PROXY_SSL_HEADER
+# lets Django trust it without causing redirect loops.
+# ==================================================================
+if not DEBUG:
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SECURE_SSL_REDIRECT = os.getenv('SECURE_SSL_REDIRECT', 'True') == 'True'
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = int(os.getenv('SECURE_HSTS_SECONDS', '31536000'))
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    SECURE_REFERRER_POLICY = 'same-origin'
+    X_FRAME_OPTIONS = 'DENY'
