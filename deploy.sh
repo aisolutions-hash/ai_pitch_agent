@@ -94,6 +94,7 @@ gcloud run deploy "$SERVICE_NAME" \
   --memory 1Gi \
   --cpu 1 \
   --timeout 600 \
+  --no-cpu-throttling \
   --env-vars-file "$ENV_FILE" \
   --set-secrets="GOOGLE_CREDENTIALS_JSON=${SECRET_NAME}:latest"
 

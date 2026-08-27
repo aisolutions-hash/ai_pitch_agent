@@ -107,6 +107,67 @@ def contacts_list(request):
 
 
 @login_required
+def diagnostics(request):
+    """
+    Admin health-check endpoint: reports which integration configs are present
+    and whether GCS / Sheets / Gemini / DB are actually reachable.
+    NEVER returns secret values - only presence booleans and short messages.
+    """
+    import os
+    from django.conf import settings as s
+    from django.contrib.auth.models import User as U
+
+    required = ['DJANGO_SECRET_KEY', 'DB_NAME', 'DB_USER', 'DB_PASSWORD', 'DB_HOST',
+                'GEMINI_API_KEY', 'SERPAPI_API_KEY', 'GOOGLE_SHEET_ID', 'LINKEDIN_SHEET_ID',
+                'PITCH_SHEET_ID', 'GCS_BUCKET_NAME', 'GCS_PROJECT_ID', 'GOOGLE_CREDENTIALS_JSON',
+                'PITCH_EMAIL_HOST_USER', 'PITCH_GMAIL_APP_PASSWORD', 'APP_USERNAME',
+                'APP_PASSWORD', 'SCHEDULER_SECRET', 'SITE_URL']
+    env = {k: bool(os.getenv(k)) for k in required}
+
+    checks = {}
+
+    try:
+        checks['database'] = {'ok': True, 'detail': f'users={U.objects.count()}'}
+    except Exception as e:
+        checks['database'] = {'ok': False, 'detail': str(e)[:150]}
+
+    try:
+        from dashboard import gcs
+        bucket = gcs._get_bucket()
+        if not bucket:
+            checks['gcs'] = {'ok': False, 'detail': 'bucket client failed (credentials/permissions)'}
+        else:
+            n = 0
+            for _ in bucket.list_blobs(prefix='contacts/user_1_linkedin/', page_size=6):
+                n += 1
+            checks['gcs'] = {'ok': n > 0, 'detail': f'user_1_linkedin blobs found: {n}'}
+    except Exception as e:
+        checks['gcs'] = {'ok': False, 'detail': str(e)[:150]}
+
+    try:
+        from sales_project.google_auth import default_or_loaded
+        import gspread
+        creds = default_or_loaded(['https://www.googleapis.com/auth/spreadsheets'])
+        gc = gspread.authorize(creds)
+        sh = gc.open_by_key(s.GOOGLE_SHEET_ID)
+        checks['sheets'] = {'ok': True, 'detail': f'opened sheet "{sh.title}"'}
+    except Exception as e:
+        checks['sheets'] = {'ok': False, 'detail': str(e)[:150]}
+
+    try:
+        import google.generativeai as genai
+        genai.configure(api_key=s.GEMINI_API_KEY)
+        models = list(genai.list_models())
+        checks['gemini'] = {'ok': True, 'detail': f'{len(models)} models visible'}
+    except Exception as e:
+        checks['gemini'] = {'ok': False, 'detail': str(e)[:150]}
+
+    overall = all(c['ok'] for c in checks.values())
+    return JsonResponse({'overall_ok': overall, 'env': env, 'checks': checks},
+                        status=200 if overall else 503)
+
+
+@login_required
 def contacts_count(request):
     """
     API endpoint to get contact counts for all categories.
@@ -144,28 +205,74 @@ def contacts_count(request):
 def add_contact(request):
     """
     API endpoint to add a contact for the authenticated user.
+
+    Accepts the dashboard's flat payload:
+        {category, name, company, email, phone, linkedin_url, website, tags, notes}
+    Also remains backward compatible with the older form:
+        {category, uid, data: {...}}
+
+    uid rules: if provided -> use it; else if linkedin_url present -> profile
+    slug (deterministic, so re-adding the same person updates instead of
+    duplicating); else slug(name) + short random suffix.
     """
-    if request.method == 'POST':
-        try:
-            import json as json_mod
-            data = json_mod.loads(request.body)
-            category = data.get('category', 'linkedin')
-            uid = data.get('uid')
-            contact_data = data.get('data')
-            
-            if not uid or not contact_data:
-                return JsonResponse({'status': 'error', 'message': 'UID and data are required'}, status=400)
-            
-            result = gcs.upload_contact(category, uid, contact_data, user=request.user)
-            if result:
-                return JsonResponse({'status': 'success', 'message': 'Contact added successfully'})
-            else:
-                return JsonResponse({'status': 'error', 'message': 'Failed to add contact'}, status=500)
-        except Exception as e:
-            logger.error(f"Error adding contact: {e}")
-            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
-    else:
+    import hashlib
+    import re
+    from django.utils import timezone
+
+    if request.method != 'POST':
         return JsonResponse({'status': 'error', 'message': 'POST method required'}, status=405)
+
+    try:
+        data = json.loads(request.body or '{}')
+    except json.JSONDecodeError:
+        return JsonResponse({'status': 'error', 'message': 'Invalid JSON body'}, status=400)
+
+    category = (data.get('category') or 'linkedin').strip().lower()
+    if category not in ('linkedin', 'suppliers', 'buyers', 'events'):
+        return JsonResponse({'status': 'error', 'message': f'Invalid category: {category}'}, status=400)
+
+    # Build contact_data: nested 'data' dict (legacy) OR flat fields (current UI)
+    contact_data = data.get('data') if isinstance(data.get('data'), dict) else None
+    if contact_data is None:
+        contact_data = {
+            'name': (data.get('name') or '').strip(),
+            'company': (data.get('company') or '').strip(),
+            'email': (data.get('email') or '').strip(),
+            'phone': (data.get('phone') or '').strip(),
+            'linkedin_url': (data.get('linkedin_url') or '').strip(),
+            'website': (data.get('website') or '').strip(),
+            'tags': data.get('tags') if isinstance(data.get('tags'), list) else [],
+            'notes': (data.get('notes') or '').strip(),
+        }
+
+    if not (contact_data.get('name') or '').strip():
+        return JsonResponse({'status': 'error', 'message': 'Name is required'}, status=400)
+
+    uid = (data.get('uid') or '').strip()
+    if not uid:
+        linkedin_url = (contact_data.get('linkedin_url') or '').strip()
+        if linkedin_url:
+            uid = linkedin_url.rstrip('/').split('/')[-1]
+        else:
+            slug = re.sub(r'[^a-z0-9]+', '-', contact_data['name'].lower()).strip('-') or 'contact'
+            uid = f"{slug}-{hashlib.md5((contact_data['name'] + timezone.now().isoformat()).encode()).hexdigest()[:6]}"
+
+    now = timezone.now().isoformat()
+    contact_data.setdefault('created_at', now)
+    contact_data['updated_at'] = now
+
+    result = gcs.upload_contact(category, uid, contact_data, user=request.user)
+    if not result:
+        return JsonResponse(
+            {'status': 'error', 'message': 'Storage backend unavailable - contact could not be saved'},
+            status=502,
+        )
+    return JsonResponse({
+        'status': 'success',
+        'message': 'Contact added successfully',
+        'uid': uid,
+        'category': category,
+    })
 
 
 @login_required

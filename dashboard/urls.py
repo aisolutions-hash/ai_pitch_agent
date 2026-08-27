@@ -5,6 +5,7 @@ urlpatterns = [
     path('', views.home, name='dashboard-home'),
     path('api/contacts/list/', views.contacts_list, name='contacts-list'),
     path('api/contacts/count/', views.contacts_count, name='contacts-count'),
+    path('api/diagnostics/', views.diagnostics, name='diagnostics'),
     path('api/contacts/add/', views.add_contact, name='add-contact'),
     path('api/contacts/upload/', views.upload_contacts, name='upload-contacts'),
     path('api/contacts/delete/', views.delete_contact, name='delete-contact'),

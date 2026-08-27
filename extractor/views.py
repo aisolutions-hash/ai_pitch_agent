@@ -246,7 +246,10 @@ def search_emails(query, user_email):
 
 # --- Django Views ---
 
+from sales_project.decorators import owner_required
+
 @login_required
+@owner_required
 def search_view(request):
     """Handles email search and CSV upload."""
     context = {}
@@ -349,6 +352,7 @@ def search_view(request):
 
 
 @login_required
+@owner_required
 def download_csv(request):
     """Exports supplier data as a CSV file."""
     results = Supplier.objects.filter(user=request.user)
@@ -374,6 +378,7 @@ def download_csv(request):
 # It's useful if your sheet gets out of sync.
 
 @login_required
+@owner_required
 def sync_all_to_google_sheet(request):
     """
     DANGER: This function REPLACES the entire Google Sheet

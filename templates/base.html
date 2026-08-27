@@ -28,7 +28,9 @@
                         
                         <a href="{% url 'ai_agent_pitch:dashboard' %}" class="py-4 px-3 text-slate-600 hover:text-purple-600 transition duration-150">Pitch Dashboard</a>
                         
+                        {% if IS_APP_OWNER %}
                         <a href="{% url 'extractor:search' %}" class="py-4 px-3 text-slate-600 hover:text-purple-600 transition duration-150">Supplier Search</a>
+                        {% endif %}
 
                         <a href="{% url 'pitch_generator:create_pitch' %}" class="py-4 px-3 text-slate-600 hover:text-purple-600 transition duration-150 border-b-2 border-transparent hover:border-purple-500">Smart Sales Gen</a>
                     </div>

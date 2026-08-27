@@ -451,11 +451,26 @@ def _save_profile_to_sheets(contact_data, saved_at):
         return False
 
 
+def _resolve_scrape_owner(user=None):
+    """
+    Decide which Django user owns scraped contacts. Explicit user wins;
+    otherwise the app owner (DEFAULT_EMAIL_OWNER_USERNAME, e.g. kalisoftai);
+    last resort: the first user. Scheduled scrapes have no request, so this
+    keeps data landing in the same user-scoped GCS folders as the dashboard.
+    """
+    if user is not None:
+        return user
+    from django.contrib.auth.models import User
+    owner_name = getattr(settings, 'DEFAULT_EMAIL_OWNER_USERNAME', '')
+    owner = User.objects.filter(username=owner_name).first()
+    return owner or User.objects.order_by('id').first()
+
+
 # ---------------------------------------------------------------------------
 # Scheduled scrape runner
 # ---------------------------------------------------------------------------
 
-def scrape_keyword(keyword, num=10, save_contacts=True, on_profile_done=None, location=None):
+def scrape_keyword(keyword, num=10, save_contacts=True, on_profile_done=None, location=None, user=None):
     """
     Scrape LinkedIn for a keyword (optionally filtered to a location), analyze
     each profile with Gemini, and store the batch result in GCS
@@ -467,6 +482,7 @@ def scrape_keyword(keyword, num=10, save_contacts=True, on_profile_done=None, lo
     (used for live progress reporting). Returns a per-keyword summary dict.
     """
     started = timezone.now()
+    owner = _resolve_scrape_owner(user)
     summary = {
         'keyword': keyword,
         'location': location or '',
@@ -474,6 +490,7 @@ def scrape_keyword(keyword, num=10, save_contacts=True, on_profile_done=None, lo
         'status': 'failed',
         'profiles_found': 0,
         'profiles_analyzed': 0,
+        'gcs_saved': 0,
         'sheets_saved': 0,
         'run_path': None,
         'error': None,
@@ -520,10 +537,11 @@ def scrape_keyword(keyword, num=10, save_contacts=True, on_profile_done=None, lo
             contact_data['scraped_at'] = started.isoformat()
 
             if save_contacts:
-                try:
-                    upload_contact('linkedin', _profile_uid(linkedin_url, name), contact_data)
-                except Exception as gcs_error:
-                    logger.warning(f"[{keyword}] Failed to save contact to GCS ({name}): {gcs_error}")
+                gcs_ok = upload_contact('linkedin', _profile_uid(linkedin_url, name), contact_data, user=owner)
+                if gcs_ok:
+                    summary['gcs_saved'] += 1
+                else:
+                    logger.warning(f"[{keyword}] GCS save returned failure for {name}")
 
             # Also save to the Google spreadsheet (same as the interactive scraper)
             if _save_profile_to_sheets(contact_data, started.isoformat()):
@@ -584,7 +602,7 @@ def scrape_keyword(keyword, num=10, save_contacts=True, on_profile_done=None, lo
     return summary
 
 
-def run_daily_scrape(keywords=None, locations=None, num=10, trigger='manual'):
+def run_daily_scrape(keywords=None, locations=None, num=10, trigger='manual', user=None):
     """
     Run the daily scrape for all (or given) keywords × locations, persisting
     live progress to GCS (scraper_config/progress.json) so the dashboard can
@@ -660,7 +678,7 @@ def run_daily_scrape(keywords=None, locations=None, num=10, trigger='manual'):
             save_scrape_progress(progress)
 
         summaries.append(scrape_keyword(keyword, num=num, location=location or None,
-                                        on_profile_done=_on_profile_done))
+                                        on_profile_done=_on_profile_done, user=user))
         progress['summaries'] = summaries
 
     ok = sum(1 for s in summaries if s.get('status') == 'success')

@@ -234,7 +234,7 @@ def analyze_profile(request):
                 name=name, company=company, headline=headline, location=location,
                 linkedin_url=linkedin_url, snippet=snippet, analysis=analysis,
             )
-            upload_contact('linkedin', uid, contact_data)
+            upload_contact('linkedin', uid, contact_data, user=request.user)
             logger.info(f"Profile saved to GCS: {name}")
         except Exception as gcs_error:
             logger.warning(f"Failed to save to GCS: {gcs_error}")
@@ -403,7 +403,7 @@ def save_to_contacts(request):
         # Upload to GCS - make it optional
         gcs_result = False
         try:
-            gcs_result = upload_contact('linkedin', uid, contact_data)
+            gcs_result = upload_contact('linkedin', uid, contact_data, user=request.user)
         except Exception as gcs_error:
             logger.warning(f"GCS upload failed (will continue with Sheets): {gcs_error}")
         
@@ -815,11 +815,21 @@ def scrape_run_detail(request):
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 
-def _start_background_scrape(keywords=None, locations=None, trigger='manual'):
-    """Kick off run_daily_scrape in a daemon thread and return the thread."""
+def _start_background_scrape(keywords=None, locations=None, trigger='manual', user=None):
+    """Kick off run_daily_scrape in a daemon thread and return the thread.
+
+    `user` must be captured BEFORE the request finishes - request.user is not
+    safe to touch inside the background thread."""
+    user_id = getattr(user, 'id', None)
+
     def _target():
         try:
-            summaries = run_daily_scrape(keywords=keywords, locations=locations, trigger=trigger)
+            owner = None
+            if user_id:
+                from django.contrib.auth.models import User
+                owner = User.objects.filter(id=user_id).first()
+            summaries = run_daily_scrape(keywords=keywords, locations=locations,
+                                         trigger=trigger, user=owner)
             ok = sum(1 for s in summaries if s.get('status') == 'success')
             logger.info(f"Background scrape finished: {ok}/{len(summaries)} jobs succeeded")
         except Exception as e:
@@ -854,6 +864,7 @@ def run_scrape_now(request):
             keywords=[keyword] if keyword else None,
             locations=[location] if location else None,
             trigger='manual',
+            user=request.user,
         )
         return JsonResponse({
             'success': True,

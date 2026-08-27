@@ -70,10 +70,12 @@
                 <span class="text-lg">✉️</span>
                 <span>AI Pitch Creator</span>
             </a>
+            {% if IS_APP_OWNER %}
             <a href="{% url 'extractor:search' %}" class="flex items-center gap-3 px-4 py-2.5 text-slate-600 hover:text-purple-700 hover:bg-purple-50 rounded-lg transition-colors">
                 <span class="text-lg">📊</span>
                 <span>Extractor</span>
             </a>
+            {% endif %}
             <a href="{% url 'pitch_generator:create_pitch' %}" class="flex items-center gap-3 px-4 py-2.5 text-slate-600 hover:text-purple-700 hover:bg-purple-50 rounded-lg transition-colors">
                 <span class="text-lg">🎯</span>
                 <span>Pitch Generator</span>
