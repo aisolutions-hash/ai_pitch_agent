@@ -13,16 +13,52 @@
 set -euo pipefail
 
 PROJECT_ID="${GOOGLE_CLOUD_PROJECT:-$(gcloud config get-value project 2>/dev/null)}"
-[ -n "$PROJECT_ID" ] && [ "$PROJECT_ID" != "None" ] || {
+[ -n "$PROJECT_ID" ] [ "$PROJECT_ID" != "None" ] || {
   echo "ERROR: Set GOOGLE_CLOUD_PROJECT or run 'gcloud config set project <id>'"; exit 1;
 }
 
 REGION="${REGION:-us-central1}"
 SERVICE_NAME="${SERVICE_NAME:-sales-agent}"
 AR_REPO="${AR_REPO:-cloud-run-source-deploy}"
-IMAGE="${REGION}-docker.pkg.dev/${PROJECT_ID}/${AR_REPO}/${SERVICE_NAME}"
 ENV_FILE="${ENV_FILE:-cloudrun.env.yaml}"
 SECRET_NAME="${SECRET_NAME:-google-app-credentials}"
+
+# ---------------------------------------------------- env-to-yaml converter
+# Converts plain KEY=value .env format to YAML for gcloud --env-vars-file
+env_to_yaml() {
+  local src="$1" dst
+  dst=$(mktemp)
+  while IFS= read -r line || [ -n "$line" ]; do
+    # skip comments and blank lines
+    [[ "$line" =~ ^[[:space:]]*# ]] && continue
+    [[ -z "${line// }" ]] && continue
+    # strip leading whitespace, split on first =
+    key="${line%%=\"*}"
+    key="${key%%\'*)}"
+    key="${key#"${key%%[![:space:]]*}"}"  # trim leading spaces
+    [ -z "$key" ] && continue
+    val="${line#*=}"
+    # remove surrounding quotes if present
+    val="${val%\"}"
+    val="${val\'})}"
+    val="${val#\"}"
+    val="${val#\'}"
+    # escape YAML special chars
+    val=$(printf '%s' "$val" | sed 's/"/\\"/g')
+    printf '%s: %s\n' "$key" "$val" >> "$dst"
+  done < "$src"
+  printf '%s\n' "$dst"
+}
+
+# ---------------------------------------------------- convert .env to YAML if needed
+if [[ "$ENV_FILE" == *.env && ! "$ENV_FILE" == *.yaml && ! "$ENV_FILE" == *.yml ]]; then
+  echo "=== Converting .env to YAML format ==="
+  ENV_FILE=$(env_to_yaml "$ENV_FILE")
+  if [ ! -s "$ENV_FILE" ]; then
+    echo "ERROR: Converted YAML is empty. Check your .env file format."
+    exit 1
+  fi
+fi
 
 echo "Project : $PROJECT_ID"
 echo "Region  : $REGION"
