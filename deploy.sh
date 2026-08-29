@@ -13,7 +13,7 @@
 set -euo pipefail
 
 PROJECT_ID="${GOOGLE_CLOUD_PROJECT:-$(gcloud config get-value project 2>/dev/null)}"
-[ -n "$PROJECT_ID" ] [ "$PROJECT_ID" != "None" ] || {
+[ -n "$PROJECT_ID" ] && [ "$PROJECT_ID" != "None" ] || {
   echo "ERROR: Set GOOGLE_CLOUD_PROJECT or run 'gcloud config set project <id>'"; exit 1;
 }
 
