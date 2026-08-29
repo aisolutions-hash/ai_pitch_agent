@@ -20,6 +20,7 @@ PROJECT_ID="${GOOGLE_CLOUD_PROJECT:-$(gcloud config get-value project 2>/dev/nul
 REGION="${REGION:-us-central1}"
 SERVICE_NAME="${SERVICE_NAME:-sales-agent}"
 AR_REPO="${AR_REPO:-cloud-run-source-deploy}"
+IMAGE="${REGION}-docker.pkg.dev/${PROJECT_ID}/${AR_REPO}/${SERVICE_NAME}"
 ENV_FILE="${ENV_FILE:-cloudrun.env.yaml}"
 SECRET_NAME="${SECRET_NAME:-google-app-credentials}"
 
