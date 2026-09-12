@@ -1,0 +1,45 @@
+steps:
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      - build
+      - "-f"
+      - "Dockerfile.sales"
+      - "-t"
+      - "gcr.io/$PROJECT_ID/kalisoft-sales:$SHORT_SHA"
+      - "-t"
+      - "gcr.io/$PROJECT_ID/kalisoft-sales:latest"
+      - "."
+
+  - name: "gcr.io/cloud-builders/docker"
+    args: ["push", "gcr.io/$PROJECT_ID/kalisoft-sales:$SHORT_SHA"]
+
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - kalisoft-sales
+      - "--image=gcr.io/$PROJECT_ID/kalisoft-sales:$SHORT_SHA"
+      - "--region=${_REGION}"
+      - "--platform=managed"
+      - "--allow-unauthenticated"
+      - "--add-cloudsql-instances=${_CLOUD_SQL_INSTANCE}"
+      - "--set-secrets=SECRET_KEY=SALES_SECRET_KEY:latest,DATABASE_URL=SALES_DATABASE_URL:latest"
+      - "--set-env-vars=ENV=production,GOOGLE_CLOUD_PROJECT=$PROJECT_ID,GCS_BUCKET_CONTACTS=kalisoftai-datahub,GCS_PATH_CONTACTS=all-sales-contacts-data,CLOUD_SQL_CONNECTION_NAME=${_CLOUD_SQL_INSTANCE},CORS_ORIGINS=${_CORS_ORIGINS},AUTH_DEV_MODE=false"
+      - "--no-cpu-throttling"
+      - "--min-instances=0"
+      - "--max-instances=5"
+      - "--memory=512Mi"
+      - "--cpu=1"
+      - "--timeout=300"
+
+images:
+  - "gcr.io/$PROJECT_ID/kalisoft-sales:$SHORT_SHA"
+
+substitutions:
+  _REGION: "asia-south1"
+  _CLOUD_SQL_INSTANCE: "PROJECT:REGION:INSTANCE"
+  _CORS_ORIGINS: "https://kalisoft-sales-HASH.a.run.app"
+
+options:
+  logging: CLOUD_LOGGING_ONLY

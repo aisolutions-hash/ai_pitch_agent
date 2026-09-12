@@ -1,0 +1,15 @@
+.git
+.gitignore
+**/__pycache__
+**/*.pyc
+*.db
+*.sqlite3
+.env
+.venv
+venv
+tests
+data
+staticfiles
+notebooks
+*.md
+!ROADMAP.md

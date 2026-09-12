@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kalisoft AI Sales Pipeline</title>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <style>
+    :root { --bg:#0f172a; --card:#1e293b; --muted:#94a3b8; --accent:#38bdf8; --ok:#22c55e; --err:#ef4444; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background:var(--bg); color:#e2e8f0; }
+    header { display:flex; justify-content:space-between; align-items:center; padding:14px 22px; background:var(--card); border-bottom:1px solid #334155; }
+    header h1 { font-size:16px; margin:0; }
+    main { max-width:1100px; margin:0 auto; padding:22px; }
+    .hidden { display:none !important; }
+    .card { background:var(--card); border:1px solid #334155; border-radius:12px; padding:18px; margin-bottom:18px; }
+    input, select, textarea, button { font:inherit; padding:9px 11px; border-radius:8px; border:1px solid #334155; background:#0b1220; color:#e2e8f0; }
+    button { cursor:pointer; background:var(--accent); color:#04263a; border:none; font-weight:600; }
+    button.ghost { background:transparent; border:1px solid #334155; color:#e2e8f0; }
+    .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    table { width:100%; border-collapse:collapse; font-size:13px; }
+    th, td { text-align:left; padding:8px; border-bottom:1px solid #334155; }
+    .tag { background:#0b1220; border:1px solid #334155; border-radius:999px; padding:2px 9px; font-size:11px; }
+    .muted { color:var(--muted); font-size:12px; }
+    .stat { display:inline-block; background:#0b1220; border:1px solid #334155; border-radius:10px; padding:10px 14px; margin-right:10px; }
+    .toast { position:fixed; bottom:20px; right:20px; background:#0b1220; border:1px solid var(--accent); padding:12px 16px; border-radius:10px; }
+    .toast.err { border-color:var(--err); }
+  </style>
+</head>
+<body>
+<header>
+  <h1>Kalisoft AI Sales Pipeline</h1>
+  <div id="authArea" class="row"></div>
+</header>
+
+<main>
+  <section id="loginCard" class="card">
+    <h3>Sign in</h3>
+    <p class="muted">Use Google Sign-In, or dev mode for local testing.</p>
+    <div id="g_id_onload" data-auto_prompt="false"></div>
+    <div class="g_id_signin" data-type="standard" data-size="large"></div>
+    <div id="devLogin" class="row hidden" style="margin-top:12px">
+      <input id="devEmail" placeholder="dev@kalisoftai.com" />
+      <button class="ghost" onclick="devLogin()">Dev sign-in</button>
+    </div>
+  </section>
+
+  <section id="appArea" class="hidden">
+    <div class="card">
+      <div id="stats" class="row"></div>
+    </div>
+
+    <div class="card">
+      <h3>Add contact</h3>
+      <div class="row">
+        <input id="c_company" placeholder="Company" />
+        <input id="c_name" placeholder="Contact name" />
+        <input id="c_email" placeholder="Email" />
+        <input id="c_phone" placeholder="Phone" />
+      </div>
+      <div class="row" style="margin-top:8px">
+        <input id="c_domain" placeholder="Domain (auto if blank)" />
+        <select id="c_intent">
+          <option value="">Intent (auto)</option>
+          <option>procurement</option><option>sales</option><option>hiring</option>
+          <option>partnership</option><option>support</option><option>general</option>
+        </select>
+        <input id="c_context" placeholder="Context" style="flex:1" />
+        <button onclick="addContact()">Add</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="row">
+        <h3 style="margin:0;flex:1">Contacts</h3>
+        <input id="filter" placeholder="Search..." oninput="loadContacts()" />
+        <select id="filterIntent" onchange="loadContacts()">
+          <option value="">All intents</option>
+          <option>procurement</option><option>sales</option><option>hiring</option>
+          <option>partnership</option><option>support</option><option>general</option>
+        </select>
+        <button class="ghost" onclick="importGcs()">Import from GCS</button>
+      </div>
+      <table>
+        <thead><tr><th>Company</th><th>Name</th><th>Email</th><th>Domain</th><th>Intent</th><th>Source</th></tr></thead>
+        <tbody id="contactsBody"></tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h3>Outreach sources</h3>
+      <div class="row">
+        <button class="ghost" onclick="searchLinkedIn()">LinkedIn hiring search</button>
+        <button class="ghost" onclick="searchReddit()">Reddit hiring search</button>
+        <button class="ghost" onclick="runCron()">Run cron sweep</button>
+      </div>
+      <pre id="socialOut" class="muted"></pre>
+    </div>
+  </section>
+</main>
+
+<script>
+let token = localStorage.getItem("token") || "";
+let config = {};
+
+async function api(path, opts = {}) {
+  opts.headers = Object.assign({ "Content-Type": "application/json" }, opts.headers || {});
+  if (token) opts.headers["Authorization"] = "Bearer " + token;
+  const res = await fetch("/api" + path, opts);
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text);
+  }
+  return res.status === 204 ? null : res.json();
+}
+
+function toast(msg, isErr) {
+  const el = document.createElement("div");
+  el.className = "toast" + (isErr ? " err" : "");
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 3200);
+}
+
+async function init() {
+  config = await (await fetch("/api/config")).json();
+  if (config.dev_mode) document.getElementById("devLogin").classList.remove("hidden");
+  if (config.google_client_id) {
+    google.accounts.id.initialize({ client_id: config.google_client_id, callback: onGoogle });
+    google.accounts.id.renderButton(document.querySelector(".g_id_signin"), { theme: "outline", size: "large" });
+  } else {
+    document.querySelector(".g_id_signin").classList.add("hidden");
+  }
+  if (token) showApp();
+}
+
+async function onGoogle(response) { await login(response.credential); }
+async function devLogin() {
+  const email = document.getElementById("devEmail").value.trim();
+  if (!email) return toast("Enter an email", true);
+  await login("dev:" + email);
+}
+
+async function login(idToken) {
+  try {
+    const data = await api("/auth/google", { method: "POST", body: JSON.stringify({ id_token: idToken }) });
+    token = data.access_token;
+    localStorage.setItem("token", token);
+    showApp();
+  } catch (e) { toast("Login failed: " + e.message, true); }
+}
+
+function logout() { token = ""; localStorage.removeItem("token"); location.reload(); }
+
+async function showApp() {
+  document.getElementById("loginCard").classList.add("hidden");
+  document.getElementById("appArea").classList.remove("hidden");
+  try {
+    const me = await api("/auth/me");
+    document.getElementById("authArea").innerHTML =
+      `<span class="muted">${me.email}</span><button class="ghost" onclick="logout()">Logout</button>`;
+  } catch { logout(); return; }
+  loadStats(); loadContacts();
+}
+
+async function loadStats() {
+  const s = await api("/contacts/stats");
+  const byIntent = Object.entries(s.by_intent).map(([k, v]) => `${k}: ${v}`).join(" · ") || "none";
+  document.getElementById("stats").innerHTML =
+    `<span class="stat"><b>${s.total}</b> contacts</span><span class="stat">by intent → ${byIntent}</span>`;
+}
+
+async function loadContacts() {
+  const q = document.getElementById("filter").value.trim();
+  const intent = document.getElementById("filterIntent").value;
+  const params = new URLSearchParams();
+  if (q) params.set("q", q);
+  if (intent) params.set("intent", intent);
+  const rows = await api("/contacts?" + params.toString());
+  document.getElementById("contactsBody").innerHTML = rows.map(c => `
+    <tr>
+      <td>${c.company || "-"}</td><td>${c.name || "-"}</td>
+      <td>${c.email}</td><td><span class="tag">${c.domain || "-"}</span></td>
+      <td><span class="tag">${c.intent || "-"}</span></td><td>${c.source}</td>
+    </tr>`).join("") || `<tr><td colspan="6" class="muted">No contacts yet</td></tr>`;
+}
+
+async function addContact() {
+  const body = {
+    company: document.getElementById("c_company").value.trim(),
+    name: document.getElementById("c_name").value.trim(),
+    email: document.getElementById("c_email").value.trim(),
+    phone: document.getElementById("c_phone").value.trim(),
+    domain: document.getElementById("c_domain").value.trim(),
+    intent: document.getElementById("c_intent").value,
+    context: document.getElementById("c_context").value.trim(),
+  };
+  if (!body.email) return toast("Email is required", true);
+  try {
+    await api("/contacts", { method: "POST", body: JSON.stringify(body) });
+    toast("Contact added");
+    ["c_company","c_name","c_email","c_phone","c_domain","c_context"].forEach(id => document.getElementById(id).value = "");
+    loadContacts(); loadStats();
+  } catch (e) { toast("Add failed: " + e.message, true); }
+}
+
+async function importGcs() {
+  try {
+    const res = await api("/contacts/import/gcs", { method: "POST" });
+    toast(`Imported ${res.imported}, skipped ${res.skipped}`);
+    loadContacts(); loadStats();
+  } catch (e) { toast("Import failed: " + e.message, true); }
+}
+
+async function searchLinkedIn() {
+  const res = await api("/social/linkedin/search", { method: "POST", body: JSON.stringify({ keywords: ["procurement", "scm", "hiring"] }) });
+  document.getElementById("socialOut").textContent = "LinkedIn: " + JSON.stringify(res);
+}
+
+async function searchReddit() {
+  const res = await api("/social/reddit/search", { method: "POST", body: JSON.stringify({}) });
+  document.getElementById("socialOut").textContent = "Reddit: " + JSON.stringify(res);
+}
+
+async function runCron() {
+  const res = await api("/cron/run", { method: "POST" });
+  document.getElementById("socialOut").textContent = "Cron: " + JSON.stringify(res);
+}
+
+init();
+</script>
+</body>
+</html>

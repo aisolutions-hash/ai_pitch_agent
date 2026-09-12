@@ -1,0 +1,17 @@
+# FastAPI sales pipeline (isolated from the legacy Django requirements.txt)
+fastapi>=0.115
+uvicorn[standard]>=0.30
+pydantic>=2.7
+pydantic-settings>=2.3
+SQLAlchemy>=2.0
+psycopg2-binary>=2.9.9
+google-auth>=2.29
+google-cloud-storage>=2.19
+PyJWT>=2.8
+cryptography>=42.0
+redis>=5.0
+python-multipart>=0.0.9
+
+# Testing
+pytest>=8.0
+httpx>=0.27
