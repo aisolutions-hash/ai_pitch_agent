@@ -154,10 +154,7 @@ class GeminiProvider:
         import httpx
 
         started = monotonic()
-        url = (
-            "https://generativelanguage.googleapis.com/v1beta/models/"
-            f"{model}:generateContent"
-        )
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
         body: dict = {
             "contents": [{"parts": [{"text": prompt}]}],
             "generationConfig": {
@@ -173,7 +170,7 @@ class GeminiProvider:
             response.raise_for_status()
             data = response.json()
         candidates = data.get("candidates") or []
-        parts = (candidates[0].get("content", {}).get("parts", []) if candidates else [])
+        parts = candidates[0].get("content", {}).get("parts", []) if candidates else []
         text = "".join(part.get("text", "") for part in parts)
         usage = data.get("usageMetadata", {})
         return LLMResult(

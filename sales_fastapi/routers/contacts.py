@@ -47,9 +47,7 @@ def list_contacts(
     if q:
         like = f"%{q}%"
         query = query.filter(
-            Contact.company.ilike(like)
-            | Contact.name.ilike(like)
-            | Contact.email.ilike(like)
+            Contact.company.ilike(like) | Contact.name.ilike(like) | Contact.email.ilike(like)
         )
     return query.order_by(Contact.created_at.desc()).all()
 
@@ -62,9 +60,7 @@ def create_contact(
     db: Session = Depends(get_db),
 ):
     existing = (
-        db.query(Contact)
-        .filter(Contact.user_id == user.id, Contact.email == payload.email)
-        .first()
+        db.query(Contact).filter(Contact.user_id == user.id, Contact.email == payload.email).first()
     )
     if existing:
         raise HTTPException(status_code=409, detail="Contact with this email already exists")
@@ -119,11 +115,7 @@ def contact_stats(
     base = db.query(Contact).filter(Contact.user_id == user.id)
 
     def group(column):
-        rows = (
-            base.with_entities(column, func.count(Contact.id))
-            .group_by(column)
-            .all()
-        )
+        rows = base.with_entities(column, func.count(Contact.id)).group_by(column).all()
         return {(value or "(none)"): count for value, count in rows}
 
     return {
@@ -140,11 +132,7 @@ def get_contact(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    contact = (
-        db.query(Contact)
-        .filter(Contact.id == contact_id, Contact.user_id == user.id)
-        .first()
-    )
+    contact = db.query(Contact).filter(Contact.id == contact_id, Contact.user_id == user.id).first()
     if contact is None:
         raise HTTPException(status_code=404, detail="Contact not found")
     return contact
@@ -158,11 +146,7 @@ def update_contact(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    contact = (
-        db.query(Contact)
-        .filter(Contact.id == contact_id, Contact.user_id == user.id)
-        .first()
-    )
+    contact = db.query(Contact).filter(Contact.id == contact_id, Contact.user_id == user.id).first()
     if contact is None:
         raise HTTPException(status_code=404, detail="Contact not found")
     changed = payload.model_dump(exclude_unset=True)
@@ -191,11 +175,7 @@ def delete_contact(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    contact = (
-        db.query(Contact)
-        .filter(Contact.id == contact_id, Contact.user_id == user.id)
-        .first()
-    )
+    contact = db.query(Contact).filter(Contact.id == contact_id, Contact.user_id == user.id).first()
     if contact is None:
         raise HTTPException(status_code=404, detail="Contact not found")
     db.delete(contact)
@@ -216,7 +196,9 @@ def delete_contact(
 # --------------------------------------------------------------------------
 # File / GCS import
 # --------------------------------------------------------------------------
-def _insert_records(db: Session, user: User, records: list[dict], *, source: str, gcs_path: str = "") -> tuple[int, int]:
+def _insert_records(
+    db: Session, user: User, records: list[dict], *, source: str, gcs_path: str = ""
+) -> tuple[int, int]:
     """Insert normalised records for a user, skipping duplicates and blanks."""
     imported = skipped = 0
     for record in records:

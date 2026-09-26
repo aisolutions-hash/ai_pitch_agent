@@ -26,8 +26,14 @@ from .config import settings
 # Contact segregation helpers (domain / intent / context)
 # ==========================================================================
 _FREE_EMAIL_DOMAINS = {
-    "gmail.com", "yahoo.com", "outlook.com", "hotmail.com", "rediffmail.com",
-    "live.com", "icloud.com", "protonmail.com",
+    "gmail.com",
+    "yahoo.com",
+    "outlook.com",
+    "hotmail.com",
+    "rediffmail.com",
+    "live.com",
+    "icloud.com",
+    "protonmail.com",
 }
 
 _INTENT_RULES: list[tuple[str, tuple[str, ...]]] = [
@@ -95,7 +101,9 @@ class GCSStorage:
             for blob in self._client.list_blobs(self.bucket_name, prefix=prefix):
                 if not blob.name.lower().endswith((".json", ".csv", ".vcf", ".xlsx", ".xls")):
                     continue
-                out.append({"name": blob.name, "size": blob.size, "content_type": blob.content_type})
+                out.append(
+                    {"name": blob.name, "size": blob.size, "content_type": blob.content_type}
+                )
         except Exception:
             return out
         return out
@@ -415,7 +423,9 @@ class MailSender:
         self.user = user
         self.password = password
 
-    def send(self, to: str, subject: str, body: str, from_email: str | None = None) -> dict[str, Any]:
+    def send(
+        self, to: str, subject: str, body: str, from_email: str | None = None
+    ) -> dict[str, Any]:
         from_email = from_email or self.user
         msg = MIMEMultipart()
         msg["From"] = from_email
@@ -437,7 +447,9 @@ class LinkedInExtractor:
     def __init__(self):
         self.available = bool(settings.LINKEDIN_CLIENT_ID)
 
-    def search_by_hiring_alerts(self, keywords: list[str], location: str = "") -> list[dict[str, Any]]:
+    def search_by_hiring_alerts(
+        self, keywords: list[str], location: str = ""
+    ) -> list[dict[str, Any]]:
         """Return candidate profile stubs for hiring-related keywords.
 
         Without API credentials this produces deterministic stubs so the pipeline

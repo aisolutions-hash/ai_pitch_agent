@@ -20,12 +20,45 @@ from ..governance.pii import kinds as pii_kinds
 from ..governance.pii import redact
 
 _INJECTION_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
-    ("override_instructions", re.compile(r"\b(ignore|disregard|forget)\b.{0,40}\b(previous|prior|above|earlier|system)\b.{0,20}\b(instruction|prompt|rules?|message)", re.I | re.S)),
-    ("reveal_system_prompt", re.compile(r"\b(reveal|show|print|repeat|expose|leak)\b.{0,30}\b(system prompt|instructions|prompt|rules)\b", re.I | re.S)),
-    ("role_hijack", re.compile(r"\b(you are now|act as|pretend to be|new (role|persona)|developer mode|jailbreak|DAN mode)\b", re.I)),
-    ("secret_exfiltration", re.compile(r"\b(api[_-]?key|secret|password|token|credential)s?\b.{0,25}\b(print|show|reveal|send|expose|dump)\b", re.I | re.S)),
-    ("tool_abuse", re.compile(r"\b(execute|run|eval)\b.{0,20}\b(shell|bash|cmd|powershell|python|os\.system|subprocess)\b", re.I | re.S)),
-    ("delimiter_escape", re.compile(r"(<\|(endoftext|im_start|im_end|system|assistant)\|>|\[/?(INST|SYS)\])", re.I)),
+    (
+        "override_instructions",
+        re.compile(
+            r"\b(ignore|disregard|forget)\b.{0,40}\b(previous|prior|above|earlier|system)\b.{0,20}\b(instruction|prompt|rules?|message)",
+            re.I | re.S,
+        ),
+    ),
+    (
+        "reveal_system_prompt",
+        re.compile(
+            r"\b(reveal|show|print|repeat|expose|leak)\b.{0,30}\b(system prompt|instructions|prompt|rules)\b",
+            re.I | re.S,
+        ),
+    ),
+    (
+        "role_hijack",
+        re.compile(
+            r"\b(you are now|act as|pretend to be|new (role|persona)|developer mode|jailbreak|DAN mode)\b",
+            re.I,
+        ),
+    ),
+    (
+        "secret_exfiltration",
+        re.compile(
+            r"\b(api[_-]?key|secret|password|token|credential)s?\b.{0,25}\b(print|show|reveal|send|expose|dump)\b",
+            re.I | re.S,
+        ),
+    ),
+    (
+        "tool_abuse",
+        re.compile(
+            r"\b(execute|run|eval)\b.{0,20}\b(shell|bash|cmd|powershell|python|os\.system|subprocess)\b",
+            re.I | re.S,
+        ),
+    ),
+    (
+        "delimiter_escape",
+        re.compile(r"(<\|(endoftext|im_start|im_end|system|assistant)\|>|\[/?(INST|SYS)\])", re.I),
+    ),
 ]
 
 

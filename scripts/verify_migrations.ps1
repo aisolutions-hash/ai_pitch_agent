@@ -5,7 +5,7 @@ $db = Join-Path $env:TEMP "kalisoft_migration_check.db"
 Remove-Item $db -ErrorAction SilentlyContinue
 
 $env:DATABASE_URL = "sqlite:///" + ($db -replace "\\", "/")
-$env:SECRET_KEY = "verify-secret-key-that-is-long-enough-for-hs256"
+$env:SECRET_KEY = "verify-" + [guid]::NewGuid().ToString("N")
 $env:ENV = "test"
 $env:AUTH_DEV_MODE = "true"
 

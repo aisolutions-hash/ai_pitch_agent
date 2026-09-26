@@ -13,10 +13,10 @@ from enum import Enum
 
 
 class Tier(str, Enum):
-    NANO = "nano"      # deterministic / tiny local model
-    SMALL = "small"    # local SLM (e.g. 0.5B-3B)
+    NANO = "nano"  # deterministic / tiny local model
+    SMALL = "small"  # local SLM (e.g. 0.5B-3B)
     MEDIUM = "medium"  # local 7B-8B or cheap cloud flash model
-    LARGE = "large"    # cloud reasoning model, used sparingly
+    LARGE = "large"  # cloud reasoning model, used sparingly
 
 
 @dataclass(frozen=True)

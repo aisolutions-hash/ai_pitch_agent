@@ -56,12 +56,22 @@ def create_template(
     db: Session = Depends(get_db),
 ):
     variables = payload.variables or variables_used(payload.subject + " " + payload.body)
-    template = MessageTemplate(user_id=user.id, **payload.model_dump(exclude={"variables"}), variables=variables)
+    template = MessageTemplate(
+        user_id=user.id, **payload.model_dump(exclude={"variables"}), variables=variables
+    )
     db.add(template)
     db.commit()
     db.refresh(template)
-    log_event(db, action="template.create", actor_user_id=user.id, resource_type="template",
-              resource_id=str(template.id), tenant_id=user.domain, detail={"channel": template.channel}, commit=True)
+    log_event(
+        db,
+        action="template.create",
+        actor_user_id=user.id,
+        resource_type="template",
+        resource_id=str(template.id),
+        tenant_id=user.domain,
+        detail={"channel": template.channel},
+        commit=True,
+    )
     return template
 
 

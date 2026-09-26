@@ -16,7 +16,13 @@ def test_create_update_delete_template(client, auth_headers):
     created = client.post(
         "/api/templates",
         headers=auth_headers,
-        json={"name": "Custom", "channel": "email", "strategy": "follow_up", "subject": "Hi {{name}}", "body": "Hello {{company}}"},
+        json={
+            "name": "Custom",
+            "channel": "email",
+            "strategy": "follow_up",
+            "subject": "Hi {{name}}",
+            "body": "Hello {{company}}",
+        },
     )
     assert created.status_code == 201, created.text
     template = created.json()
@@ -39,13 +45,23 @@ def test_campaign_requires_matching_contacts(client, auth_headers):
     response = client.post(
         "/api/campaigns",
         headers=auth_headers,
-        json={"name": "Empty", "channel": "email", "strategy": "cold_outreach", "template_id": template["id"], "filter": {"q": "no-such-company-xyz"}},
+        json={
+            "name": "Empty",
+            "channel": "email",
+            "strategy": "cold_outreach",
+            "template_id": template["id"],
+            "filter": {"q": "no-such-company-xyz"},
+        },
     )
     assert response.status_code == 400
 
 
 def test_campaign_review_approve_and_linkedin_queue(client, auth_headers):
-    client.post("/api/contacts", headers=auth_headers, json={"email": "buyer@acme.com", "company": "Acme", "name": "Ravi"})
+    client.post(
+        "/api/contacts",
+        headers=auth_headers,
+        json={"email": "buyer@acme.com", "company": "Acme", "name": "Ravi"},
+    )
     client.post("/api/templates/seed", headers=auth_headers)
     template = client.get("/api/templates?channel=linkedin", headers=auth_headers).json()[0]
 
@@ -84,14 +100,25 @@ def test_whatsapp_campaign_fails_when_disabled(client, auth_headers, monkeypatch
     from sales_fastapi.config import settings
 
     monkeypatch.setattr(settings, "WHATSAPP_ENABLED", False)
-    client.post("/api/contacts", headers=auth_headers, json={"email": "wa@acme.com", "company": "Acme", "phone": "+919999999999"})
+    client.post(
+        "/api/contacts",
+        headers=auth_headers,
+        json={"email": "wa@acme.com", "company": "Acme", "phone": "+919999999999"},
+    )
     client.post("/api/templates/seed", headers=auth_headers)
     template = client.get("/api/templates?channel=whatsapp", headers=auth_headers).json()[0]
 
     campaign = client.post(
         "/api/campaigns",
         headers=auth_headers,
-        json={"name": "WA", "channel": "whatsapp", "strategy": template["strategy"], "template_id": template["id"], "use_ai": False, "filter": {"limit": 5}},
+        json={
+            "name": "WA",
+            "channel": "whatsapp",
+            "strategy": template["strategy"],
+            "template_id": template["id"],
+            "use_ai": False,
+            "filter": {"limit": 5},
+        },
     ).json()
     client.post(f"/api/campaigns/{campaign['id']}/approve", headers=auth_headers)
     result = client.post(f"/api/campaigns/{campaign['id']}/send", headers=auth_headers)

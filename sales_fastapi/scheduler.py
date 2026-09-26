@@ -22,12 +22,36 @@ from .config import settings
 
 # Standard recurring tasks, aligned with Cloud Scheduler jobs in production.
 STANDARD_TASKS: List[Dict[str, Any]] = [
-    {"name": "sync_gcs_contacts", "cron": "0 */6 * * *", "description": "Import contacts from GCS bucket"},
-    {"name": "refresh_email_connections", "cron": "*/30 * * * *", "description": "Re-test IMAP/SMTP connections"},
-    {"name": "linkedin_hiring_alerts", "cron": "0 8 * * *", "description": "Daily LinkedIn hiring-keyword sweep"},
-    {"name": "reddit_hiring_alerts", "cron": "0 8 * * *", "description": "Daily Reddit hiring-thread sweep"},
-    {"name": "youtube_signal_scan", "cron": "0 9 * * *", "description": "YouTube company/tech signal scan (future)"},
-    {"name": "whatsapp_reminders", "cron": "0 10 * * *", "description": "Queue follow-up WhatsApp reminders"},
+    {
+        "name": "sync_gcs_contacts",
+        "cron": "0 */6 * * *",
+        "description": "Import contacts from GCS bucket",
+    },
+    {
+        "name": "refresh_email_connections",
+        "cron": "*/30 * * * *",
+        "description": "Re-test IMAP/SMTP connections",
+    },
+    {
+        "name": "linkedin_hiring_alerts",
+        "cron": "0 8 * * *",
+        "description": "Daily LinkedIn hiring-keyword sweep",
+    },
+    {
+        "name": "reddit_hiring_alerts",
+        "cron": "0 8 * * *",
+        "description": "Daily Reddit hiring-thread sweep",
+    },
+    {
+        "name": "youtube_signal_scan",
+        "cron": "0 9 * * *",
+        "description": "YouTube company/tech signal scan (future)",
+    },
+    {
+        "name": "whatsapp_reminders",
+        "cron": "0 10 * * *",
+        "description": "Queue follow-up WhatsApp reminders",
+    },
     {
         "name": "events_whatsapp_due",
         "cron": "*/15 * * * *",
@@ -71,7 +95,9 @@ class SchedulerService:
         return f"{_USER_QUEUE_PREFIX}{user_id}" if user_id else _QUEUE_KEY
 
     # -- queue operations ----------------------------------------------------
-    def enqueue(self, task_name: str, user_id: int | None = None, kwargs: Dict[str, Any] | None = None) -> str:
+    def enqueue(
+        self, task_name: str, user_id: int | None = None, kwargs: Dict[str, Any] | None = None
+    ) -> str:
         task_id = str(uuid.uuid4())
         payload = {
             "id": task_id,

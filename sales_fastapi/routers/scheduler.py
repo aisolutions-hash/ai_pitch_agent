@@ -45,8 +45,11 @@ router = APIRouter(tags=["scheduler", "kpi"])
 # Scheduler
 # ---------------------------------------------------------------------------
 
+
 @router.post("/scheduler/run")
-def run_scheduler(payload: SchedulerRunIn, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def run_scheduler(
+    payload: SchedulerRunIn, user: User = Depends(get_current_user), db: Session = Depends(get_db)
+):
     """Enqueue the standard pipeline tasks for this user (manual cron sweep)."""
     task_ids = scheduler_service.enqueue_standard_tasks(user_id=user.id)
     result = {
@@ -111,12 +114,16 @@ def scheduler_clear(user: User = Depends(get_current_user)):
 # Business KPIs
 # ---------------------------------------------------------------------------
 
+
 @router.get("/kpi/overview")
 def kpi_overview(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """Headline business KPIs for the authenticated user's workspace."""
-    total_contacts = db.query(func.count(Contact.id)).filter(Contact.user_id == user.id).scalar() or 0
+    total_contacts = (
+        db.query(func.count(Contact.id)).filter(Contact.user_id == user.id).scalar() or 0
+    )
     linkedin_signals = (
-        db.query(func.count(LinkedInProfile.id)).filter(LinkedInProfile.user_id == user.id).scalar() or 0
+        db.query(func.count(LinkedInProfile.id)).filter(LinkedInProfile.user_id == user.id).scalar()
+        or 0
     )
     reddit_signals = (
         db.query(func.count(RedditPost.id)).filter(RedditPost.user_id == user.id).scalar() or 0

@@ -7,9 +7,14 @@ from sales_fastapi.governance.gcp_verify import verify_environment
 def test_classification_levels():
     assert classification.classify_field("email") == classification.DataClassification.RESTRICTED
     assert classification.classify_field("password") == classification.DataClassification.RESTRICTED
-    assert classification.classify_field("company") == classification.DataClassification.CONFIDENTIAL
+    assert (
+        classification.classify_field("company") == classification.DataClassification.CONFIDENTIAL
+    )
     assert classification.classify_field("intent") == classification.DataClassification.INTERNAL
-    assert classification.classify_field("something_unknown") == classification.DataClassification.INTERNAL
+    assert (
+        classification.classify_field("something_unknown")
+        == classification.DataClassification.INTERNAL
+    )
 
 
 def test_classify_record_uses_max():

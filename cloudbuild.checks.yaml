@@ -15,7 +15,7 @@ steps:
         ruff format --check sales_fastapi tests migrations
         bandit -r sales_fastapi -x sales_fastapi/static -ll
         export DATABASE_URL="sqlite:///./ci_migration.db"
-        export SECRET_KEY="ci-secret-key-that-is-long-enough-for-hs256"
+        export SECRET_KEY="$(python -c 'import secrets; print(secrets.token_urlsafe(32))')"
         export ENV=test
         export AUTH_DEV_MODE=true
         alembic upgrade head

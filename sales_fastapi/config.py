@@ -126,7 +126,9 @@ class Settings(BaseSettings):
     LLM_GEMMA_MODEL: str = Field(default="gemma-4-27b-it", alias="LLM_GEMMA_MODEL")
 
     # --- CORS ---
-    CORS_ORIGINS: str = Field(default="http://localhost:3000,http://localhost:8000", alias="CORS_ORIGINS")
+    CORS_ORIGINS: str = Field(
+        default="http://localhost:3000,http://localhost:8000", alias="CORS_ORIGINS"
+    )
 
     @property
     def cors_origin_list(self) -> list[str]:
@@ -163,7 +165,11 @@ class Settings(BaseSettings):
 
     @property
     def auth_dev_allowed_list(self) -> list[str]:
-        return [email.strip().lower() for email in self.AUTH_DEV_ALLOWED_EMAILS.split(",") if email.strip()]
+        return [
+            email.strip().lower()
+            for email in self.AUTH_DEV_ALLOWED_EMAILS.split(",")
+            if email.strip()
+        ]
 
     @model_validator(mode="after")
     def validate_security_settings(self):

@@ -57,8 +57,11 @@ def health(request: Request):
 @router.get("/integrations")
 def integrations(user=Depends(get_current_user)):
     return {
-        "gcs": {"bucket": settings.GCS_BUCKET_CONTACTS, "path": settings.GCS_PATH_CONTACTS,
-                "available": GCSStorage().available},
+        "gcs": {
+            "bucket": settings.GCS_BUCKET_CONTACTS,
+            "path": settings.GCS_PATH_CONTACTS,
+            "available": GCSStorage().available,
+        },
         "redis_url": settings.redis_url.split("@")[-1],
         "gemma_model": settings.GEMMA_MODEL,
         "whatsapp": bool(settings.WHATSAPP_API_KEY),

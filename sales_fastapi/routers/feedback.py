@@ -39,7 +39,11 @@ def _notify_feedback(user: User, fb: Feedback) -> bool:
             f"Category: {fb.category}\nRating: {fb.rating}/5\nPage: {fb.page or '-'}\n\n"
             f"{fb.message}\n"
         )
-        sender.send(to=settings.SMTP_USER, subject=f"[Kalisoft feedback] {fb.category} ({fb.rating}/5)", body=body)
+        sender.send(
+            to=settings.SMTP_USER,
+            subject=f"[Kalisoft feedback] {fb.category} ({fb.rating}/5)",
+            body=body,
+        )
         return True
     except Exception:  # noqa: BLE001 - notification must not break the request
         return False
@@ -69,7 +73,13 @@ def submit_feedback(
 
 @router.get("/feedback")
 def list_feedback(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    rows = db.query(Feedback).filter(Feedback.user_id == user.id).order_by(Feedback.id.desc()).limit(50).all()
+    rows = (
+        db.query(Feedback)
+        .filter(Feedback.user_id == user.id)
+        .order_by(Feedback.id.desc())
+        .limit(50)
+        .all()
+    )
     return [FeedbackOut.model_validate(r) for r in rows]
 
 
@@ -78,14 +88,34 @@ def security_status(user: User = Depends(get_current_user)):
     """Data-security guardrails currently enforced (trust signals for the UI)."""
     return {
         "guardrails": [
-            {"key": "google_signin", "label": "Google Sign-In (ADC)", "on": settings.google_signin_configured or settings.AUTH_DEV_MODE},
+            {
+                "key": "google_signin",
+                "label": "Google Sign-In (ADC)",
+                "on": settings.google_signin_configured or settings.AUTH_DEV_MODE,
+            },
             {"key": "user_scoping", "label": "Per-user data isolation", "on": True},
             {"key": "encryption", "label": "Secrets encrypted at rest (Fernet)", "on": True},
-            {"key": "pii_redaction", "label": "PII redaction in logs/prompts", "on": settings.PII_REDACTION_ENABLED},
-            {"key": "audit_log", "label": "Append-only audit trail", "on": settings.AUDIT_LOG_ENABLED},
-            {"key": "rate_limit", "label": "Rate limiting (429)", "on": settings.RATE_LIMIT_ENABLED},
+            {
+                "key": "pii_redaction",
+                "label": "PII redaction in logs/prompts",
+                "on": settings.PII_REDACTION_ENABLED,
+            },
+            {
+                "key": "audit_log",
+                "label": "Append-only audit trail",
+                "on": settings.AUDIT_LOG_ENABLED,
+            },
+            {
+                "key": "rate_limit",
+                "label": "Rate limiting (429)",
+                "on": settings.RATE_LIMIT_ENABLED,
+            },
             {"key": "llm_guardrails", "label": "LLM prompt-injection guardrails", "on": True},
-            {"key": "retention", "label": f"Retention {settings.RETENTION_DAYS_CONTACTS}d contacts / {settings.RETENTION_DAYS_AUDIT}d audit", "on": True},
+            {
+                "key": "retention",
+                "label": f"Retention {settings.RETENTION_DAYS_CONTACTS}d contacts / {settings.RETENTION_DAYS_AUDIT}d audit",
+                "on": True,
+            },
         ],
         "env": settings.ENV,
     }

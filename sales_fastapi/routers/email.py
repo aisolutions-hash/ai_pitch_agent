@@ -164,9 +164,7 @@ def fetch_connection(
     finally:
         extractor.disconnect()
     context_messages = [
-        context
-        for message in messages
-        if (context := _email_context(message, payload)) is not None
+        context for message in messages if (context := _email_context(message, payload)) is not None
     ][: payload.limit]
     return EmailFetchOut(
         connection_id=conn.id,

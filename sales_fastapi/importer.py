@@ -79,6 +79,7 @@ def _vcf_records(raw: bytes) -> list[dict[str, Any]]:
     text = raw.decode("utf-8", errors="ignore")
     records: list[dict[str, Any]] = []
     for block in _VCARD_BLOCK.findall(text):
+
         def first(prop: str) -> str:
             match = re.search(rf"^{prop}[^:]*:(.+)$", block, re.IGNORECASE | re.MULTILINE)
             return match.group(1).strip() if match else ""
@@ -144,14 +145,33 @@ def _pick(record: dict[str, Any], *keys: str) -> str:
 def normalise_record(record: dict[str, Any]) -> dict[str, Any] | None:
     email_address = _pick(
         record,
-        "email", "email (company / division)", "e-mail", "mail", "email id", "email address",
-        "contact email", "e mail", "emailid",
+        "email",
+        "email (company / division)",
+        "e-mail",
+        "mail",
+        "email id",
+        "email address",
+        "contact email",
+        "e mail",
+        "emailid",
     )
     company = _pick(
-        record, "company", "organisation", "organization", "company name", "firm", "org",
+        record,
+        "company",
+        "organisation",
+        "organization",
+        "company name",
+        "firm",
+        "org",
     )
     name = _pick(
-        record, "name", "contact", "contact name", "contact person", "full name", "person",
+        record,
+        "name",
+        "contact",
+        "contact name",
+        "contact person",
+        "full name",
+        "person",
         "first name",
     )
     if not email_address and not company and not name:
@@ -162,7 +182,9 @@ def normalise_record(record: dict[str, Any]) -> dict[str, Any] | None:
     # signal is lost even though the Contact model has no dedicated columns.
     tags: list[str] = []
     for key, label in (
-        ("sector", "sector"), ("category", "category"), ("exporter", "exporter"),
+        ("sector", "sector"),
+        ("category", "category"),
+        ("exporter", "exporter"),
         ("turnover range", "turnover"),
     ):
         value = _pick(record, key)
@@ -178,12 +200,21 @@ def normalise_record(record: dict[str, Any]) -> dict[str, Any] | None:
     return {
         "company": company,
         "name": name,
-        "email": email_address or f"unknown-{hashlib.md5((company or name).encode(), usedforsecurity=False).hexdigest()[:12]}@placeholder.local",
-        "phone": _pick(record, "phone", "contact (phone)", "mobile", "phone number", "contact number", "tel"),
+        "email": email_address
+        or f"unknown-{hashlib.md5((company or name).encode(), usedforsecurity=False).hexdigest()[:12]}@placeholder.local",
+        "phone": _pick(
+            record, "phone", "contact (phone)", "mobile", "phone number", "contact number", "tel"
+        ),
         "address": _pick(record, "address", "address (ahmednagar unit)", "location", "city"),
-        "linkedin_company": _pick(record, "linkedin", "linkedin (company / key scm profile)", "linkedin url", "website"),
-        "purchase_contact_name": _pick(record, "purchase / scm contact (name, role)", "purchase contact", "scm contact"),
-        "purchase_contact_email": _pick(record, "purchase contact details (email / phone)", "purchase email"),
+        "linkedin_company": _pick(
+            record, "linkedin", "linkedin (company / key scm profile)", "linkedin url", "website"
+        ),
+        "purchase_contact_name": _pick(
+            record, "purchase / scm contact (name, role)", "purchase contact", "scm contact"
+        ),
+        "purchase_contact_email": _pick(
+            record, "purchase contact details (email / phone)", "purchase email"
+        ),
         "purchase_contact_role": _pick(record, "title", "designation", "role", "position"),
         "tags": tags,
         "notes": " | ".join(notes_parts),

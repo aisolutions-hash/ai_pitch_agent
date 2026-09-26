@@ -92,7 +92,9 @@ class EmailConnection(Base):
 
 class GoogleMailbox(Base):
     __tablename__ = "google_mailboxes"
-    __table_args__ = (UniqueConstraint("user_id", "email_address", name="uq_google_mailbox_user_email"),)
+    __table_args__ = (
+        UniqueConstraint("user_id", "email_address", name="uq_google_mailbox_user_email"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     user_id: Mapped[int] = mapped_column(Integer, index=True)
@@ -224,9 +226,7 @@ class AuditLog(Base):
     status: Mapped[str] = mapped_column(String(32), default="success", index=True)
     ip_address: Mapped[str] = mapped_column(String(64), default="")
     detail: Mapped[dict] = mapped_column(JSON, default=dict)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime, server_default=func.now(), index=True
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), index=True)
 
 
 class ModelUsage(Base):
@@ -245,9 +245,7 @@ class ModelUsage(Base):
     cost_micros: Mapped[int] = mapped_column(Integer, default=0)
     latency_ms: Mapped[int] = mapped_column(Integer, default=0)
     fallback_used: Mapped[bool] = mapped_column(Boolean, default=False)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime, server_default=func.now(), index=True
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), index=True)
 
 
 class Feedback(Base):

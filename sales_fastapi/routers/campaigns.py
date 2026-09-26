@@ -67,7 +67,9 @@ def _ai_personalise(template: MessageTemplate, contact: Contact, channel: str) -
         "Return only the final message body."
     )
     try:
-        route = _llm_router().run("generate_outreach_message", prompt, system="You are a precise B2B sales copywriter.")
+        route = _llm_router().run(
+            "generate_outreach_message", prompt, system="You are a precise B2B sales copywriter."
+        )
         text = route.result.text.strip()
         if route.result.provider == "echo" or not text:
             return ("template", base_body)
@@ -85,7 +87,9 @@ def create_campaign(
 ):
     template = (
         db.query(MessageTemplate)
-        .filter(MessageTemplate.id == payload.template_id, MessageTemplate.user_id.in_([user.id, 0]))
+        .filter(
+            MessageTemplate.id == payload.template_id, MessageTemplate.user_id.in_([user.id, 0])
+        )
         .first()
     )
     if template is None:
@@ -98,7 +102,9 @@ def create_campaign(
         query = query.filter(Contact.source == payload.filter.source)
     if payload.filter.q:
         like = f"%{payload.filter.q}%"
-        query = query.filter(Contact.company.ilike(like) | Contact.name.ilike(like) | Contact.email.ilike(like))
+        query = query.filter(
+            Contact.company.ilike(like) | Contact.name.ilike(like) | Contact.email.ilike(like)
+        )
     contacts = query.order_by(Contact.created_at.desc()).limit(payload.filter.limit).all()
     if not contacts:
         raise HTTPException(status_code=400, detail="No contacts matched the campaign filter")
@@ -127,7 +133,9 @@ def create_campaign(
                 campaign_id=campaign.id,
                 user_id=user.id,
                 contact_id=contact.id,
-                to_address=contact.phone if payload.channel in {"whatsapp", "wechat"} else contact.email,
+                to_address=contact.phone
+                if payload.channel in {"whatsapp", "wechat"}
+                else contact.email,
                 rendered_subject=subject,
                 rendered_body=body,
                 status="pending_review",
@@ -137,10 +145,17 @@ def create_campaign(
     db.commit()
     db.refresh(campaign)
 
-    log_event(db, action="campaign.create", actor_user_id=user.id, resource_type="campaign",
-              resource_id=str(campaign.id), tenant_id=user.domain,
-              ip_address=request.client.host if request.client else "",
-              detail={"channel": payload.channel, "total": campaign.total, "ai_model": campaign.ai_model}, commit=True)
+    log_event(
+        db,
+        action="campaign.create",
+        actor_user_id=user.id,
+        resource_type="campaign",
+        resource_id=str(campaign.id),
+        tenant_id=user.domain,
+        ip_address=request.client.host if request.client else "",
+        detail={"channel": payload.channel, "total": campaign.total, "ai_model": campaign.ai_model},
+        commit=True,
+    )
     return _detail(db, campaign)
 
 
@@ -169,7 +184,9 @@ def list_campaigns(user: User = Depends(get_current_user), db: Session = Depends
 
 
 @router.get("/{campaign_id}", response_model=CampaignDetail)
-def get_campaign(campaign_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def get_campaign(
+    campaign_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)
+):
     campaign = (
         db.query(Campaign).filter(Campaign.id == campaign_id, Campaign.user_id == user.id).first()
     )
@@ -209,7 +226,9 @@ def edit_message(
 
 
 @router.post("/{campaign_id}/approve", response_model=CampaignDetail)
-def approve_campaign(campaign_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def approve_campaign(
+    campaign_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)
+):
     campaign = (
         db.query(Campaign).filter(Campaign.id == campaign_id, Campaign.user_id == user.id).first()
     )
@@ -221,13 +240,23 @@ def approve_campaign(campaign_id: int, user: User = Depends(get_current_user), d
     campaign.status = "approved"
     db.commit()
     db.refresh(campaign)
-    log_event(db, action="campaign.approve", actor_user_id=user.id, resource_type="campaign",
-              resource_id=str(campaign.id), tenant_id=user.domain, detail={}, commit=True)
+    log_event(
+        db,
+        action="campaign.approve",
+        actor_user_id=user.id,
+        resource_type="campaign",
+        resource_id=str(campaign.id),
+        tenant_id=user.domain,
+        detail={},
+        commit=True,
+    )
     return _detail(db, campaign)
 
 
 @router.post("/{campaign_id}/send", response_model=CampaignSendResult)
-def send_campaign(campaign_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def send_campaign(
+    campaign_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)
+):
     campaign = (
         db.query(Campaign).filter(Campaign.id == campaign_id, Campaign.user_id == user.id).first()
     )
@@ -240,9 +269,7 @@ def send_campaign(campaign_id: int, user: User = Depends(get_current_user), db: 
         .all()
     )
     sent = failed = skipped = 0
-    email_connection = (
-        db.query(EmailConnection).filter(EmailConnection.user_id == user.id).first()
-    )
+    email_connection = db.query(EmailConnection).filter(EmailConnection.user_id == user.id).first()
     gateway = WechatyGateway()
 
     for message in messages:
@@ -257,7 +284,11 @@ def send_campaign(campaign_id: int, user: User = Depends(get_current_user), db: 
                     email_connection.smtp_port,
                     email_connection.email_address,
                     decrypt_secret(email_connection.secret_encrypted),
-                ).send(message.to_address, message.rendered_subject or campaign.name, message.rendered_body)
+                ).send(
+                    message.to_address,
+                    message.rendered_subject or campaign.name,
+                    message.rendered_body,
+                )
                 message.status = "sent"
                 sent += 1
             elif campaign.channel in {"whatsapp", "wechat"}:
@@ -282,19 +313,33 @@ def send_campaign(campaign_id: int, user: User = Depends(get_current_user), db: 
     db.commit()
     db.refresh(campaign)
 
-    log_event(db, action="campaign.send", actor_user_id=user.id, resource_type="campaign",
-              resource_id=str(campaign.id), status=campaign.status, tenant_id=user.domain,
-              detail={"sent": sent, "failed": failed, "skipped": skipped}, commit=True)
-    return CampaignSendResult(campaign_id=campaign.id, status=campaign.status, sent=sent, failed=failed, skipped=skipped)
+    log_event(
+        db,
+        action="campaign.send",
+        actor_user_id=user.id,
+        resource_type="campaign",
+        resource_id=str(campaign.id),
+        status=campaign.status,
+        tenant_id=user.domain,
+        detail={"sent": sent, "failed": failed, "skipped": skipped},
+        commit=True,
+    )
+    return CampaignSendResult(
+        campaign_id=campaign.id, status=campaign.status, sent=sent, failed=failed, skipped=skipped
+    )
 
 
 @router.delete("/{campaign_id}", status_code=204)
-def delete_campaign(campaign_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def delete_campaign(
+    campaign_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)
+):
     campaign = (
         db.query(Campaign).filter(Campaign.id == campaign_id, Campaign.user_id == user.id).first()
     )
     if campaign is None:
         raise HTTPException(status_code=404, detail="Campaign not found")
-    db.query(CampaignMessage).filter(CampaignMessage.campaign_id == campaign_id).delete(synchronize_session=False)
+    db.query(CampaignMessage).filter(CampaignMessage.campaign_id == campaign_id).delete(
+        synchronize_session=False
+    )
     db.delete(campaign)
     db.commit()

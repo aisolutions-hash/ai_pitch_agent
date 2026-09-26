@@ -78,7 +78,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       DATABASE_URL: sqlite:///./ci_migration.db
-      SECRET_KEY: ci-secret-key-that-is-long-enough-for-hs256
+      SECRET_KEY: ${{ format('ci-{0}-{1}', github.run_id, github.sha) }}
       ENV: test
       AUTH_DEV_MODE: "true"
     steps:

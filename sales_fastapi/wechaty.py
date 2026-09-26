@@ -17,7 +17,9 @@ from .config import settings
 
 
 class WechatyGateway:
-    def __init__(self, base_url: str | None = None, token: str | None = None, timeout: int | None = None):
+    def __init__(
+        self, base_url: str | None = None, token: str | None = None, timeout: int | None = None
+    ):
         self.base_url = (base_url or settings.WECHATY_GATEWAY_URL).rstrip("/")
         self.token = token if token is not None else settings.WECHATY_GATEWAY_TOKEN
         self.timeout = timeout or settings.WECHATY_TIMEOUT_SECONDS
@@ -59,9 +61,7 @@ class WechatyGateway:
             return response.json()
 
 
-def verify_webhook_signature(
-    raw_body: bytes, signature: str, secret: str | None = None
-) -> bool:
+def verify_webhook_signature(raw_body: bytes, signature: str, secret: str | None = None) -> bool:
     """Constant-time HMAC-SHA256 check. Returns True when no secret is configured."""
     secret = secret if secret is not None else settings.WECHATY_WEBHOOK_SECRET
     if not secret:

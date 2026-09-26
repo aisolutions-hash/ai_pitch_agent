@@ -41,7 +41,13 @@ def test_send_success_persists_and_returns_gateway_id(client, auth_headers, monk
     _enable_wechaty(monkeypatch)
     monkeypatch.setattr(
         "sales_fastapi.wechaty.WechatyGateway.send_text",
-        lambda self, to, text: {"id": "gw-123", "to": to, "text": text, "status": "sent", "provider": "mock"},
+        lambda self, to, text: {
+            "id": "gw-123",
+            "to": to,
+            "text": text,
+            "status": "sent",
+            "provider": "mock",
+        },
     )
 
     response = client.post(
@@ -91,7 +97,10 @@ def test_webhook_accepts_valid_signature(client, monkeypatch):
     response = client.post(
         "/api/whatsapp/webhook",
         content=body,
-        headers={"content-type": "application/json", "x-wechaty-signature": _sign("top-secret", body)},
+        headers={
+            "content-type": "application/json",
+            "x-wechaty-signature": _sign("top-secret", body),
+        },
     )
     assert response.status_code == 200, response.text
     assert response.json()["intent"] == "hiring"

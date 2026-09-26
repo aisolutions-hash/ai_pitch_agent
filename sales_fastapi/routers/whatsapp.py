@@ -38,9 +38,7 @@ def whatsapp_status(
     return {
         "enabled": settings.WHATSAPP_ENABLED,
         "gateway_url": gateway.base_url,
-        "queued": db.query(WhatsAppMessage)
-        .filter(WhatsAppMessage.user_id == user.id)
-        .count(),
+        "queued": db.query(WhatsAppMessage).filter(WhatsAppMessage.user_id == user.id).count(),
         "gateway": gateway.health(),
     }
 

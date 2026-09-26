@@ -116,7 +116,14 @@ def mask(text: str) -> str:
 
     out = _PATTERNS[0][1].sub(_mask_email, text)
     for kind, pattern in _PATTERNS[1:]:
-        out = pattern.sub(lambda m, k=kind: _mask_digits(m) if k in {"PHONE", "AADHAAR", "CARD"} else f"[{_LABEL.get(k, 'PII')}]", out)
+        out = pattern.sub(
+            lambda m, k=kind: (
+                _mask_digits(m)
+                if k in {"PHONE", "AADHAAR", "CARD"}
+                else f"[{_LABEL.get(k, 'PII')}]"
+            ),
+            out,
+        )
     return out
 
 

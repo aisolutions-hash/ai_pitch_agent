@@ -4,7 +4,7 @@ set -euo pipefail
 
 DB="$(mktemp -u).db"
 export DATABASE_URL="sqlite:///${DB}"
-export SECRET_KEY="verify-secret-key-that-is-long-enough-for-hs256"
+export SECRET_KEY="$(python -c 'import secrets; print(secrets.token_urlsafe(32))')"
 export ENV="test"
 export AUTH_DEV_MODE="true"
 

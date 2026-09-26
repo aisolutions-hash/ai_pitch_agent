@@ -217,7 +217,9 @@ class ModelRouter:
                     json_mode=spec.json_mode,
                 )
             except Exception as exc:  # provider failure -> next candidate
-                attempts.append({"provider": key, "model": model, "status": f"error:{type(exc).__name__}"})
+                attempts.append(
+                    {"provider": key, "model": model, "status": f"error:{type(exc).__name__}"}
+                )
                 fallback_used = True
                 continue
 

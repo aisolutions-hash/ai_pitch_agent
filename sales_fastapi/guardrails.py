@@ -36,14 +36,24 @@ class RequestGuardrailsMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next):
         content_length = request.headers.get("content-length")
-        if content_length and content_length.isdigit() and int(content_length) > settings.MAX_REQUEST_BYTES:
+        if (
+            content_length
+            and content_length.isdigit()
+            and int(content_length) > settings.MAX_REQUEST_BYTES
+        ):
             return JSONResponse(status_code=413, content={"detail": "Request body is too large"})
 
         if settings.RATE_LIMIT_ENABLED:
             client = request.client.host if request.client else "unknown"
-            if request.url.path == "/api/auth/google" and self._limited(f"auth:{client}", settings.AUTH_RATE_LIMIT, 300):
-                return JSONResponse(status_code=429, content={"detail": "Too many sign-in attempts"})
-            if request.url.path.startswith("/api/") and self._limited(f"api:{client}", settings.API_RATE_LIMIT, 60):
+            if request.url.path == "/api/auth/google" and self._limited(
+                f"auth:{client}", settings.AUTH_RATE_LIMIT, 300
+            ):
+                return JSONResponse(
+                    status_code=429, content={"detail": "Too many sign-in attempts"}
+                )
+            if request.url.path.startswith("/api/") and self._limited(
+                f"api:{client}", settings.API_RATE_LIMIT, 60
+            ):
                 return JSONResponse(status_code=429, content={"detail": "Too many requests"})
 
         response = await call_next(request)

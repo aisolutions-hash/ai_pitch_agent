@@ -93,12 +93,16 @@ def governance_usage(
     db: Session = Depends(get_db),
 ):
     base = db.query(ModelUsage).filter(ModelUsage.user_id == user.id)
-    total_tokens = db.query(
-        func.coalesce(func.sum(ModelUsage.input_tokens + ModelUsage.output_tokens), 0)
-    ).filter(ModelUsage.user_id == user.id).scalar()
-    total_cost = db.query(func.coalesce(func.sum(ModelUsage.cost_micros), 0)).filter(
-        ModelUsage.user_id == user.id
-    ).scalar()
+    total_tokens = (
+        db.query(func.coalesce(func.sum(ModelUsage.input_tokens + ModelUsage.output_tokens), 0))
+        .filter(ModelUsage.user_id == user.id)
+        .scalar()
+    )
+    total_cost = (
+        db.query(func.coalesce(func.sum(ModelUsage.cost_micros), 0))
+        .filter(ModelUsage.user_id == user.id)
+        .scalar()
+    )
     by_provider = (
         base.with_entities(
             ModelUsage.provider,
