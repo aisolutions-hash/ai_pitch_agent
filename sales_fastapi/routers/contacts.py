@@ -294,16 +294,16 @@ def import_from_gcs(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    prefix = prefix or settings.GCS_PATH_CONTACTS
+    allowed_prefix = settings.GCS_PATH_CONTACTS.rstrip("/") + "/"
+    if prefix != settings.GCS_PATH_CONTACTS and not prefix.startswith(allowed_prefix):
+        raise HTTPException(status_code=400, detail="GCS prefix is outside the contacts namespace")
     gcs = GCSStorage()
     if not gcs.available:
         raise HTTPException(
             status_code=503,
             detail="GCS is not available (missing credentials / package)",
         )
-    prefix = prefix or settings.GCS_PATH_CONTACTS
-    allowed_prefix = settings.GCS_PATH_CONTACTS.rstrip("/") + "/"
-    if prefix != settings.GCS_PATH_CONTACTS and not prefix.startswith(allowed_prefix):
-        raise HTTPException(status_code=400, detail="GCS prefix is outside the contacts namespace")
     blobs = gcs.list_contacts(prefix=prefix)
 
     imported = skipped = 0
